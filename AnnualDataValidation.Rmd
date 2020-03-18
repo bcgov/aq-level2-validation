@@ -1,0 +1,2746 @@
+---
+title: "Annual Data Validation"
+author: "Donna Haga"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+params:
+  stations:
+    choices: !r readr::read_rds("stations.rds")
+    input: select
+    label: 'Select stations:'
+    multiple: yes
+    value: !r c("Kamloops Federal Building","Golden Lady Grey School","Castlegar Zinio Park")
+---
+
+```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      echo = FALSE)
+
+library(tidyverse)
+library(openair)
+library(Hmisc)
+library(xts)
+library(plotly)
+library(RCurl)
+library(DT)
+library(feather)
+library(magrittr)
+library(readxl)
+library(gdata)
+
+source("./SAS_from_ftpData/pm25sasFcn.R")
+source("./SAS_from_ftpData/pm10sasFcn.R")
+source("./SAS_from_ftpData/no2sasFcn.R")
+source("./SAS_from_ftpData/nosasFcn.R")
+source("./SAS_from_ftpData/so2sasFcn.R")
+source("./SAS_from_ftpData/o3sasFcn.R")
+source("./SAS_from_ftpData/h2ssasFcn.R")
+source("./SAS_from_ftpData/trssasFcn.R")
+source("./SAS_from_ftpData/cosasFcn.R")
+
+source("plotlyFcn.R")
+source("emptyPlot.R")
+
+data<-feather::read_feather("unverifiedData.feather") %>%
+  dplyr::filter(STATION_NAME %in% params$stations)
+```
+
+# {.tabset}
+
+## Data Summary
+
+**Stations selected include: `r stringr::str_c(params$stations,collapse=", ")`.**
+
+```{r dataSummary}
+DT::datatable(data %>%
+                dplyr::distinct(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+                arrange(STATION_NAME),
+              caption = "Summary of data selected for validation.",
+              rownames = FALSE)
+```
+
+
+## SAS Statistics {.tabset}
+
+**To-do: add ECMS's SAS stats to table for comparison**
+
+### PM~2.5~
+
+
+```{r pm25sas}
+
+pm25sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% "PM25") %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% "PM25" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm25SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(pm25sas!=0)){
+  DT::datatable(pm25sas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### PM~10~
+```{r pm10sas}
+
+pm10sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% "PM10") %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% "PM10" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm10SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(pm10sas!=0)){
+  DT::datatable(pm10sas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### NO~2~
+
+```{r no2sas}
+
+no2sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("no2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   no2SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(no2sas!=0)){
+  DT::datatable(no2sas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### NO
+
+```{r nosas}
+
+nosas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("no")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("no") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   noSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(nosas!=0)){
+  DT::datatable(nosas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### SO~2~
+
+```{r so2sas}
+
+so2sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("so2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   so2SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(so2sas!=0)){
+  DT::datatable(so2sas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### O~3~
+
+```{r o3sas}
+
+o3sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("o3") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   o3SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(o3sas!=0)){
+  DT::datatable(o3sas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### H~2~S
+
+```{r h2ssas}
+
+h2ssas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("h2s") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   h2sSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(h2ssas!=0)){
+  DT::datatable(h2ssas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### TRS
+
+```{r trssas}
+
+trssas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("trs") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   trsSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(trssas!=0)){
+  DT::datatable(trssas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+### CO
+
+```{r cosas}
+
+cosas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("co")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("co") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   coSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  if(nrow(cosas!=0)){
+  DT::datatable(cosas,
+                options = list(scrollX=TRUE))
+  } else {print("There is no data for this parameter.")}
+
+```
+
+## Hourly time series {.tabset}
+
+### PM~2.5~
+
+```{r pm25hourly}
+pm25plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("pm25"))
+  
+  
+}
+
+htmltools::tagList(pm25plots)
+```
+
+
+### PM~10~
+
+```{r pm10hourly}
+pm10plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("pm10"))
+  
+  
+}
+
+htmltools::tagList(pm10plots)
+```
+
+### O~3~
+
+```{r o3hourly}
+o3plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("o3"))
+  
+  
+}
+
+htmltools::tagList(o3plots)
+```
+
+### NO~2~
+
+```{r no2hourly}
+no2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("no2"))
+  
+  
+}
+
+htmltools::tagList(no2plots)
+```
+
+### NO
+
+```{r nohourly}
+noplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("no"))
+  
+  
+}
+
+htmltools::tagList(noplots)
+```
+
+### NO~x~
+
+```{r noxhourly}
+noxplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% "NOx") %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter="NOx")
+  
+  
+}
+
+htmltools::tagList(noxplots)
+```
+
+
+### SO~2~
+
+```{r so2hourly}
+so2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("so2"))
+  
+  
+}
+
+htmltools::tagList(so2plots)
+```
+
+### CO
+
+```{r cohourly}
+coplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("co")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("co"))
+  
+  
+}
+
+htmltools::tagList(coplots)
+```
+
+### TRS
+
+```{r trshourly}
+trsplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("trs"))
+  
+  
+}
+
+htmltools::tagList(trsplots)
+```
+
+### H~2~S
+
+```{r h2shourly}
+h2splots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("h2s"))
+  
+  
+}
+
+htmltools::tagList(h2splots)
+```
+
+### WS
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wspd_sclrhourly}
+wspd_sclrplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("wspd_sclr"))
+  
+  
+}
+
+htmltools::tagList(wspd_sclrplots)
+```
+
+### WD
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wdir_vecthourly}
+wdir_vectplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("wdir_vect"))
+  
+  
+}
+
+htmltools::tagList(wdir_vectplots)
+```
+
+### Temp
+
+```{r temp_meanhourly}
+temp_meanplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("temp_mean"))
+  
+  
+}
+
+htmltools::tagList(temp_meanplots)
+```
+
+### Humidity
+
+```{r humidityhourly}
+humidityplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("humidity"))
+  
+  
+}
+
+htmltools::tagList(humidityplots)
+```
+
+## Box Plots {.tabset}
+
+**To-do: add emptly plots when no data exists for parameter.(like with hourly plot)**
+
+### PM~2.5~
+
+```{r pm25monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly PM2.5 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r pm25hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("pm25")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM2.5 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r pm25diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("pm25")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM2.5 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### PM~10~
+
+```{r pm10monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly PM10 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r pm10hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("pm10")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM10 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r pm10diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("pm10")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM10 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+### O~3~
+
+```{r o3monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("O3")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly O3 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r o3hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("o3")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly O3 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r o3diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("o3")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly O3 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+### NO~2~
+
+```{r no2monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly NO2 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r no2hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("no2")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NO2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r no2diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("no2")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NO2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### NO
+
+```{r nomonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly NO (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("no")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r nohebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("no")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NO (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r nodiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("no")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("no")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NO (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### NO~x~
+
+```{r noxmonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx"),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly NOx (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% "NOx") %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r noxhebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% "NOx") %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NOx (",
+          data %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r noxdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% "NOx"),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly NOx (",
+          data %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### SO~2~
+
+```{r so2monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly SO2 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r so2hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("so2")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly SO2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r so2diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("so2")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly SO2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### CO
+
+```{r comonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("co")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly CO (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("co")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r cohebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("co")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("co")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly CO (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("co")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r codiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("co")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("co")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly CO (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("co")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### TRS
+
+```{r trsmonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly TRS (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r trshebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("trs")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly TRS (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r trsdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("trs")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly TRS (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+### H~2~S
+
+```{r h2smonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p<-ggplot(data = data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s")),
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = ROUNDED_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = "Monthly Boxplot",
+           x = "",
+           y = stringr::str_c("Hourly H2S (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ STATION_NAME, scales = "free") 
+  
+    plotly::ggplotly(p) 
+      
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r h2shebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("h2s")) %>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat"))),
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Hebdomadal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly H2S (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r h2sdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    p <- ggplot(
+      data = data %>%
+        dplyr::filter(STATION_NAME %in% station &
+                        PARAMETER %in% toupper("h2s")),
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = ROUNDED_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = "Diurnal Boxplot",
+        x = "",
+        y = stringr::str_c(
+          "Hourly H2S (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ STATION_NAME, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+## Wind Roses
+
+```{r windRoses}
+# select wind data, get it in openair format
+windData <- data %>%
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
+  dplyr::select(date = DATE_PST,
+                STATION_NAME,
+                PARAMETER,
+                ROUNDED_VALUE) %>%
+  tidyr::pivot_wider(.,
+                     names_from = PARAMETER,
+                     values_from = ROUNDED_VALUE) %>%
+  dplyr::rename(ws = WSPD_SCLR,
+                wd = WDIR_VECT) %>%
+  dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                wd = ifelse(is.na(ws), NA, wd))
+
+
+  purrr::walk(windData %>%
+      dplyr::pull(STATION_NAME) %>%
+      unique,
+    
+    function(station){
+      
+      windData %<>%
+        dplyr::filter(STATION_NAME %in% station)
+      
+      #number of calm hours
+      ncalm <- windData %>%
+        dplyr::filter(ws < 0.5) %>%
+        dplyr::summarise(calms = n())
+      
+      #total number of valid ws hours
+      ntotal <- windData %>%
+        dplyr::filter(!is.na(ws)) %>%
+        dplyr::summarise(total = n())
+      
+      #percentage calm (ws<0.5 m/s)
+      pcalm <- round(100 * ncalm / ntotal,
+                     digits = 2)
+      
+      #filter out calm windData
+      roseData <- windData %>%
+        dplyr::filter(ws >= 0.5)
+      
+      #windRose
+      windRose(
+        roseData,
+        annotate = FALSE,
+        breaks = c(0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1),
+        #Beaufort scale with 0.5 as lowest cut point.
+        sub = paste("Calms (<0.5m/s)=", pcalm, "%"),
+        key.position = "right",
+        main = stringr::str_c("Wind Rose at ",station),
+        angle = 360 / 16,
+        #16 spokes
+        cols = "jet",
+        paddle = FALSE
+      ) 
+     
+       
+      
+    }
+    
+    ) # map
+
+
+
+```
+
+
+## Minute Plots
+
+Minute data plotted above a year of hourly data – that is two separate figures plotted one above the other… with negative values in a different colour
+
+## SHARP drift
+
+3 channel SHARP 5030 neph drift is important to identify

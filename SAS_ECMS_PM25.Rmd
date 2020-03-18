@@ -1,0 +1,340 @@
+---
+title: "`r params$station` PM~2.5~ Statistical Summary"
+author: Environmental and Climate Monitoring Section
+output: html_document
+params:
+  station: !r as.character('Prince George')
+  sas_file: !r as.character('')
+---
+
+```{r external setup, echo = FALSE,message=FALSE,warning=FALSE}
+if (0)
+{
+  station <- 'Burns Lake Fire Centre'
+  station <- 'Parksville Ballenas School'
+  parameter <- 'pm25'
+  sas_summary <- 'A:/Air/Operations ORCS/Data/05_CAAQS/R Summaries/2019_UNSUPPRESSED/Submitted_200228/2019_PM2.5_UNSUPPRESSED.xlsx'
+ 
+}
+station <- params$station
+parameter <- 'PM25'
+sas_summary <- params$sas_file
+# df_stats <- params$df_stats
+#   df_stats <- df_stats %>%
+#     filter(STATION_NAME == station,
+#            PARAMETER == 'PM25')
+
+```
+
+## Background
+
+This automated report provides statistical summaries of PM~2.5~ at `r station` for the 2019 validation year. For details of the CAAQS criteria, [click on this link](https://www2.gov.bc.ca/assets/gov/environment/air-land-water/air/reports-pub/prov_aqo_fact_sheet.pdf). Please review this statistical summary and email any questions/response to _ECMS_.
+
+```{r setup, echo=FALSE,message= FALSE,warning=FALSE, results='hide'}
+setwd("A:/Air/Operations ORCS/Technology/Software Codes ScriptsExecutables/R_SCRIPTS/03_BCGovR/data_analysis_documents/Annual SAS Summaries")
+library(tidyverse)
+library(ggplot2)
+library(ggforce)
+library(lubridate)
+library(gridExtra)
+library(readxl)
+
+source('../../envair/R/importbc_data.R')
+source('../../envair/R/envairfunctions.R')
+source('../../envair/R/envairstatfunctions.R')
+datafile <- 'ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/Hourly_Raw_Air_Data/CaptureStatistics/aq_stats_unformatted.csv'
+
+list_stations <- listBC_stations() %>%
+  select(STATION_NAME) %>%
+  left_join(listBC_stations(2018)) %>%
+  filter(tolower(STATION_NAME) == tolower(station)) %>%
+  select(STATION_NAME,EMS_ID) %>%
+  unique()
+
+```
+
+__Table 1.__ Statistical Summary of PM~2.5~ at `r station`. Use vertical arrows next to column name to sort on that category. Use horizontal scrollbar to view more columns. 
+
+```{r official_stat,echo = FALSE, warning = FALSE, message = FALSE}
+
+
+
+#header of the excel file, extracted separately
+df_stat_header <- read_excel(sas_summary,n_max=2,col_names = FALSE) 
+df_stat_header_trans  <- df_stat_header%>%
+  data.table::transpose() %>%
+  dplyr::mutate(V1 = gsub('HOURLY PERCENTILES','%(hr)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('DAILY PERCENTILES','%(day)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('^.*MONITORING MONTHS.*$','(days)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('^.*QUARTERLY DATA.*$','(%days)',V1,ignore.case = TRUE))
+  
+#remove NA of column category values
+repeat 
+{
+# df_nonNAs <- df_stat_header_trans[!is.na(df_stat_header_trans$V1),]
+# df_NAs<- df_stat_header_trans[is.na(df_stat_header_trans$V1),] 
+
+df_stat_header_trans <- df_stat_header_trans %>%
+  dplyr::mutate(V1=ifelse(is.na(V1),lag(V1),V1))
+  
+if ((!any(is.na(df_stat_header_trans$V1)))){break}
+}
+
+df_stat_header_trans <- df_stat_header_trans %>%
+  dplyr::mutate(columnname = ifelse(is.na(V2),
+                                    V1,
+                                    paste(V2,V1,sep=''))
+                )
+
+df_stat_official <- read_excel(sas_summary)%>%
+  filter(tolower(station) == tolower(`STATION NAME`)) %>%
+  arrange(`STATION NAME`,INSTRUMENT,YEAR)
+
+
+colnames(df_stat_official) <- df_stat_header_trans$columnname
+
+df_stat_official <- df_stat_official %>%
+  dplyr::mutate(
+    `Q1(%days)` = as.integer(`Q1(%days)`),
+    `Q2(%days)` = as.integer(`Q2(%days)`),
+    `Q3(%days)` = as.integer(`Q3(%days)`),
+    `Q4(%days)` = as.integer(`Q4(%days)`)
+  )
+DT::datatable(df_stat_official,options = list(
+  scrollX = TRUE,
+  scroller = TRUE,
+  scrollY=300,
+  searching = FALSE,
+  paging = FALSE,
+  pageLength =100))
+
+```
+
+
+## Percentiles of Hourly PM~2.5~ Values
+
+CAAQS PM~2.5~ criteria based on average annual concentration is 10 µg/m^3^.
+
+```{r Annual Percentiles,echo = FALSE, warning = FALSE, message = FALSE}
+
+
+#header of the excel file, extracted separately}
+
+#list the instruments
+lst_instruments <- df_stat_official %>%
+  ungroup() %>%
+   filter(tolower(`STATION NAME`) == tolower(station)) %>%
+  select(`STATION NAME`,INSTRUMENT) %>%
+  unique() %>%
+  dplyr::mutate(index =1:n()) %>%
+  dplyr::mutate(filename = paste(station,INSTRUMENT,'PM25_Hourly_',index,'.png',sep=''))
+
+#add CAAAQS values based on hourly values
+df_stat_official <-df_stat_official %>% 
+  group_by(`STATION NAME`,INSTRUMENT) %>%
+  arrange(`STATION NAME`,INSTRUMENT,YEAR) %>%
+  dplyr::mutate(AVG_1=lag(`ANNUAL 1-HR AVG`,n=1),AVG_2 = lag(`ANNUAL 1-HR AVG`,n=2)) %>%
+  ungroup()%>%
+   group_by(`STATION NAME`,INSTRUMENT,YEAR) %>% 
+  dplyr::mutate(CAAQS_HR = mean(c(`ANNUAL 1-HR AVG`,AVG_1,AVG_2),na.rm = TRUE)) %>%
+  ungroup()
+ 
+
+#add CAAAQS values based on daily values, 98% of daily
+df_stat_official <- df_stat_official %>% 
+  group_by(`STATION NAME`,INSTRUMENT) %>%
+  arrange(`STATION NAME`,INSTRUMENT,YEAR) %>%
+  dplyr::mutate(PERC_98_1=lag(`ANNUAL 98P_DAILY`,n=1),PERC_98_2 = lag(`ANNUAL 98P_DAILY`,n=2)) %>%
+  ungroup()%>%
+   group_by(`STATION NAME`,INSTRUMENT,YEAR) %>%
+  dplyr::mutate(CAAQS_DAILY = mean(c(`ANNUAL 98P_DAILY`,PERC_98_1,PERC_98_2),na.rm = TRUE)) %>%
+  ungroup()
+
+
+for (instrument in unique(lst_instruments$INSTRUMENT))
+{
+  #annual average values based on stats calculated
+  p <-   df_stat_official %>%
+    filter(INSTRUMENT == instrument) %>%
+    dplyr::mutate(YEAR = as.factor(YEAR)) %>%
+    ggplot(aes(x=YEAR)) +
+    #geom_point(colour = 'blue',size=5) +
+    geom_boxplot(aes(x=YEAR,lower=`25%(hr)`,middle=`50%(hr)`,upper=`75%(hr)`,
+                     ymax=`75%(hr)` + 1.5* (`75%(hr)` - `25%(hr)`),
+                     ymin=`0%(hr)`,
+                     group = YEAR),stat='identity',colour = 'blue') +
+    geom_point(aes(x=YEAR,y=`ANNUAL 1-HR AVG`),colour='red',size=2,shape=22) +
+    geom_point(aes(x=YEAR,y=CAAQS_HR),colour='red',size=2) +
+    geom_point(aes(x=YEAR,y=`100%(hr)`),shape=23) +
+    geom_hline(aes(yintercept = 10),colour='red',linetype = 'dashed') +
+    facet_zoom(ylim=c(0,50)) +
+    theme(axis.text.x =element_text(angle=45),axis.title.x=element_blank()) +
+    ggtitle(label = paste(station,':',instrument,sep=''))
+  
+  print(p)  
+  #png(filename = lst_instruments$filename[lst_instruments$INSTRUMENT == instrument])
+  #  dev.off()
+}
+
+
+
+```
+
+__Figure 1.__ Box plot of _annual 1-hr PM~2.5~ measurements_ at `r station`. Box plot represents 25th and 75th percentiles. 
+Whiskers represent the minimum and the maximum based on 1.5 x IQR values.
+Red box represents the annual average.  Grey diamond represents the maximum (100-percentile) 1-hr value.
+Red dot represents the annual 1-hr CAAQS criteria based on 3-yr average. CAAQS 2019 attainment criteria is 10 ug/m^3^.
+
+
+## Percentiles of Daily PM~2.5~ Values
+
+
+CAAQS PM~2.5~ criteria based on the 3-year averaged 98th percentile of the 24-hour values is 28 µg/m^3^ for 2015-2019.
+
+```{r Daily Percentiles,echo = FALSE, warning = FALSE, message = FALSE}
+
+# list_stations <- listBC_stations() %>%
+#   select(STATION_NAME) %>%
+#   left_join(listBC_stations(2018)) %>%
+#   filter(tolower(STATION_NAME) == tolower(station)) %>%
+#   select(STATION_NAME,EMS_ID) %>%
+#   unique()
+
+#header of the excel file, extracted separately}
+
+for (instrument in lst_instruments$INSTRUMENT)
+{
+#annual average values based on stats calculated
+p <-   df_stat_official %>%
+  filter(INSTRUMENT == instrument) %>%
+  dplyr::mutate(YEAR = as.factor(YEAR)) %>%
+  dplyr::rename(`ANNUAL DAILY AVERAGE, µg/m3`=`ANNUAL DAILY AVG`) %>%
+  ggplot(aes(x=YEAR)) +
+  #geom_point(colour = 'blue',size=5) +
+  geom_boxplot(aes(x=YEAR,lower=`25%(day)`,middle=`50%(day)`,upper=`75%(day)`,
+                   ymax=`75%(day)` + 1.5* (`75%(day)` - `25%(day)`),
+                   ymin=`0%(day)`,
+                   group = YEAR),stat='identity',colour = 'blue') +
+  geom_point(aes(x=YEAR,y=`ANNUAL DAILY AVERAGE, µg/m3`),colour='red',size=2,shape=22) +
+  geom_point(aes(x=YEAR,y=`100%(day)`),shape=23) +
+  geom_point(aes(x=YEAR,y=`CAAQS_DAILY`),colour = 'red',size=2) +
+  geom_hline(aes(yintercept = 28),colour='red',linetype = 'dashed') +
+  facet_zoom(ylim=c(0,40)) +
+  theme(axis.text.x =element_text(angle=45),axis.title.x=element_blank()) +
+  ggtitle(label = paste(station,':',instrument,sep=''))
+
+print(p)  
+#png(filename = lst_instruments$filename[lst_instruments$INSTRUMENT == instrument])
+#  dev.off()
+}
+
+
+
+```
+
+__Figure 2.__ Box Plot of _Annual Daily (24-hr) PM~2.5~ Concentration_ from the Analyzers in `r station`. Box plot represents 25th and 75th percentiles. 
+Whiskers represent the minimum and the maximum based on 1.5 x IQR values. Red box represents the annual 24-hr average. Grey diamond represents the maximum (100-percentile) 24-hr value. Red dot represents the 3-yr averaged 98th percentile of 24-hr values. CAAQS objective is 28 ug/m^3^ (red line).
+
+## Data Capture Summary
+
+
+
+```{r datacapture, echo=FALSE, warning=FALSE,message = FALSE,results='asis'}
+
+if (0)
+{
+  instrument <- 'PM25 SHARP5030'
+}
+
+#calculate the total hours, quarters, and days
+df_dates <- df_stat_official %>%
+  select(YEAR) %>%
+   unique() %>%
+  dplyr::mutate(start = ymd_hm(paste(YEAR,'-01-01 00:00',sep=''),tz='etc/gmt+8'),
+         end=ymd_hm(paste(YEAR,'-12-31 23:00',sep=''),tz='etc/gmt+8')
+)
+
+ 
+  
+seq_dates <- seq(min(df_dates$start),max(df_dates$end),by='hour')
+
+
+df_totals <- tibble(
+  DATE_PST = seq_dates,
+  DATE_DAY =as.character(seq_dates,format='%Y-%m-%d'),
+  YEAR = year(seq_dates),
+  QUARTER = quarter(DATE_PST))%>%
+  dplyr::mutate(DATE_PST = DATE_PST + 3600,
+         QUARTER = paste('Q',QUARTER,sep='')) %>%
+  group_by(YEAR) %>%
+  dplyr::mutate(TOTAL_HOURS = n()) %>%
+  ungroup() %>%
+  select(-DATE_PST) %>%
+  unique() %>%
+  group_by(YEAR) %>%
+  dplyr::mutate(TOTAL_DAYS = n()) %>%
+  group_by(YEAR,QUARTER) %>%
+  dplyr::mutate(TOTAL_QUARTER = n()) %>%
+  select(-DATE_DAY) %>%
+  unique()
+
+df_stats_quarter <- df_stat_official %>%
+  select(`STATION NAME`,INSTRUMENT,YEAR,`Q1(%days)`,`Q2(%days)`,
+         `Q3(%days)`,`Q4(%days)`,YEAR,`VALID HOURS`,`VALID DAYS`) %>%
+  dplyr::rename(
+    Q1=`Q1(%days)`,
+    Q2=`Q2(%days)`,
+    Q3=`Q3(%days)`,
+    Q4=`Q4(%days)`
+  ) %>%
+  pivot_longer(cols =c(Q1,Q2,Q3,Q4),names_to = 'QUARTER',values_to = 'VALID_QUARTER') %>%
+  dplyr::mutate(VALID_QUARTER = ifelse(is.na(VALID_QUARTER),0,VALID_QUARTER)) %>%
+  left_join(df_totals)
+  
+i <- 1
+for (instrument in unique(df_stats_quarter$INSTRUMENT))
+{
+  
+  #quarter data capture
+ p1 <-   df_stats_quarter %>%
+    filter(INSTRUMENT == instrument) %>%
+    dplyr::mutate(YEAR = as.factor(as.character(YEAR)),
+                  VALID_QUARTER=as.numeric(VALID_QUARTER)) %>%
+    ggplot(aes(x=QUARTER,y=VALID_QUARTER)) +
+    geom_col(aes(fill = YEAR),position = position_dodge(),colour='black') +
+    geom_hline(aes(yintercept = 60),colour='red') +
+    #scale_fill_hue(l=40, c=35)+
+    ylab('Percent of Days (%)') +
+   xlab('') +
+     #geom_text(aes(label=YEAR)) +
+    ggtitle(paste(station,':',instrument,sep='')) +
+   theme(legend.position='none')
+  
+  #total hours and total days data capture
+  p2 <-  df_stats_quarter %>%
+    filter(INSTRUMENT == instrument) %>%
+    dplyr::mutate(YEAR = as.factor(as.character(YEAR)),
+           `Valid Hours (%)` = (`VALID HOURS`/`TOTAL_HOURS`) * 100,
+           `Valid Days (%)` = (`VALID DAYS`/TOTAL_DAYS) *100) %>%
+    
+    unique() %>%
+    pivot_longer(cols = c(`Valid Hours (%)`,`Valid Days (%)`)) %>%
+    ggplot(aes(x=name,y=as.integer(value))) +
+    geom_col(aes(fill = YEAR),colour='black',position = position_dodge()) +
+    geom_hline(aes(yintercept = 75),colour='red') +
+    #scale_fill_hue(l=40, c=35)+
+    ylab('Percent of Days(%)') +
+    theme(legend.position = 'bottom') +
+    #ggtitle(station)+
+   xlab('')
+  
+ grid.arrange(p1,p2,ncol=1)
+ 
+
+  
+}   
+
+#return(grid.arrange(grobs = gs, layout_matrix = lay))
+```
+
+__Figure 3.__ Percentage of valid data reported from the PM~2.5~ Analyzers at `r station`. 
