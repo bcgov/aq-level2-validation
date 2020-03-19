@@ -18,10 +18,10 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm25}
   
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   pm25sub <- data %>%
@@ -164,28 +164,28 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
 # 
 # pm25sas<-purrr::map_dfr((data %>%
 #               dplyr::filter(PARAMETER %in% "PM25") %>%
-#               distinct(STATION_NAME) %>%
-#               arrange(STATION_NAME))$STATION_NAME,
+#               distinct(STATION_NAME_FULL) %>%
+#               arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
 # 
 #            function(station){
 # 
 #              #for testing
 #              # allStations<-(data %>%
 #              #                 dplyr::filter(PARAMETER %in% "PM25") %>%
-#              #                 distinct(STATION_NAME) %>%
-#              #                 arrange(STATION_NAME))$STATION_NAME
+#              #                 distinct(STATION_NAME_FULL) %>%
+#              #                 arrange(STATION_NAME_FULL))$STATION_NAME_FULL
 #              #
 #              # station<-(data %>%
 #              #   dplyr::filter(PARAMETER %in% "PM25") %>%
-#              #   dplyr::filter(STATION_NAME==allStations[17]) %>%
-#              #     distinct(STATION_NAME))$STATION_NAME
+#              #   dplyr::filter(STATION_NAME_FULL==allStations[17]) %>%
+#              #     distinct(STATION_NAME_FULL))$STATION_NAME_FULL
 #              #
 #              # end testing
 # 
 # 
 #              station<-data %>%
 #                dplyr::filter(PARAMETER %in% "PM25" &
-#                         STATION_NAME %in% station)
+#                         STATION_NAME_FULL %in% station)
 # 
 #              purrr::map_dfr(unique(station$INSTRUMENT),
 # 
@@ -216,7 +216,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
 # 
 # # subset for a single station and param for testing the function
 # data<-data %>%
-#   dplyr::filter(STATION_NAME=="Golden Helipad" &
+#   dplyr::filter(STATION_NAME_FULL=="Golden Helipad" &
 #            INSTRUMENT=="PM25 SHARP5030i")
 # 
 # pm25SASFcn(data)
