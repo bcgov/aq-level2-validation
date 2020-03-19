@@ -1,4 +1,4 @@
-
+library(tidyverse)
 # source from github:
 #https://github.com/opetchey/RREEBES/wiki/Reading-data-and-code-from-an-online-github-repository
 
@@ -8,7 +8,10 @@ devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/mas
 # Import all unverified data
 
 # Path to feather data
-airFTP<-"C:/airFTPdata"
+#workstn
+# airFTP<-"C:/airFTPdata"
+#mac
+airFTP<-"/Volumes/DataScience/airFTPdata"
 
 # path to unverified data
 (dataPath<-file.path(airFTP,
@@ -38,7 +41,7 @@ parameters<-c("CO",
               "WDIR_VECT",
               "WSPD_SCLR")
 
-# generate a meta data set from the ftp that lists all station names and city's:
+# generate allStations = character vector of all stations:
 (allStations<-feather::read_feather(file.path(dataPath,
                                              "bc_air_monitoring_stations.feather")) %>%
   pull(STATION_NAME)) %>% unique
@@ -46,10 +49,14 @@ parameters<-c("CO",
 data<-purrr::map_dfr(parameters,
                      function(x){
                        
+                       paste("Importing",x,"data...")
+                       
                        importFeatherFcn(feather=dataPath,
-                                        parameter = stringr::str_replace(x,
-                                                                         ".feather",
-                                                                         ""),
+                                        parameter = x,
+                                        # I'm not sure why I had this here instead of just x
+                                        # parameter = stringr::str_replace(x,
+                                        #                                  ".feather",
+                                        #                                  ""),
                                         station=allStations,
                                         year=yearToValidate)$stationData
                      })  %>%# map_dfr
