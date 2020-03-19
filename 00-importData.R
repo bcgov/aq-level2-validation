@@ -63,18 +63,25 @@ data<-purrr::map_dfr(parameters,
   filter(format(DATE_PST,"%Y") %in% yearToValidate)
 
 # fill gaps with NA:
-devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/master/functions/NAfillFcn.R")
-data<-NAfillFcn(data)
-
+# devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/master/functions/NAfillFcn.R")
+# data<-NAfillFcn(data)
 
 # save imported and formatted data to 
-
+# data<-feather::read_feather("unverifiedData.feather")
 feather::write_feather(data,
-                       "unverifiedData.feather")
+                       "unverifiedData_unpadded.feather")
 
 # save list of stations:
 saveRDS(data %>%
-          dplyr::pull(STATION_NAME) %>%
+          dplyr::pull(STATION_NAME_FULL) %>%
           unique %>%
           sort,
-        "stations.rds")
+        "allStations.rds")
+
+readr::write_csv(data %>%
+                   dplyr::select(STATION_NAME_FULL) %>%
+                   distinct %>%
+                   arrange(STATION_NAME_FULL),
+                 "allStations.csv")
+
+

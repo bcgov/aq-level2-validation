@@ -6,12 +6,7 @@ output:
   html_document:
     df_print: paged
 params:
-  stations:
-    choices: !r readr::read_rds("stations.rds")
-    input: select
-    label: 'Select stations:'
-    multiple: yes
-    value: !r c("Kamloops Federal Building","Golden Lady Grey School","Castlegar Zinio Park")
+  stations: "stations_gavin.csv"
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
@@ -44,15 +39,34 @@ source("./SAS_from_ftpData/cosasFcn.R")
 source("plotlyFcn.R")
 source("emptyPlot.R")
 
-data<-feather::read_feather("unverifiedData.feather") %>%
-  dplyr::filter(STATION_NAME %in% params$stations)
 ```
+
+```{r importData}
+
+stations<-readr::read_csv(file.path("./regional_stations",
+                          params$stations)) %>%
+  dplyr::pull(2)
+
+#
+
+feather::read_feather("unverifiedData.feather") %>%
+  dplyr::filter(STATION_NAME %in% "Quesnel Redwood" & 
+                  PARAMETER=="PM25") %>%
+  pull(DATE_PST) %>% max
+
+data<-feather::read_feather("unverifiedData.feather") %>%
+  dplyr::filter((STATION_NAME %in% stations) &
+                  # remove met stations, leads to duplicates
+                  !stringr::str_detect(STATION_NAME_FULL,"_60"))
+
+```
+
 
 # {.tabset}
 
 ## Data Summary
 
-**Stations selected include: `r stringr::str_c(params$stations,collapse=", ")`.**
+**Stations selected include: `r readr::read_csv(file.path("./regional_stations",params$stations)) %>% dplyr::pull(2)`.**
 
 ```{r dataSummary}
 DT::datatable(data %>%
@@ -68,9 +82,12 @@ DT::datatable(data %>%
 **To-do: add ECMS's SAS stats to table for comparison**
 
 ### PM~2.5~
-
-
 ```{r pm25sas}
+
+station<-(data %>%
+                dplyr::filter(PARAMETER %in% "PM25") %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME[2]
 
 pm25sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% "PM25") %>%
@@ -78,19 +95,23 @@ pm25sas<-purrr::map_dfr((data %>%
                 arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
-
-               station<-data %>%
+                #for testing
+               # station<-stations[1]
+               
+               stn<-data %>%
                  dplyr::filter(PARAMETER %in% "PM25" &
                                  STATION_NAME %in% station)
 
-               purrr::map_dfr(unique(station$INSTRUMENT),
+               purrr::map_dfr(unique(stn$INSTRUMENT),
 
                  function(instrument){
+                   
+                   instrument<-"BAM 9800"
 
-                   instrument<-station %>%
+                   inst<-stn %>%
                      dplyr::filter(INSTRUMENT %in% instrument)
 
-                   pm25SASFcn(data=instrument)
+                   pm25SASFcn(data=inst)
 
                  }) #INSTRUMENT LOOP
 
@@ -2669,6 +2690,7 @@ suppressWarnings(
 
 ```{r windRoses}
 # select wind data, get it in openair format
+
 windData <- data %>%
   dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
   dplyr::select(date = DATE_PST,
@@ -2689,6 +2711,8 @@ windData <- data %>%
       unique,
     
     function(station){
+      
+      # station<-"Williams Lake Columneetza School"
       
       windData %<>%
         dplyr::filter(STATION_NAME %in% station)

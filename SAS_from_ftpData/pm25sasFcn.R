@@ -11,7 +11,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   # #for testing
   # pm25column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-pm25
+  # data<-inst
   
   #default arguments
   if(missing(pm25column)){pm25column<-"RAW_VALUE"}

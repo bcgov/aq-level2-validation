@@ -6,3 +6,5 @@ unverifiedData.feather
 *.html
 *.Rproj
 stations.rds
+.DS_Store
+unverifiedData_unpadded.feather
