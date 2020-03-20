@@ -4,7 +4,7 @@
 
 # # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME=="Golden Helipad" &
+#   dplyr::filter(STATION_NAME_FULL=="Golden Helipad" &
 #            PARAMETER=="PM10") %>% distinct()
 # 
 # pm10SASFcn(data)
@@ -26,10 +26,10 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm10}
   
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   pm10sub <- data %>%

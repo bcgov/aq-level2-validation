@@ -19,10 +19,10 @@ o3SASFcn<-function(data,o3column,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-o3}
 
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   
@@ -177,32 +177,32 @@ o3SASFcn<-function(data,o3column,dateColumn){
 # 
 # data<-data %>%
 #   filter(PARAMETER %in% "O3" &
-#            stringr::str_detect(STATION_NAME,"Castlegar"))
+#            stringr::str_detect(STATION_NAME_FULL,"Castlegar"))
 # 
 # o3sas<-purrr::map_dfr((data %>%
 #               filter(PARAMETER %in% "O3") %>%
-#               distinct(STATION_NAME) %>%
-#               arrange(STATION_NAME))$STATION_NAME,
+#               distinct(STATION_NAME_FULL) %>%
+#               arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
 # 
 #            function(station){
 # 
 #              #for testing
 #              # allStations<-(data %>%
 #              #                 filter(PARAMETER %in% "O3") %>%
-#              #                 distinct(STATION_NAME) %>%
-#              #                 arrange(STATION_NAME))$STATION_NAME
+#              #                 distinct(STATION_NAME_FULL) %>%
+#              #                 arrange(STATION_NAME_FULL))$STATION_NAME_FULL
 #              #
 #              # station<-(data %>%
 #              #   filter(PARAMETER %in% "O3") %>%
-#              #   filter(STATION_NAME==allStations[17]) %>%
-#              #     distinct(STATION_NAME))$STATION_NAME
+#              #   filter(STATION_NAME_FULL==allStations[17]) %>%
+#              #     distinct(STATION_NAME_FULL))$STATION_NAME_FULL
 #              #
 #              # end testing
 # 
 # 
 #              station<-data %>%
 #                filter(PARAMETER %in% "O3" &
-#                         STATION_NAME %in% station)
+#                         STATION_NAME_FULL %in% station)
 # 
 #              purrr::map_dfr(unique(station$INSTRUMENT),
 # 

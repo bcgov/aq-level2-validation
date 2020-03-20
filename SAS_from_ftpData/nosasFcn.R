@@ -4,7 +4,7 @@
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
+#   dplyr::filter(STATION_NAME_FULL=="Castlegar Zinio Park" &
 #            PARAMETER=="NO") %>% distinct()
 # 
 # noSASFcn(data)
@@ -25,10 +25,10 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no}
   
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   nosub <- data %>%

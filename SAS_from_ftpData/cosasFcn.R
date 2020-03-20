@@ -4,7 +4,7 @@
 
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME=="Victoria Topaz" &
+#   dplyr::filter(STATION_NAME_FULL=="Victoria Topaz" &
 #            PARAMETER=="CO") %>%
 #   distinct()
 # 
@@ -27,10 +27,10 @@ coSASFcn<-function(data,cocolumn,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-co}
   
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   cosub <- data %>%

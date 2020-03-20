@@ -2,8 +2,8 @@
 title: "Import Data"
 output: html_notebook
 params:
-  stations: "stations_gavin.csv"
-  preppedData: "gavin.rds"
+  stations: "stations_omineca.csv"
+  preppedData: "omineca.rds"
 ---
 
 Must have local mirrored copy of ftp site in .feather format. (www.github.com/DonnaHaga/dataImport)
@@ -99,7 +99,6 @@ Pad time series with NA's to complete the annual time series. Note this includes
 
 ```{r saveExternally}
 # save imported and formatted data to 
-# data<-feather::read_feather("unverifiedData.feather")
 feather::write_feather(data,
                        "unverifiedData_unpadded.feather")
 
@@ -122,11 +121,11 @@ readr::write_csv(data %>%
 
 ```{r regionalStation}
 # THIS WILL NEED UPDATING ONCE FOLKS SEND BACK ALLSTATIONS.CSV WHICH WAS BASED ON STATION_NAME_FULL.
-
+data<-feather::read_feather("unverifiedData_unpadded.feather")
 
 # read in file  specified in params$stations
 (stations <-
-   readr::read_csv(file.path("./regional_stations", params$stations)) %>%
+   readr::read_csv(file.path("./regionalStations", params$stations)) %>%
    dplyr::select(STATION_NAME = 2) %>%
    # make character vector
    dplyr::pull(STATION_NAME)
@@ -135,6 +134,7 @@ readr::write_csv(data %>%
 regionalData<-data %>%
   dplyr::filter(STATION_NAME %in% stations)
 ```
+
 ```{r regionalStationChecks}
 # how many STATION_NAME_FULL in stations
 regionalData %>%
@@ -169,41 +169,7 @@ regionalDataPadded<-NAfillFcn(regionalData)
              )
  # save regionalDataPadded
  saveRDS(regionalDataPadded,
-         params$preppedData)
-```
-
-
-Testing and fixing for _60 naming convention.
-
-
-```{r TESTING}
-### TESTING
-# Quesnel Redwood has data until 2019-08-29 0700, NAFillFcn isn't working
-quesnelRedwood<-regionalData %>%
-  dplyr::filter(STATION_NAME_FULL %in% toupper("Quesnel Redwood"))
-
-saveRDS(quesnelRedwood,"quesnelRedwood2019.rds")
-
-quesnelRedwood_padded<-NAfillFcn(quesnelRedwood)
-  
-quesnelRedwood_padded %>%
-   summarise(maxDate=max(DATE_PST,na.rm = TRUE),
-             minDate=min(DATE_PST,na.rm=TRUE))
-
-tail(quesnelRedwood_padded)
-
-summary(quesnelRedwood_padded)
-
-regionalData_padded$STATION_NAME_FULL %>% unique
-
-saveRDS(regionalData,"gavin2019.rds") 
-
- # REMOVING _60 STATIONS - NOT DESIRED
-data<-feather::read_feather("unverifiedData.feather") %>%
-  dplyr::filter((STATION_NAME %in% stations) &
-                  # remove met stations, leads to duplicates
-                  !stringr::str_detect(STATION_NAME_FULL,"_60"))
-
-### END TESTING
+         file.path("./regionalPreppedData",params$preppedData)
+ )
 ```
 

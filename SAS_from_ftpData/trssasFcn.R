@@ -4,7 +4,7 @@
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME=="Prince George Plaza 400" &
+#   dplyr::filter(STATION_NAME_FULL=="Prince George Plaza 400" &
 #            PARAMETER=="TRS") %>% distinct()
 # 
 # trsSASFcn(data)
@@ -25,10 +25,10 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-trs}
   
-  # unique id for each combination of STATION_NAME, INSTRUMENT
-  # should be length one as function is mapped over station_name and instrument
+  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
+  # should be length one as function is mapped over STATION_NAME_FULL and instrument
   id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME,INSTRUMENT,sep = "_")) %>%
+    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
     distinct(id)
   
   trssub <- data %>%

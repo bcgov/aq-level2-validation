@@ -65,22 +65,6 @@ DT::datatable(data %>%
 
 ### PM~2.5~
 ```{r pm25sas}
-# GOT TO HERE - WORKING NOW BUT DUPLICATE ROWS COMING OUT OF PM25SAS CALCULATION, WITH NA IN STATION_NAME_FULL
-
-# FOR TESTING
-data %>%
-  dplyr::distinct(STATION_NAME_FULL)
-
-station<-(data %>%
-                dplyr::filter(PARAMETER %in% "PM25") %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL
-
-pm25SASFcn(data %>% dplyr::filter(STATION_NAME_FULL %in% station[3] &
-                                    PARAMETER %in% "PM25"))
-
-# END TESTING
-
 pm25sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% "PM25") %>%
                 dplyr::distinct(STATION_NAME_FULL) %>%
@@ -2681,7 +2665,9 @@ suppressWarnings(
 
 ## Wind Roses
 
-```{r windRoses}
+```{r windDataPrep}
+# GOT TO HERE, SOMETHING WRONG (REPLACEMENT HAS ONE ROW, DATA HAS 0)
+
 # select wind data, get it in openair format
 
 windData <- data %>%
@@ -2698,17 +2684,25 @@ windData <- data %>%
   dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
                 wd = ifelse(is.na(ws), NA, wd))
 
+```
 
-  purrr::walk(windData %>%
+```{r windRose}
+purrr::walk(windData %>%
       dplyr::pull(STATION_NAME_FULL) %>%
       unique,
     
     function(station){
-      
-      # station<-"Williams Lake Columneetza School"
+      # FOR TESTING
+      # station<-"QUESNEL SENIOR SECONDARY MET_60"
       
       windData %<>%
         dplyr::filter(STATION_NAME_FULL %in% station)
+      
+      if(nrow(windData)==sum(is.na(windData$ws))){
+        
+        paste("There is no paired wind data at",station)
+        
+      } else {
       
       #number of calm hours
       ncalm <- windData %>%
@@ -2742,13 +2736,12 @@ windData <- data %>%
         cols = "jet",
         paddle = FALSE
       ) 
-     
-       
       
-    }
+      } # end else
+      
+    } #end function(station)
     
     ) # map
-
 
 
 ```
@@ -2756,8 +2749,8 @@ windData <- data %>%
 
 ## Minute Plots
 
-Minute data plotted above a year of hourly data – that is two separate figures plotted one above the other… with negative values in a different colour
+For next year: minute data plotted above a year of hourly data – that is two separate figures plotted one above the other… with negative values in a different colour
 
 ## SHARP drift
 
-3 channel SHARP 5030 neph drift is important to identify
+For next year: 3 channel SHARP 5030 neph drift is important to identify
