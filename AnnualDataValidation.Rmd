@@ -709,8 +709,6 @@ htmltools::tagList(humidityplots)
 ### PM~2.5~
 
 ```{r pm25monthly}
-# GOT TO HERE: for omineca this is throwing warnings. need to cycle through stations (line 728) - again.
-
 suppressWarnings(
   htmltools::tagList(
   
@@ -744,7 +742,8 @@ suppressWarnings(
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
            y = stringr::str_c("Hourly PM2.5 (",
                               data %>%
@@ -794,10 +793,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("pm25")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("pm25"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -805,7 +803,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -816,7 +820,7 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
           "Hourly PM2.5 (",
@@ -838,9 +842,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no PM2.5 data for",station)}#end if and else
     
       
     } #end plot function
@@ -866,11 +872,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("pm25"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("pm25")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -881,7 +891,7 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
           "Hourly PM2.5 (",
@@ -903,11 +913,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no PM2.5 data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -931,18 +942,32 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("pm10")),
+                             PARAMETER %in% toupper("pm10"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
            y = stringr::str_c("Hourly PM10 (",
                               data %>%
@@ -962,10 +987,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no PM10 data for",station)}#end if and else
       
     } #end plot function
   
@@ -990,10 +1017,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("pm10")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("pm10"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1001,7 +1027,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1012,10 +1044,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly PM10 (",
+          "Hourly pm10 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1034,9 +1066,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no pm10 data for",station)}#end if and else
     
       
     } #end plot function
@@ -1062,11 +1096,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("pm10"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("pm10")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -1077,10 +1115,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly PM10 (",
+          "Hourly pm10 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1099,11 +1137,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no pm10 data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -1128,20 +1167,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("O3")),
+                             PARAMETER %in% toupper("o3"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly O3 (",
+           y = stringr::str_c("Hourly o3 (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("o3")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -1159,10 +1212,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no o3 data for",station)}#end if and else
       
     } #end plot function
   
@@ -1187,10 +1242,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("o3")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("o3"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1198,7 +1252,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1209,10 +1269,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly O3 (",
+          "Hourly o3 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1231,9 +1291,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no o3 data for",station)}#end if and else
     
       
     } #end plot function
@@ -1259,11 +1321,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("o3"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("o3")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -1274,10 +1340,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly O3 (",
+          "Hourly o3 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1296,11 +1362,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no o3 data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -1310,7 +1377,6 @@ suppressWarnings(
 ) #end suppressWarnings
 
 ```
-
 
 ### NO~2~
 
@@ -1325,20 +1391,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("no2")),
+                             PARAMETER %in% toupper("no2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly NO2 (",
+           y = stringr::str_c("Hourly no2 (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("no2")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -1356,10 +1436,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no no2 data for",station)}#end if and else
       
     } #end plot function
   
@@ -1384,10 +1466,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("no2")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("no2"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1395,7 +1476,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1406,10 +1493,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NO2 (",
+          "Hourly no2 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1428,9 +1515,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no no2 data for",station)}#end if and else
     
       
     } #end plot function
@@ -1456,11 +1545,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("no2"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("no2")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -1471,10 +1564,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NO2 (",
+          "Hourly no2 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1493,11 +1586,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no no2 data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -1521,20 +1615,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("no")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("no")),
+                             PARAMETER %in% toupper("no"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly NO (",
+           y = stringr::str_c("Hourly no (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("no")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -1552,10 +1660,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no no data for",station)}#end if and else
       
     } #end plot function
   
@@ -1580,10 +1690,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("no")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("no"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1591,7 +1700,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1602,10 +1717,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NO (",
+          "Hourly no (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("no")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1624,9 +1739,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no no data for",station)}#end if and else
     
       
     } #end plot function
@@ -1652,11 +1769,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("no"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("no")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -1667,10 +1788,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NO (",
+          "Hourly no (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("no")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -1689,11 +1810,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no no data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -1706,33 +1828,48 @@ suppressWarnings(
 
 ### NO~x~
 
+
 ```{r noxmonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% "NOx"),
+                             PARAMETER %in% toupper("nox"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly NOx (",
+           y = stringr::str_c("Hourly nox (",
                               data %>%
-                                dplyr::filter(PARAMETER %in% "NOx") %>%
+                                dplyr::filter(PARAMETER %in% toupper("nox")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
                               sep = ""
              )
@@ -1748,10 +1885,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no nox data for",station)}#end if and else
       
     } #end plot function
   
@@ -1768,7 +1907,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
@@ -1776,10 +1915,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% "NOx") %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("nox"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1787,7 +1925,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1798,12 +1942,12 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NOx (",
+          "Hourly nox (",
           data %>%
-            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::filter(PARAMETER %in% toupper("nox")) %>%
             dplyr::pull(UNIT) %>% unique,
           ")",
           sep = ""
@@ -1820,9 +1964,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no nox data for",station)}#end if and else
     
       
     } #end plot function
@@ -1841,18 +1987,22 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
+             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("nox"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% "NOx"),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -1863,12 +2013,12 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly NOx (",
+          "Hourly nox (",
           data %>%
-            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::filter(PARAMETER %in% toupper("nox")) %>%
             dplyr::pull(UNIT) %>% unique,
           ")",
           sep = ""
@@ -1885,11 +2035,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no nox data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -1913,20 +2064,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("so2")),
+                             PARAMETER %in% toupper("so2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly SO2 (",
+           y = stringr::str_c("Hourly so2 (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("so2")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -1944,10 +2109,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no so2 data for",station)}#end if and else
       
     } #end plot function
   
@@ -1972,10 +2139,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("so2")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("so2"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1983,7 +2149,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -1994,10 +2166,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly SO2 (",
+          "Hourly so2 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2016,9 +2188,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no so2 data for",station)}#end if and else
     
       
     } #end plot function
@@ -2044,11 +2218,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("so2"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("so2")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -2059,10 +2237,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly SO2 (",
+          "Hourly so2 (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2081,11 +2259,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no so2 data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -2109,20 +2288,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("co")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("co")),
+                             PARAMETER %in% toupper("co"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly CO (",
+           y = stringr::str_c("Hourly co (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("co")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -2140,10 +2333,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no co data for",station)}#end if and else
       
     } #end plot function
   
@@ -2168,10 +2363,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("co")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("co"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -2179,7 +2373,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -2190,10 +2390,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly CO (",
+          "Hourly co (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("co")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2212,9 +2412,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no co data for",station)}#end if and else
     
       
     } #end plot function
@@ -2240,11 +2442,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("co"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("co")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -2255,10 +2461,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly CO (",
+          "Hourly co (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("co")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2277,11 +2483,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no co data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -2294,6 +2501,7 @@ suppressWarnings(
 
 ### TRS
 
+
 ```{r trsmonthly}
 
 suppressWarnings(
@@ -2305,20 +2513,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("trs")),
+                             PARAMETER %in% toupper("trs"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly TRS (",
+           y = stringr::str_c("Hourly trs (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("trs")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -2336,10 +2558,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no trs data for",station)}#end if and else
       
     } #end plot function
   
@@ -2364,10 +2588,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("trs")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("trs"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -2375,7 +2598,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -2386,10 +2615,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly TRS (",
+          "Hourly trs (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2408,9 +2637,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no trs data for",station)}#end if and else
     
       
     } #end plot function
@@ -2436,11 +2667,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("trs"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("trs")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -2451,10 +2686,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly TRS (",
+          "Hourly trs (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2473,11 +2708,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no trs data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -2501,20 +2737,34 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
     
-    p<-ggplot(data = data %>% 
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("h2s")),
+                             PARAMETER %in% toupper("h2s"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
            ) +
       geom_boxplot() +
-      labs(title = "Monthly Boxplot",
+      labs(title = paste("Monthly Boxplot:",
+                         station),
            x = "",
-           y = stringr::str_c("Hourly H2S (",
+           y = stringr::str_c("Hourly h2s (",
                               data %>%
                                 dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
@@ -2532,10 +2782,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no h2s data for",station)}#end if and else
       
     } #end plot function
   
@@ -2560,10 +2812,9 @@ suppressWarnings(
   # station<-"Abbotsford A Columbia Street"
     {
     
-    p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("h2s")) %>%
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("h2s"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -2571,7 +2822,13 @@ suppressWarnings(
                                         "Wed",
                                         "Thu",
                                         "Fri",
-                                        "Sat"))),
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
       aes(
         x = weekday,
         #alter this for different boxplots
@@ -2582,10 +2839,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Hebdomadal Boxplot",
+        title = paste("Hebdomadal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly H2S (",
+          "Hourly h2s (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2604,9 +2861,11 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
+    
+    } else{paste("There is no h2s data for",station)}#end if and else
     
       
     } #end plot function
@@ -2632,11 +2891,15 @@ suppressWarnings(
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME_FULL %in% station &
+                             PARAMETER %in% toupper("h2s"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
     
     p <- ggplot(
-      data = data %>%
-        dplyr::filter(STATION_NAME_FULL %in% station &
-                        PARAMETER %in% toupper("h2s")),
+      data = plotData,
       aes(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
@@ -2647,10 +2910,10 @@ suppressWarnings(
       geom_boxplot() +
       scale_x_discrete()+
       labs(
-        title = "Diurnal Boxplot",
+        title = paste("Diurnal Boxplot:",station),
         x = "",
         y = stringr::str_c(
-          "Hourly H2S (",
+          "Hourly h2s (",
           data %>%
             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
             dplyr::pull(UNIT) %>% unique,
@@ -2669,11 +2932,12 @@ suppressWarnings(
         legend.title = element_blank()
       ) +
       scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~ STATION_NAME_FULL, scales = "free")
+      facet_wrap(~ INSTRUMENT, scales = "free")
     
     plotly::ggplotly(p)
     
-      
+    } else{paste("There is no h2s data for",station)}#end if and else
+    
     } #end plot function
   
   )# end map
@@ -2688,8 +2952,6 @@ suppressWarnings(
 ## Wind Roses
 
 ```{r windDataPrep}
-# GOT TO HERE, SOMETHING WRONG (REPLACEMENT HAS ONE ROW, DATA HAS 0)
-
 # select wind data, get it in openair format
 
 windData <- data %>%
