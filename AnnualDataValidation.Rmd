@@ -725,14 +725,20 @@ suppressWarnings(
     {
     
     #FOR TESTING - 9 total
-(station<-(data %>%
-             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique)[2])
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
+#              dplyr::pull(STATION_NAME_FULL) %>%
+#              unique)[4])
     
-    p<-ggplot(data = data %>% 
+    plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("pm25")),
+                             PARAMETER %in% toupper("pm25"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
                fill=STATION_NAME_FULL)
@@ -758,10 +764,12 @@ suppressWarnings(
         legend.title = element_blank()
       )+ 
         scale_fill_brewer(palette = "Set1")+
-      facet_wrap( ~ STATION_NAME_FULL, scales = "free") 
-  
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
-      
+    
+    }  else{paste("There is no PM2.5 data for",station)}#end if and else
       
     } #end plot function
   
