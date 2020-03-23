@@ -6,7 +6,7 @@ output:
   html_document:
     df_print: paged
 params:
-  preppedData: "./regionalPreppedData/gavin.rds"
+  preppedData: "./regionalPreppedData/omineca.rds"
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
@@ -51,6 +51,12 @@ data<-readRDS(params$preppedData)
 **Stations selected include: `r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique`.**
 
 ```{r dataSummary}
+# FOR TESTING
+# data %>%
+#   dplyr::distinct(STATION_NAME_FULL, PARAMETER, INSTRUMENT) %>%
+#   arrange(STATION_NAME_FULL) %>% View(.)
+
+
 DT::datatable(data %>%
                 dplyr::distinct(STATION_NAME_FULL,PARAMETER,INSTRUMENT) %>%
                 arrange(STATION_NAME_FULL),
@@ -703,6 +709,7 @@ htmltools::tagList(humidityplots)
 ### PM~2.5~
 
 ```{r pm25monthly}
+# GOT TO HERE: for omineca this is throwing warnings. need to cycle through stations (line 728) - again.
 
 suppressWarnings(
   htmltools::tagList(
@@ -713,8 +720,15 @@ suppressWarnings(
              unique,
   
   function(station)
-  # station<-"Abbotsford A Columbia Street"
+    
+  
     {
+    
+    #FOR TESTING - 9 total
+(station<-(data %>%
+             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
+             dplyr::pull(STATION_NAME_FULL) %>%
+             unique)[2])
     
     p<-ggplot(data = data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
