@@ -6,7 +6,7 @@ output:
   html_document:
     df_print: paged
 params:
-  preppedData: "./regionalPreppedData/omineca.rds"
+  preppedData: "./regionalPreppedData/Kootenay_2of2.rds"
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
@@ -48,7 +48,7 @@ data<-readRDS(params$preppedData)
 
 ## Data Summary
 
-**Stations selected include: `r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique`.**
+**Stations selected include: `r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique %>% sort`.**
 
 ```{r dataSummary}
 # FOR TESTING

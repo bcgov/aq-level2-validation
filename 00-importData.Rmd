@@ -2,8 +2,19 @@
 title: "Import Data"
 output: html_notebook
 params:
-  stations: "stations_omineca.csv"
-  preppedData: "omineca.rds"
+  airFTP: 
+    input: select
+    label: "Mirrored FTP locally:"
+    value: "C:/airFTPdata"
+    choices: ["C:/airFTPdata","/Volumes/DataScience/airFTPdata"]
+  stations: 
+    label: "Select list of stations to import:"
+    value:  "stations_omineca.csv"
+    input: file
+  preppedData: 
+    value: "Kootenay_1of2.rds"
+    
+    
 ---
 
 Must have local mirrored copy of ftp site in .feather format. (www.github.com/DonnaHaga/dataImport)
@@ -21,11 +32,9 @@ devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/mas
 Specify the paths to the local FTP duplicate (.feather); type of data (time period and unverified or verified) is also specified here.
 
 ```{r pathsToData}
-# Path to feather data
-#workstn
-# airFTP<-"C:/airFTPdata"
-#mac
-airFTP<-"/Volumes/DataScience/airFTPdata"
+# Path to feather data: 
+
+airFTP<-params$airFTP
 
 # path to unverified data
 (dataPath<-file.path(airFTP,
@@ -104,26 +113,48 @@ feather::write_feather(data,
 
 # save list of stations:
 
-
-saveRDS(data %>%
-          dplyr::pull(STATION_NAME_FULL) %>%
-          unique %>%
-          sort,
+# save allStsations as df
+saveRDS(allStations,
         "allStations.rds")
 
+# save allStations as character vector
 readr::write_csv(data %>%
                    dplyr::select(STATION_NAME_FULL) %>%
                    distinct %>%
                    arrange(STATION_NAME_FULL),
                  "allStations.csv")
 ```
-** UPDATE WITH STATION_NAME_FULL **
+
 
 ```{r regionalStation}
-# THIS WILL NEED UPDATING ONCE FOLKS SEND BACK ALLSTATIONS.CSV WHICH WAS BASED ON STATION_NAME_FULL.
+# read in data
 data<-feather::read_feather("unverifiedData_unpadded.feather")
 
-# read in file  specified in params$stations
+# two options for regional stations: 1. filter data by region column, 2. user defined character vector from params$station
+
+#1. region column
+
+# list the regions
+data %>%
+  dplyr::distinct(REGION) %>%
+  dplyr::arrange(REGION)
+
+# list the stations in a region
+data %>%
+  dplyr::filter(REGION=="03 - Southern Interior") %>%
+  dplyr::pull(STATION_NAME_FULL) %>%
+  unique
+
+# create regionalData
+
+# KOOTENAY:
+(regionalData<- data %>%
+  dplyr::filter(REGION=="04 - Kootenay" | 
+                  STATION_NAME_FULL %in% c("REVELSTOKE COLBECK ROAD"))
+)
+
+
+# 2. read in file  specified in params$stations
 (stations <-
    readr::read_csv(file.path("./regionalStations", params$stations)) %>%
    dplyr::select(STATION_NAME = 2) %>%
@@ -143,7 +174,6 @@ regionalData %>%
 
 # Find min and max dates for each STATION_NAME_FULL:
  regionalData %>%
-  dplyr::filter(STATION_NAME %in% stations) %>%
   dplyr::group_by(STATION_NAME_FULL,PARAMETER) %>%
    summarise(minData=min(DATE_PST,na.rm=TRUE),
              maxData=max(DATE_PST,na.rm = TRUE)
@@ -157,6 +187,8 @@ devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/mas
 regionalDataPadded<-NAfillFcn(regionalData)
 
 # DATA CHECKS:
+regionalDataPadded<-readr::read_rds(file.path("./regionalPreppedData",params$preppedData))
+
 # Find min and max dates for each STATION_NAME_FULL:
  regionalDataPadded %>%
   dplyr::group_by(STATION_NAME_FULL,PARAMETER,INSTRUMENT) %>%
@@ -168,8 +200,23 @@ regionalDataPadded<-NAfillFcn(regionalData)
              maxData=max(DATE_PST,na.rm = TRUE)
              )
  # save regionalDataPadded
+ 
+ # option 1. save as entire dataset (reports are crashing with too much data)
  saveRDS(regionalDataPadded,
          file.path("./regionalPreppedData",params$preppedData)
  )
+ 
+ # option 2. save data in multiple parts
+ (stations<-regionalDataPadded %>%
+   dplyr::distinct(STATION_NAME_FULL) %>%
+   dplyr::arrange(STATION_NAME_FULL) %>%
+   dplyr::pull(STATION_NAME_FULL))
+ 
+ saveRDS(
+   regionalDataPadded %>%
+     dplyr::filter(STATION_NAME_FULL %in% stations[13:23]),
+   file.path("./regionalPreppedData", params$preppedData)
+ )
+ 
 ```
 
