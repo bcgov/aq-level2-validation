@@ -1,12 +1,12 @@
 ---
 title: "Annual Data Validation"
-author: "Donna Haga"
+author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     df_print: paged
 params:
-  preppedData: "./regionalPreppedData/Kootenay_2of2.rds"
+  preppedData: "./regionalPreppedData/Kootenay_1of2.rds"
   year: 2019
 ---
 
@@ -106,29 +106,10 @@ pm25sas<-purrr::map_dfr((data %>%
 
              }) #STATION LOOP
 
-```
+# add column origin for where calculations originate from
+pm25sas %<>% dplyr::mutate(ORIGIN="AQS")
 
-```{r pm25sasAQSDT}
-if(nrow(pm25sas != 0)) {
- 
-   DT::datatable(
-    pm25sas,
-    caption = "AQS calculated statistics. There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
-    options = list(
-      scrollX = TRUE,
-      scroller = TRUE,
-      scrollY = 300,
-      searching = TRUE,
-      paging = TRUE,
-      pageLength = 25
-    )
-  )
-  
-  } else {
-  print("There is no data for this parameter.")
-}
 ```
-
 
 ```{r pm25sasECMS}
 
@@ -185,21 +166,37 @@ pm25Stns<-data %>%
   unique
 
 df_stat_official %<>%
+  dplyr::select(-c(`EMS ID`,
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>%
   dplyr::filter(YEAR == params$year &
                   `STATION NAME` %in% stringr::str_replace(pm25Stns,
-                                                           "_", " "))
+                                                           "_", " ")) %>%
+  dplyr::mutate(ORIGIN = "ECMS")
 ```
 
-```{r pm25sasECMSDT}
-if(nrow(df_stat_official)!=0) {
+```{r pm25sasDT}
+names(df_stat_official)<-names(pm25sas)
+
+# need to make these columns character to match aqs calcs
+pm25sas %<>%
+  mutate_at(35:46,
+            as.character)
+
+pm25sasDT<-df_stat_official %>%
+      dplyr::mutate(`STATION NAME`=toupper(`STATION NAME`)) %>%
+      bind_rows(.,
+                pm25sas) %>%
+      dplyr::arrange(`STATION NAME`) %>%
+      dplyr::select(ORIGIN,everything())
+
+if(nrow(pm25sasDT)!=0) {
  
    DT::datatable(
-    df_stat_official %>% dplyr::select(-c(`EMS ID`,
-                                          `NAPS ID`,
-                                          REGION,
-                                          OWNER,
-                                          UNIT)),
-    caption = "ECMS calculated statistics.",
+    pm25sasDT,
+    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -210,7 +207,7 @@ if(nrow(df_stat_official)!=0) {
     )
   )
 } else {
-  print("There are no ECMS SAS stats to display.")
+  print("There is no data for this parameter.")
 }
 ```
 

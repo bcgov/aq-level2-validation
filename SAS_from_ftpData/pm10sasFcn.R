@@ -2,7 +2,7 @@
 #Description: calculates pm10 sas stats on ftp data
 # # # 
 
-# # subset for a single station and param for testing the function
+# # subset for a single station and instrument for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
 #   dplyr::filter(STATION_NAME_FULL=="Golden Helipad" &
 #            PARAMETER=="PM10") %>% distinct()
