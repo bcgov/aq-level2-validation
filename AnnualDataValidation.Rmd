@@ -7,6 +7,7 @@ output:
     df_print: paged
 params:
   preppedData: "./regionalPreppedData/Kootenay_2of2.rds"
+  year: 2019
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
@@ -26,6 +27,7 @@ library(magrittr)
 library(readxl)
 library(gdata)
 
+# functions to calculate SAS stats from hourly data
 source("./SAS_from_ftpData/pm25sasFcn.R")
 source("./SAS_from_ftpData/pm10sasFcn.R")
 source("./SAS_from_ftpData/no2sasFcn.R")
@@ -36,13 +38,17 @@ source("./SAS_from_ftpData/h2ssasFcn.R")
 source("./SAS_from_ftpData/trssasFcn.R")
 source("./SAS_from_ftpData/cosasFcn.R")
 
+# path to ecms sas reports saved locally:
+sasReports<-"C:/HagaR/AnnualDataValidation/SAS_reports"
+
 source("plotlyFcn.R")
 source("emptyPlot.R")
 
 ```
 
 ```{r importData}
-data<-readRDS(params$preppedData)
+data<-readRDS(params$preppedData) 
+
 ```
 # {.tabset}
 
@@ -100,12 +106,114 @@ pm25sas<-purrr::map_dfr((data %>%
 
              }) #STATION LOOP
 
-  if(nrow(pm25sas!=0)){
-  DT::datatable(pm25sas,
-                options = list(scrollX=TRUE))
-  } else {print("There is no data for this parameter.")}
-
 ```
+
+```{r pm25sasAQSDT}
+if(nrow(pm25sas != 0)) {
+ 
+   DT::datatable(
+    pm25sas,
+    caption = "AQS calculated statistics. There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+  
+  } else {
+  print("There is no data for this parameter.")
+}
+```
+
+
+```{r pm25sasECMS}
+
+#header of the excel file, extracted separately
+df_stat_header <- readxl::read_excel(
+  file.path(sasReports,
+            "2019_PM2.5_UNSUPPRESSED.xlsx"),
+  n_max = 2,
+  col_names = FALSE
+)
+
+
+df_stat_header_trans  <- df_stat_header%>%
+  data.table::transpose() %>%
+  dplyr::mutate(V1 = gsub('HOURLY PERCENTILES','%(hr)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('DAILY PERCENTILES','%(day)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('^.*MONITORING MONTHS.*$','(days)',V1,ignore.case = TRUE)) %>%
+  dplyr::mutate(V1 = gsub('^.*QUARTERLY DATA.*$','(%days)',V1,ignore.case = TRUE))
+  
+#remove NA of column category values
+repeat 
+{
+
+df_stat_header_trans <- df_stat_header_trans %>%
+  dplyr::mutate(V1=ifelse(is.na(V1),lag(V1),V1))
+  
+if ((!any(is.na(df_stat_header_trans$V1)))){break}
+}
+
+df_stat_header_trans <- df_stat_header_trans %>%
+  dplyr::mutate(columnname = ifelse(is.na(V2),
+                                    V1,
+                                    paste(V2,V1,sep=''))
+                )
+
+df_stat_official <- readxl::read_excel(
+  file.path(sasReports,
+            "2019_PM2.5_UNSUPPRESSED.xlsx"))
+
+colnames(df_stat_official) <- df_stat_header_trans$columnname
+
+df_stat_official <- df_stat_official %>%
+  dplyr::mutate(
+    `Q1(%days)` = as.integer(`Q1(%days)`),
+    `Q2(%days)` = as.integer(`Q2(%days)`),
+    `Q3(%days)` = as.integer(`Q3(%days)`),
+    `Q4(%days)` = as.integer(`Q4(%days)`)
+  )
+
+# get pm25 stations in data
+pm25Stns<-data %>%
+  dplyr::filter(PARAMETER=="PM25") %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+df_stat_official %<>%
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm25Stns,
+                                                           "_", " "))
+```
+
+```{r pm25sasECMSDT}
+if(nrow(df_stat_official)!=0) {
+ 
+   DT::datatable(
+    df_stat_official %>% dplyr::select(-c(`EMS ID`,
+                                          `NAPS ID`,
+                                          REGION,
+                                          OWNER,
+                                          UNIT)),
+    caption = "ECMS calculated statistics.",
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+} else {
+  print("There are no ECMS SAS stats to display.")
+}
+```
+
 
 ### PM~10~
 ```{r pm10sas}

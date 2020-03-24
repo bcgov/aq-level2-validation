@@ -7,26 +7,25 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   library(openair)
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
   
-  # #for testing
-  # pm25column<-"RAW_VALUE"
+  #FOR TESTING
+  # pm25column<-"ROUNDED_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-inst
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% "PM25" &
+  #                   STATION_NAME_FULL=="REVELSTOKE_TRAILER" &
+  #                   INSTRUMENT=="PM25_T640")
+  # END TESTING
   
   #default arguments
-  if(missing(pm25column)){pm25column<-"RAW_VALUE"}
+  if(missing(pm25column)){pm25column<-"ROUNDED_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm25}
   
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
-  
   pm25sub <- data %>%
-    dplyr::select_(date=dateColumn,
-            PM25=pm25column)
+    dplyr::select(date=!!dateColumn,
+            PM25=!!pm25column)
 
   dt<-timeAverage(pm25sub,
                   pollutant="PM25",
@@ -39,45 +38,55 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   nh<-nrow(pm25sub[!is.na(pm25sub[,2]),])
 
   #Calculate hourly percentiles over the year:
-  hp<-calcPercentile(pm25sub,
-                     pollutant="PM25",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
-
-  #count hourly exceedances of level A (15), level B (25), and level C (30) objectives.
-  #Hourly data must be rounded to whole number first:
-  hrnd<-pm25sub
-  hrnd[,2]<-round(pm25sub[,2],0)
-
-  oa<-15
-  ha<-nrow(subset(hrnd,hrnd[,2]>oa))
-
-  ob<-25
-  hb<-nrow(subset(hrnd,hrnd[,2]>ob))
-
-  oc<-30
-  hc<-nrow(subset(hrnd,hrnd[,2]>oc))
-
-  #calculate hourly % of exceedances
-  pha<-round((ha/nh)*100,2)
-  phb<-round((hb/nh)*100,2)
-  phc<-round((hc/nh)*100,2)
-
+  hp <- calcPercentile(
+    pm25sub,
+    pollutant = "PM25",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(hr)`=percentile.0,
+      `10%(hr)`=percentile.10,
+      `25%(hr)`=percentile.25,
+      `50%(hr)`=percentile.50,
+      `75%(hr)`=percentile.75,
+      `90%(hr)`=percentile.90,
+      `95%(hr)`=percentile.95,
+      `98%(hr)`=percentile.98,
+      `99%(hr)`=percentile.99,
+      `99.5%(hr)`=percentile.99.5,
+      `99.9%(hr)`=percentile.99.9,
+      `100%(hr)`=percentile.100)
+    
   #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="PM25",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  dp <- calcPercentile(
+    dt,
+    pollutant = "PM25",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+) %>%
+    
+    dplyr::rename(
+      `0%(day)` = percentile.0,
+      `10%(day)` = percentile.10,
+      `25%(day)` = percentile.25,
+      `50%(day)` = percentile.50,
+      `75%(day)` = percentile.75,
+      `90%(day)` = percentile.90,
+      `95%(day)` = percentile.95,
+      `98%(day)` = percentile.98,
+      `99%(day)` = percentile.99,
+      `99.5%(day)` = percentile.99.5,
+      `99.9%(day)` = percentile.99.9,
+      `100%(day)` = percentile.100
+    )
 
-  #count daily exceedances of level A (15), level B (25), and level C (30) objectives:
-  da<-nrow(subset(dt,dt[,2]>=oa+0.5))
-  db<-nrow(subset(dt,dt[,2]>=ob+0.5))
-  dc<-nrow(subset(dt,dt[,2]>=oc+0.5))
+  #count daily exceedances of 25 ug/m3:
+  daysAbove25<-nrow(subset(dt,dt[,2]>=25+0.5))
 
   #calculate daily % of exceedances
-  pda<-round((da/nd)*100,2)
-  pdb<-round((db/nd)*100,2)
-  pdc<-round((dc/nd)*100,2)
+  pdaysAbove25<-round((daysAbove25/nd)*100,2)
 
   #calculate number of monitoring days each month
   dm<-timeAverage(dt,
@@ -95,130 +104,61 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
           sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
 
   #calculate quarterly data capture (%)
-  q<-round((dq[,2]/allq)*100,0)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
 
 
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
   dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=PM25)
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=PM25)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                            "%Y-%m-%d",tz="UTC"),
-         "%b")
-
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
+  
   #do something similar for q
-  q<-t(q)
-  colnames(q)<-c("PercQ1","PercQ2","PercQ3","PercQ4")
-
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,PM25) 
+  
   #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(pm25sub$PM25,na.rm=T),2),
-                  Hr_StDev=round(sd(pm25sub$PM25,na.rm=T),2),
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  No_Day_Ex_C=dc,
-                  Perc_Day_Ex_C=pdc,
-                  Roll3Yr=NA,
-                  dm,
-                  q
-  )
+  (
+    sas <- tibble::tibble(
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      INSTRUMENT = data %>%
+        dplyr::pull(INSTRUMENT) %>%
+        unique,
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      `VALID HOURS`=nh,
+      `ANNUAL 1-HR AVG`=round(mean(pm25sub$PM25,na.rm=T),2),
+      `VALID DAYS`= nd,
+      `ANNUAL DAILY AVG`=round(mean(dt$PM25,na.rm=T),2)
+    ) %>%
+      dplyr::bind_cols(round(hp %>% dplyr::select(-date),
+                             2)) %>%
+      dplyr::bind_cols(round(dp %>% dplyr::select(-date),
+                             2)) %>%
+      dplyr::bind_cols(
+        tibble::tibble(
+          `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
+                                   2),
+          `98P_DAILY,3-YR AVG`=NA_real_,
+          `EXCEEDANCES OF DAILY AVG > 25ug/m3`=daysAbove25
+        )) %>%
+      dplyr::bind_cols(dm,q)
+    )
+    
 
-  names(sas)[7:18]<-stringr::str_replace(names(sas[7:18]),
-                                         "percentile",
-                                         "Hr_P")
-  
-  names(sas)[25:36]<-stringr::str_replace(
-    stringr::str_replace(names(sas)[25:36],".1$",""),
-    "percentile","Day_P") 
-  
-  sas
-
-  # names(sas)
-  
 }
 
-# # # TESTING # # # 
 
-# data<-feather::read_feather("unverifiedData.feather")
-# 
-# dataBackup<-data
-# data<-dataBackup
-# 
-# data<-data %>%
-#   dplyr::filter(PARAMETER %in% "PM25")
-# 
-# pm25sas<-purrr::map_dfr((data %>%
-#               dplyr::filter(PARAMETER %in% "PM25") %>%
-#               distinct(STATION_NAME_FULL) %>%
-#               arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
-# 
-#            function(station){
-# 
-#              #for testing
-#              # allStations<-(data %>%
-#              #                 dplyr::filter(PARAMETER %in% "PM25") %>%
-#              #                 distinct(STATION_NAME_FULL) %>%
-#              #                 arrange(STATION_NAME_FULL))$STATION_NAME_FULL
-#              #
-#              # station<-(data %>%
-#              #   dplyr::filter(PARAMETER %in% "PM25") %>%
-#              #   dplyr::filter(STATION_NAME_FULL==allStations[17]) %>%
-#              #     distinct(STATION_NAME_FULL))$STATION_NAME_FULL
-#              #
-#              # end testing
-# 
-# 
-#              station<-data %>%
-#                dplyr::filter(PARAMETER %in% "PM25" &
-#                         STATION_NAME_FULL %in% station)
-# 
-#              purrr::map_dfr(unique(station$INSTRUMENT),
-# 
-#                function(instrument){
-# 
-#                  #for testing
-#                  # instrument<-(station %>%
-#                  #                distinct(INSTRUMENT))$INSTRUMENT
-#                  #
-#                  # instrument<-station %>%
-#                  #   dplyr::filter(INSTRUMENT %in% instrument[1])
-# 
-#                  #END TESTING
-# 
-#                  instrument<-station %>%
-#                    dplyr::filter(INSTRUMENT %in% instrument)
-# 
-#                  pm25SASFcn(data=instrument)
-# 
-#                }
-# 
-# 
-# 
-#                ) #INSTRUMENT LOOP
-# 
-#            }) #STATION LOOP
-# 
-# 
-# # subset for a single station and param for testing the function
-# data<-data %>%
-#   dplyr::filter(STATION_NAME_FULL=="Golden Helipad" &
-#            INSTRUMENT=="PM25 SHARP5030i")
-# 
-# pm25SASFcn(data)
 
 
