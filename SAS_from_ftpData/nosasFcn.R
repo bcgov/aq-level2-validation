@@ -14,74 +14,56 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   library(openair) 
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
   
   #for testing
-  # nocolumn<-"RAW_VALUE"
+  # nocolumn<-"ROUNDED_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-no
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% toupper("no") &
+  #                   STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER")
+  # END TESTING
   
   #default arguments
-  if(missing(nocolumn)){nocolumn<-"RAW_VALUE"}
+  if(missing(nocolumn)){nocolumn<-"ROUNDED_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no}
-  
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
   
   nosub <- data %>%
     dplyr::select_(date=dateColumn,
                    NO=nocolumn)
   
-  ############# VALID DATA (DAYS AND HR.) ################ 
+  #calculate daily averages time series with data completeness of 75%
+  dt<-timeAverage(nosub,avg.time="day",data.thresh=75)
   
   #Count the number of days with valid data:
-  #calculate daily averages time series, data completeness = 75%
-  dt<-timeAverage(nosub,avg.time="day",data.thresh=75)
-  nd<-nrow(dt[complete.cases(dt[,2]),])
+  nd<-nrow(dt[!is.na(dt[,2]),])
   
   #Count the number of hours with valid data:
   nh<-nosub %>% filter(!is.na(NO)) %>% nrow(.)
   
-  ############### HR. PERC. & EXCEEDANCES ###############  
-  
   #Calculate hourly percentiles over the year: 
-  hp<-calcPercentile(nosub,
-                     pollutant="NO",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  hp <- calcPercentile(
+    nosub,
+    pollutant = "NO",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
     
-  #count hourly exceedances of level A (210), level B (210), and level C (530) objectives.
-  ha<-nrow(subset(nosub,nosub[,2]>=210))
-  hb<-nrow(subset(nosub,nosub[,2]>=210))
-  hc<-nrow(subset(nosub,nosub[,2]>=530))
-  
-  #calculate hourly % of exceedances
-  pha<-round((ha/nh)*100,2)
-  phb<-round((hb/nh)*100,2)
-  phc<-round((hc/nh)*100,2)
-  
-  ############### DAILY PERC. & EXCEEDANCES ############### 
-  
-  #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="NO",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
-  
-  #count daily exceedances of level A (NA), level B (110), and level C (160) objectives:
-  da<-NA
-  db<-nrow(subset(dt,dt[,2]>=110))
-  dc<-nrow(subset(dt,dt[,2]>=160))
-  
-  #calculate daily % of exceedances
-  pda<-NA
-  pdb<-round((db/nd)*100,2)
-  pdc<-round((dc/nd)*100,2)
-  
-  ############### DATA CAPTURE (d/MO, QUARTERLY) ############### 
+    dplyr::rename(
+      `0%(hr)` = percentile.0,
+      `10%(hr)` = percentile.10,
+      `25%(hr)` = percentile.25,
+      `50%(hr)` = percentile.50,
+      `75%(hr)` = percentile.75,
+      `90%(hr)` = percentile.90,
+      `95%(hr)` = percentile.95,
+      `98%(hr)` = percentile.98,
+      `99%(hr)` = percentile.99,
+      `99.5%(hr)` = percentile.99.5,
+      `99.9%(hr)` = percentile.99.9,
+      `100%(hr)` = percentile.100
+    )
   
   #calculate number of monitoring days each month
   dm<-timeAverage(dt,avg.time="month",statistic="frequency")
@@ -95,57 +77,59 @@ noSASFcn<-function(data,nocolumn,dateColumn){
           sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
   
   #calculate quarterly data capture (%)
-  q<-round((dq[,2]/allq)*100,0)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
   
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
-  dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=NO)
+  
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
+  dm %<>% 
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=NO)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                               "%Y-%m-%d",tz="UTC"),
-                    "%b")
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
   
   #do something similar for q
-  q<-t(q)
-  colnames(q)<-c("PercQ1","PercQ2","PercQ3","PercQ4")
-  
-  ############### COMPILE IN SUMMARY TABLE ############### 
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,NO) 
   
   #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(nosub$NO,na.rm=T),2),
-                  Hr_StDev=round(sd(nosub$NO,na.rm=T),2),
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  No_Day_Ex_C=dc,
-                  Perc_Day_Ex_C=pdc,
-                  dm,
-                  q
-  )
-  
-  names(sas)[7:18]<-stringr::str_replace(names(sas[7:18]),
-                                         "percentile",
-                                         "Hr_P")
-  
-  names(sas)[25:36]<-stringr::str_replace(
-    stringr::str_replace(names(sas)[25:36],".1$",""),
-    "percentile","Day_P") 
-  
-  
-  sas
+  (
+    sas <- tibble::tibble(
+      
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      
+      `VALID DAYS`= nd,
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(nosub$NO,na.rm=T),2),
+      
+    ) %>%
+      
+      dplyr::bind_cols(
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+              2),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        q
+      ) 
+    
+  ) # end sas
 }

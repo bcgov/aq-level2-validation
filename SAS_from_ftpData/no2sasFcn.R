@@ -15,30 +15,30 @@ no2SASFcn<-function(data,no2column,dateColumn){
   library(openair) 
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
   
   #for testing
-  # no2column<-"RAW_VALUE"
+  # no2column<-"ROUNDED_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-no2
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% toupper("no2") &
+  #                   STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER" &
+  #                   INSTRUMENT=="NOX_API200E")
+  # END TESTING
   
   #default arguments
-  if(missing(no2column)){no2column<-"RAW_VALUE"}
+  if(missing(no2column)){no2column<-"ROUNDED_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no2}
-  
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
   
   no2sub <- data %>%
     dplyr::select_(date=dateColumn,
                    NO2=no2column)
   
-  #Count the number of days with valid data:
   #calculate daily averages time series with data completeness of 75%
   dt<-timeAverage(no2sub,avg.time="day",data.thresh=75)
+  
+  #Count the number of days with valid data:
   nd<-nrow(dt[!is.na(dt[,2]),])
   
   #Count the number of hours with valid data:
@@ -52,6 +52,9 @@ no2SASFcn<-function(data,no2column,dateColumn){
                      avg.time="day",         #averaging period
                      statistic="max")
   
+  #count d1hm exceedances of 100ppb:
+  d1hmAbove100<-nrow(subset(d1hm,d1hm[,2]>=100))
+
   #calculate the annual 98th percentile
   d1hm_p98<-timeAverage(d1hm,
                    pollutant="NO2",
@@ -61,36 +64,53 @@ no2SASFcn<-function(data,no2column,dateColumn){
     select(NO2)
   
   #Calculate hourly percentiles over the year: 
-  hp<-calcPercentile(no2sub,
-                     pollutant="NO2",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  hp <- calcPercentile(
+    no2sub,
+    pollutant = "NO2",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(hr)` = percentile.0,
+      `10%(hr)` = percentile.10,
+      `25%(hr)` = percentile.25,
+      `50%(hr)` = percentile.50,
+      `75%(hr)` = percentile.75,
+      `90%(hr)` = percentile.90,
+      `95%(hr)` = percentile.95,
+      `98%(hr)` = percentile.98,
+      `99%(hr)` = percentile.99,
+      `99.5%(hr)` = percentile.99.5,
+      `99.9%(hr)` = percentile.99.9,
+      `100%(hr)` = percentile.100
+    )
   
-  #count hourly exceedances of level A (NA), level B (210), and level C (530) objectives.
-  ha<-NA
-  hb<-nrow(subset(no2sub,no2sub[,2]>=210))
-  hc<-nrow(subset(no2sub,no2sub[,2]>=530))
-  
-  #calculate hourly % of exceedances
-  pha<-NA
-  phb<-round((hb/nh)*100,2)
-  phc<-round((hc/nh)*100,2)
-  
-  #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="NO2",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
-  
-  #count daily exceedances of level A (NA), level B (110), and level C (160) objectives:
-  da<-NA
-  db<-nrow(subset(dt,dt[,2]>=110))
-  dc<-nrow(subset(dt,dt[,2]>=160))
-  
-  #calculate daily % of exceedances
-  pda<-NA
-  pdb<-round((db/nd)*100,2)
-  pdc<-round((dc/nd)*100,2)
+  #count hourly exceedances of 100 ppb:
+  hourlyAbove100<-nrow(subset(no2sub,no2sub[,2]>=100))
+
+  #calculate d1hm percentiles over the year:
+  d1hmp <- calcPercentile(
+    d1hm,
+    pollutant = "NO2",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(d1hm)` = percentile.0,
+      `10%(d1hm)` = percentile.10,
+      `25%(d1hm)` = percentile.25,
+      `50%(d1hm)` = percentile.50,
+      `75%(d1hm)` = percentile.75,
+      `90%(d1hm)` = percentile.90,
+      `95%(d1hm)` = percentile.95,
+      `98%(d1hm)` = percentile.98,
+      `99%(d1hm)` = percentile.99,
+      `99.5%(d1hm)` = percentile.99.5,
+      `99.9%(d1hm)` = percentile.99.9,
+      `100%(d1hm)` = percentile.100
+    )
   
   #calculate number of monitoring days each month
   dm<-timeAverage(dt,avg.time="month",statistic="frequency")
@@ -104,53 +124,85 @@ no2SASFcn<-function(data,no2column,dateColumn){
           sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
   
   #calculate quarterly data capture (%)
-  q<-round((dq[,2]/allq)*100,0)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
   
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
-  dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=NO2)
+  
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
+  dm %<>% 
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=NO2)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                               "%Y-%m-%d",tz="UTC"),
-                    "%b")
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
   
   #do something similar for q
-  q<-t(q)
-  colnames(q)<-c("PercQ1","PercQ2","PercQ3","PercQ4")
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,NO2) 
   
   #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(no2sub$NO2,na.rm=T),2),
-                  Hr_StDev=round(sd(no2sub$NO2,na.rm=T),2),
-                  D1HM_p98=d1hm_p98$NO2,
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  No_Day_Ex_C=dc,
-                  Perc_Day_Ex_C=pdc,
-                  dm,
-                  q
-  )
-  names(sas)[8:19]<-sapply(c(0,10,25,50,75,90,95,98,99,99.5,99.9,100),
-                           function(i){paste0("Hr_P",i)})
-  names(sas)[26:37]<-sapply(c(0,10,25,50,75,90,95,98,99,99.5,99.9,100),
-                            function(i){paste0("Day_P",i)})
-  
-  
-  sas
+  #Create and print summary table
+  (
+    sas <- tibble::tibble(
+      
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      
+      # INSTRUMENT = data %>%
+      #   dplyr::pull(INSTRUMENT) %>%
+      #   unique,
+      
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      
+      `VALID DAYS`= nd,
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(no2sub$NO2,na.rm=T),2),
+      
+      # `ANNUAL DAILY AVG`=round(mean(dt$NO2, na.rm = T), 2)
+    ) %>%
+      
+      dplyr::bind_cols(
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+                             2),
+        
+        # Hourly Exceedances of 100 ppb
+        tibble::tibble(`HOURLY EXCEEDANCES > 100 ppb`=
+                         hourlyAbove100),
+        
+        # D1hm Percentiles
+        round(d1hmp %>% dplyr::select(-date),
+              2),
+        
+        # Exceedances of D1HM >100 PPB
+        tibble::tibble(`EXCEEDANCES OF D1HM > 100 ppb`=d1hmAbove100),
+        
+        # Annual 98P of D1HM
+        d1hm_p98 %>% 
+          dplyr::mutate(NO2=round(NO2,2)) %>%
+          dplyr::rename(`ANNUAL 98P D1HM`=NO2),
+        
+        # Annual 98P of D1HM 3-yr ave
+        tibble::tibble(`98P_DAILY,3-YR AVG`=NA_real_),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        q
+        ) 
+
+  ) # end sas
   
 }
