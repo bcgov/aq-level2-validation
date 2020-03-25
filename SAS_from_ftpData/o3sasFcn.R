@@ -9,26 +9,24 @@ o3SASFcn<-function(data,o3column,dateColumn){
   library(openair)
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
 
   # #for testing
   # o3column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% toupper("o3") &
+  #                   STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER")
+  # END TESTING
   
   #default arguments
   if(missing(o3column)){o3column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-o3}
 
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
-  
-  
   o3sub<-data %>%
-    select_(date=dateColumn,
-            O3=o3column)
+    dplyr::select(date=!!dateColumn,
+                  O3=!!o3column)
   
   
   #Count the number of days with valid data:
@@ -48,32 +46,25 @@ o3SASFcn<-function(data,o3column,dateColumn){
                      pollutant="O3",
                      avg.time="year",
                      percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100)
-  )
+  ) %>%
+    
+    dplyr::rename(
+      `0%(hr)` = percentile.0,
+      `10%(hr)` = percentile.10,
+      `25%(hr)` = percentile.25,
+      `50%(hr)` = percentile.50,
+      `75%(hr)` = percentile.75,
+      `90%(hr)` = percentile.90,
+      `95%(hr)` = percentile.95,
+      `98%(hr)` = percentile.98,
+      `99%(hr)` = percentile.99,
+      `99.5%(hr)` = percentile.99.5,
+      `99.9%(hr)` = percentile.99.9,
+      `100%(hr)` = percentile.100
+    )
   
-  #count hourly exceedances of level A (51), level B (82), 
-  #and level C (153) objectives.
-  ha<-nrow(subset(o3sub,o3sub[,2]>=51))
-  hb<-nrow(subset(o3sub,o3sub[,2]>=82))
-  hc<-nrow(subset(o3sub,o3sub[,2]>=153))
-  
-  #calculate hourly % of exceedances
-  pha<-round((ha/nh)*100,2)
-  phb<-round((hb/nh)*100,2)
-  phc<-round((hc/nh)*100,2)
-  
-  #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="O3",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
-  
-  #count exceedances of daily objectives level A (15) and B (25):
-  da<-nrow(subset(dt,dt[,2]>=15))
-  db<-nrow(subset(dt,dt[,2]>=25))
-  
-  #calculate daily % of exceedances
-  pda<-round((da/nd)*100,2)
-  pdb<-round((db/nd)*100,2)
+  #count hourly 82 ppb.
+  hoursAbove82<-nrow(subset(o3sub,o3sub[,2]>=82))
   
   #calculate 8 hr. rolling average. 
   #To calc. for Jan 1, need last 7 hr. from Dec 
@@ -89,151 +80,116 @@ o3SASFcn<-function(data,o3column,dateColumn){
     select(-O3)
   
   #calculate max daily 8 hr. roll ave
-  rmax<-timeAverage(roll,
+  d8hm<-timeAverage(roll,
                     avg.time="day",
                     statistic="max")
   
-  #count exceedances of max daily 8 hr. roll ave obj. (65):
-  e<-nrow(subset(rmax,rmax$roll.o3>=65))
+  # daily 8 hour maximum average percentiles
+  #calculate d8hm percentiles over the year:
+  d8hmp <- calcPercentile(
+    d8hm,
+    pollutant = "roll.o3",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(d8hm)` = percentile.0,
+      `10%(d8hm)` = percentile.10,
+      `25%(d8hm)` = percentile.25,
+      `50%(d8hm)` = percentile.50,
+      `75%(d8hm)` = percentile.75,
+      `90%(d8hm)` = percentile.90,
+      `95%(d8hm)` = percentile.95,
+      `98%(d8hm)` = percentile.98,
+      `99%(d8hm)` = percentile.99,
+      `99.5%(d8hm)` = percentile.99.5,
+      `99.9%(d8hm)` = percentile.99.9,
+      `100%(d8hm)` = percentile.100
+    )
   
-  #calculate % exceedance  
-  rh<-nrow(rmax[complete.cases(rmax$roll.o3),])
-  pe<-round((e/rh)*100,2)
+  #count exceedances of max daily 8 hr. roll ave >63 ppb:
+  d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=65))
   
   #calculate 4th highest max daily 8 hr. roll ave
-  f<-round(rmax$roll.o3[order(-rmax$roll.o3)][4],2)
+  d8hmRank4<-round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2)
   
   #calculate number of monitoring days each month
-  dm<-timeAverage(dt,
-                  avg.time="month",
-                  statistic="frequency")
+  dm<-timeAverage(dt,avg.time="month",statistic="frequency")
   
   #calculate number of monitoring days each quarter
-  dq<-timeAverage(dt,
-                  avg.time="3 month",
-                  statistic="frequency")
+  dq<-timeAverage(dt,avg.time="3 month",statistic="frequency")
+  
   #calculate total no. days in Q2+Q3
   d23<-sum(monthDays(dm$date)[4:9])
   
   #calculate Q2+Q3 capture (%)
   p23<-round((sum(dq[2:3,2])/d23)*100,0)
   
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
-  dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=O3) 
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
+  dm %<>% 
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=O3)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                               "%Y-%m-%d",tz="UTC"),
-                    "%b")  
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
   
   
   #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(o3sub$O3,na.rm=T),2),
-                  Hr_StDev=round(sd(o3sub$O3,na.rm=T),2),
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  Days_8hrMax_Ex_65ppb=e,
-                  Perc_8hrMax_Ex_65ppb=pe,
-                  Fourth_Highest_8hrMax=f,
-                  rank=NA,
-                  Roll3Yr=NA,
-                  dm,
-                  PercQ2Q3=p23
-  )
-  names(sas)[7:18]<-stringr::str_replace(names(sas[7:18]),
-                                         "percentile",
-                                         "Hr_P")
+  (
+    sas <- tibble::tibble(
+      
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      
+      `VALID DAYS`= nd,
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(o3sub$O3,na.rm=T),2),
+      
+    ) %>%
+      
+      dplyr::bind_cols(
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+              2),
+        
+        # Hourly Exceedances of 82 ppb
+        tibble::tibble(`HOURLY EXCEEDANCES > 82 ppb`=
+                         hoursAbove82),
+        
+        # D8hm Percentiles
+        round(d8hmp %>% dplyr::select(-date),
+              2),
+        
+        # Exceedances of D8HM >63 PPB
+        tibble::tibble(`EXCEEDANCES OF D8HM > 63 ppb`=d8hmAbove63),
+        
+        # Annual 4TH rANK D8HM
+        tibble::tibble(`ANNUAL 4TH RANK D8HM`=round(d8hmRank4,2)),
+        
+        # Annual 4TH rANK D8HM, 3-yr avg
+        tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG`=NA_real_),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        tibble::tibble(`Q2+Q3(%days)`=p23)
+      ) 
+    
+  ) # end sas
   
-  names(sas)[25:36]<-stringr::str_replace(
-    stringr::str_replace(names(sas)[25:36],".1$",""),
-    "percentile","Day_P") 
-  
-  
-  sas
-  
-  # names(sas)
   
 }
 
-# # # TESTING # # # 
-
-# data<-feather::read_feather("./data/unverifiedData.feather")
-# 
-# data<-data %>%
-#   filter(PARAMETER %in% "O3" &
-#            stringr::str_detect(STATION_NAME_FULL,"Castlegar"))
-# 
-# o3sas<-purrr::map_dfr((data %>%
-#               filter(PARAMETER %in% "O3") %>%
-#               distinct(STATION_NAME_FULL) %>%
-#               arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
-# 
-#            function(station){
-# 
-#              #for testing
-#              # allStations<-(data %>%
-#              #                 filter(PARAMETER %in% "O3") %>%
-#              #                 distinct(STATION_NAME_FULL) %>%
-#              #                 arrange(STATION_NAME_FULL))$STATION_NAME_FULL
-#              #
-#              # station<-(data %>%
-#              #   filter(PARAMETER %in% "O3") %>%
-#              #   filter(STATION_NAME_FULL==allStations[17]) %>%
-#              #     distinct(STATION_NAME_FULL))$STATION_NAME_FULL
-#              #
-#              # end testing
-# 
-# 
-#              station<-data %>%
-#                filter(PARAMETER %in% "O3" &
-#                         STATION_NAME_FULL %in% station)
-# 
-#              purrr::map_dfr(unique(station$INSTRUMENT),
-# 
-#                function(instrument){
-# 
-#                  #for testing
-#                  # instrument<-(station %>%
-#                  #                distinct(INSTRUMENT))$INSTRUMENT
-#                  #
-#                  # instrument<-station %>%
-#                  #   filter(INSTRUMENT %in% instrument[1])
-# 
-#                  #END TESTING
-# 
-#                  instrument<-station %>%
-#                    filter(INSTRUMENT %in% instrument)
-# 
-#                  o3SASFcn(data=instrument)
-# 
-#                }
-# 
-# 
-# 
-#                ) #INSTRUMENT LOOP
-# 
-#            }) #STATION LOOP
-# 
-# 
-# 
-# 
-# 
-# 
-# dataBackup<-data
-# data<-dataBackup

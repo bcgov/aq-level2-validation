@@ -30,8 +30,8 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   if(missing(data)){data<-no}
   
   nosub <- data %>%
-    dplyr::select_(date=dateColumn,
-                   NO=nocolumn)
+    dplyr::select(date=!!dateColumn,
+                   NO=!!nocolumn)
   
   #calculate daily averages time series with data completeness of 75%
   dt<-timeAverage(nosub,avg.time="day",data.thresh=75)

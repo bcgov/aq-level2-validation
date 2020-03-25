@@ -32,8 +32,8 @@ no2SASFcn<-function(data,no2column,dateColumn){
   if(missing(data)){data<-no2}
   
   no2sub <- data %>%
-    dplyr::select_(date=dateColumn,
-                   NO2=no2column)
+    dplyr::select(date=!!dateColumn,
+                  NO2=!!no2column)
   
   #calculate daily averages time series with data completeness of 75%
   dt<-timeAverage(no2sub,avg.time="day",data.thresh=75)
@@ -155,10 +155,6 @@ no2SASFcn<-function(data,no2column,dateColumn){
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME_FULL) %>%
         unique,
-      
-      # INSTRUMENT = data %>%
-      #   dplyr::pull(INSTRUMENT) %>%
-      #   unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),
       

@@ -511,11 +511,78 @@ so2sas<-purrr::map_dfr((data %>%
 
              }) #STATION LOOP
 
-  if(nrow(so2sas!=0)){
-  DT::datatable(so2sas,
-                options = list(scrollX=TRUE))
-  } else {print("There is no data for this parameter.")}
+    # add column origin for where calculations originate from
+so2sas %<>% dplyr::mutate(ORIGIN="AQS")
 
+```
+
+```{r so2sasECMS}
+# get so2 stations in data
+so2Stns<-data %>%
+  dplyr::filter(PARAMETER==toupper("so2")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+# import ecms sas from excel
+so2sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            "2019_SO2_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(so2Stns, "_", " "))
+
+
+# tibble::tibble(names(so2sasECMS),
+#                names(so2sas)) %>% View
+
+names(so2sasECMS) <- names(so2sas)
+ 
+```
+
+```{r so2sasDT}
+
+# issues with binding, mismatching column formats (character vs integer), so2t being able to convert from one form to the other. Convert everything to character for data table.
+so2sasDT <- bind_rows(
+  so2sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+  
+  so2sas %>%
+    mutate_all(as.character)
+  
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+if(nrow(so2sasDT)!=0) {
+ 
+   DT::datatable(
+    so2sasDT,
+    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+} else {
+  print("There is so2 data for this parameter.")
+}
 ```
 
 ### O~3~
@@ -546,12 +613,80 @@ o3sas<-purrr::map_dfr((data %>%
 
              }) #STATION LOOP
 
-  if(nrow(o3sas!=0)){
-  DT::datatable(o3sas,
-                options = list(scrollX=TRUE))
-  } else {print("There is no data for this parameter.")}
+ # add column origin for where calculations originate from
+o3sas %<>% dplyr::mutate(ORIGIN="AQS")
 
 ```
+
+```{r o3sasECMS}
+# get o3 stations in data
+o3Stns<-data %>%
+  dplyr::filter(PARAMETER==toupper("o3")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+# import ecms sas from excel
+o3sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            "2019_OZONE_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(o3Stns, "_", " "))
+
+
+# tibble::tibble(names(o3sasECMS),
+#                names(o3sas)) %>% View
+
+names(o3sasECMS) <- names(o3sas)
+ 
+```
+
+```{r o3sasDT}
+
+# issues with binding, mismatching column formats (character vs integer), o3t being able to convert from one form to the other. Convert everything to character for data table.
+o3sasDT <- bind_rows(
+  o3sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+  
+  o3sas %>%
+    mutate_all(as.character)
+  
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+if(nrow(o3sasDT)!=0) {
+ 
+   DT::datatable(
+    o3sasDT,
+    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+} else {
+  print("There is o3 data for this parameter.")
+}
+```
+
 
 ### H~2~S
 
