@@ -1,10 +1,11 @@
 # Script: trssasFcn.R
 # Description: trs sas script for ftp data
+# NOTE: EXACT SAME STATS AS TRS
 
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Prince George Plaza 400" &
+#   dplyr::filter(STATION_NAME_FULL=="Pine River Gas Plant" &
 #            PARAMETER=="TRS") %>% distinct()
 # 
 # trsSASFcn(data)
@@ -14,32 +15,31 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   library(openair) 
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
   
   #for testing
-  # trscolumn<-"RAW_VALUE"
+  # trscolumn<-"ROUNDED_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-trs
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% toupper("trs") &
+  # STATION_NAME_FULL=="BESSBOROUGH 237 ROAD")
+  # END TESTING
   
   #default arguments
-  if(missing(trscolumn)){trscolumn<-"RAW_VALUE"}
+  if(missing(trscolumn)){trscolumn<-"ROUNDED_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-trs}
   
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
-  
   trssub <- data %>%
-    dplyr::select_(date=dateColumn,
-                   TRS=trscolumn)
+    dplyr::select(date=!!dateColumn,
+                  TRS=!!trscolumn)
   
-  ############# VALID DATA (DAYS AND HR.) ################ 
+  # # # VALID DATA (DAYS AND HR.) # # # 
   
-  #Count the number of days with valid data:
   #calculate daily averages time series, data completeness = 75%
   dt<-timeAverage(trssub,avg.time="day",data.thresh=75)
+  
+  #Count the number of days with valid data:
   nd<-nrow(dt[complete.cases(dt[,2]),])
   
   #Count the number of hours with valid data:
@@ -48,46 +48,72 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   ############### HR. PERC. & EXCEEDANCES ###############  
   
   #Calculate hourly percentiles over the year: 
-  hp<-calcPercentile(trssub,
-                     pollutant="TRS",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  hp <- calcPercentile(
+    trssub,
+    pollutant = "TRS",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
     
-  #count hourly exceedances of level A (5), level B (20), and level C (NA) objectives.
-  ha<-nrow(subset(trssub,trssub[,2]>=5))
-  hb<-nrow(subset(trssub,trssub[,2]>=20))
-  hc<-NA
+    dplyr::rename(
+      `0%(hr)` = percentile.0,
+      `10%(hr)` = percentile.10,
+      `25%(hr)` = percentile.25,
+      `50%(hr)` = percentile.50,
+      `75%(hr)` = percentile.75,
+      `90%(hr)` = percentile.90,
+      `95%(hr)` = percentile.95,
+      `98%(hr)` = percentile.98,
+      `99%(hr)` = percentile.99,
+      `99.5%(hr)` = percentile.99.5,
+      `99.9%(hr)` = percentile.99.9,
+      `100%(hr)` = percentile.100
+    )
   
-  #calculate hourly % of exceedances
-  pha<-round((ha/nh)*100,2)
-  phb<-round((hb/nh)*100,2)
-  phc<-NA
+  #count hourly exceedances of 5 ppb.
+  hoursAbove5<-nrow(subset(trssub,trssub[,2]>=5))
   
   ############### DAILY PERC. & EXCEEDANCES ############### 
   
   #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="TRS",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  dp <- calcPercentile(
+    dt,
+    pollutant = "TRS",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(day)` = percentile.0,
+      `10%(day)` = percentile.10,
+      `25%(day)` = percentile.25,
+      `50%(day)` = percentile.50,
+      `75%(day)` = percentile.75,
+      `90%(day)` = percentile.90,
+      `95%(day)` = percentile.95,
+      `98%(day)` = percentile.98,
+      `99%(day)` = percentile.99,
+      `99.5%(day)` = percentile.99.5,
+      `99.9%(day)` = percentile.99.9,
+      `100%(day)` = percentile.100
+    )
   
-  #count daily exceedances of level A (2), level B (4), and level C (NA) objectives:
-  da<-nrow(subset(dt,dt[,2]>=2))
-  db<-nrow(subset(dt,dt[,2]>=4))
-  dc<-NA
-  
-  #calculate daily % of exceedances
-  pda<-round((da/nd)*100,2)
-  pdb<-round((db/nd)*100,2)
-  pdc<-NA
+  #count daily exceedances of 2 ppb.
+  daysAbove2<-nrow(subset(dt,dt[,2]>=2))
   
   ############### DATA CAPTURE (d/MO, QUARTERLY) ############### 
   
+  # # # MONITORING DAYS/MO & /Q # # #
+  
   #calculate number of monitoring days each month
-  dm<-timeAverage(dt,avg.time="month",statistic="frequency")
+  dm<-timeAverage(dt,
+                  avg.time="month",
+                  statistic="frequency")
   
   #calculate number of monitoring days each quarter
-  dq<-timeAverage(dt,avg.time="3 month",statistic="frequency")
+  dq<-timeAverage(dt,
+                  avg.time="3 month",
+                  statistic="frequency")
   
   #calculate total no. days each quarter
   alld<-timeAverage(trssub,avg.time="day")
@@ -95,57 +121,72 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
           sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
   
   #calculate quarterly data capture (%)
-  q<-round((dq[,2]/allq)*100,0)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
   
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
-  dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=TRS)
+  
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
+  dm %<>% 
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=TRS)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                               "%Y-%m-%d",tz="UTC"),
-                    "%b")
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
   
   #do something similar for q
-  q<-t(q)
-  colnames(q)<-c("PercQ1","PercQ2","PercQ3","PercQ4")
-  
-  ############### COMPILE IN SUMMARY TABLE ############### 
-  
-  #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(trssub$TRS,na.rm=T),2),
-                  Hr_StDev=round(sd(trssub$TRS,na.rm=T),2),
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  No_Day_Ex_C=dc,
-                  Perc_Day_Ex_C=pdc,
-                  dm,
-                  q
-  )
-  
-  names(sas)[7:18]<-stringr::str_replace(names(sas[7:18]),
-                                         "percentile",
-                                         "Hr_P")
-  
-  names(sas)[25:36]<-stringr::str_replace(
-    stringr::str_replace(names(sas)[25:36],".1$",""),
-    "percentile","Day_P") 
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,TRS) 
   
   
-  sas
+  # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
+  
+  (
+    sas <- tibble::tibble(
+      
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      
+      `VALID DAYS`= nd,
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(trssub$TRS,na.rm=T),2),
+      
+    ) %>%
+      
+      dplyr::bind_cols(
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+              2),
+        
+        # Hourly Exceedances of 5 ppb
+        tibble::tibble(`HOURLY EXCEEDANCES > 5 ppb`=
+                         hoursAbove5),
+        
+        # Daily Percentiles
+        round(dp %>% dplyr::select(-date),
+              2),
+        
+        # Exceedances of daily > 2 ppb
+        tibble::tibble(`EXCEEDANCES OF DAILY AVG > 2 ppb`=daysAbove2),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        q
+      ) 
+    
+  ) # end sas
 }

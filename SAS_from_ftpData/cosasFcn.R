@@ -16,76 +16,88 @@ coSASFcn<-function(data,cocolumn,dateColumn){
   library(openair) 
   library(Hmisc)
   library(tidyverse)
+  library(rlang)
   
   #for testing
-  # cocolumn<-"RAW_VALUE"
+  # cocolumn<-"ROUNDED_VALUE"
   # dateColumn<-"DATE_PST"
-  # data<-co
+  # data<-data %>%
+  #   dplyr::filter(PARAMETER %in% toupper("co") &
+  #                   STATION_NAME_FULL=="KELOWNA COLLEGE")
+  # END TESTING
   
   #default arguments
-  if(missing(cocolumn)){cocolumn<-"RAW_VALUE"}
+  if(missing(cocolumn)){cocolumn<-"ROUNDED_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-co}
   
-  # unique id for each combination of STATION_NAME_FULL, INSTRUMENT
-  # should be length one as function is mapped over STATION_NAME_FULL and instrument
-  id<-data %>% 
-    mutate(id=stringr::str_c(STATION_NAME_FULL,INSTRUMENT,sep = "_")) %>%
-    distinct(id)
-  
   cosub <- data %>%
-    dplyr::select_(date=dateColumn,
-                   CO=cocolumn)
+    dplyr::select(date=!!dateColumn,
+                   CO=!!cocolumn)
 
-  #Count the number of days with valid data:
   #calculate daily averages time series with data completeness of 75%
   dt<-timeAverage(cosub,avg.time="day",data.thresh=75)
+  
+  #Count the number of days with valid data:
   nd<-nrow(dt[complete.cases(dt[,2]),])
   
   #Count the number of hours with valid data:
   nh<-nrow(cosub[!is.na(cosub[,2]),])
   
-  ########### HR. PERCENTILE & EXCEEDANCES  #################
+  # # # HR. PERCENTILE & EXCEEDANCES  # # #
   
   #Calculate hourly percentiles over the year: 
-  hp<-calcPercentile(cosub,
-                     pollutant="CO",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  hp <- calcPercentile(
+    cosub,
+    pollutant = "CO",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
     
-  #count hourly exceedances of level A (13), level B (25), 
-  #and level C (30) objectives.
-  oa<-as.numeric(13)
-  ha<-nrow(subset(cosub,cosub[,2]>=oa))
-  ob<-as.numeric(25)
-  hb<-nrow(subset(cosub,cosub[,2]>=ob))
-  oc<-as.numeric(30)
-  hc<-nrow(subset(cosub,cosub[,2]>=oc))
+    dplyr::rename(
+      `0%(hr)` = percentile.0,
+      `10%(hr)` = percentile.10,
+      `25%(hr)` = percentile.25,
+      `50%(hr)` = percentile.50,
+      `75%(hr)` = percentile.75,
+      `90%(hr)` = percentile.90,
+      `95%(hr)` = percentile.95,
+      `98%(hr)` = percentile.98,
+      `99%(hr)` = percentile.99,
+      `99.5%(hr)` = percentile.99.5,
+      `99.9%(hr)` = percentile.99.9,
+      `100%(hr)` = percentile.100
+    )
+    
+  #count hourly exceedances of 13 ppm.
+  hoursAbove13<-nrow(subset(cosub,cosub[,2]>=13))
   
-  #calculate hourly % of exceedances
-  pha<-round((ha/nh)*100,2)
-  phb<-round((hb/nh)*100,2)
-  phc<-round((hc/nh)*100,2)
-  
-  ##############  DAILY PERCENTILE & EXCEEDANCES  ##############
+  # # # DAILY PERCENTILE & EXCEEDANCES  # # #
   
   #calculate daily percentiles over the year:
-  dp<-calcPercentile(dt,
-                     pollutant="CO",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  dp <- calcPercentile(
+    dt,
+    pollutant = "CO",
+    avg.time = "year",
+    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
+  ) %>%
+    
+    dplyr::rename(
+      `0%(day)` = percentile.0,
+      `10%(day)` = percentile.10,
+      `25%(day)` = percentile.25,
+      `50%(day)` = percentile.50,
+      `75%(day)` = percentile.75,
+      `90%(day)` = percentile.90,
+      `95%(day)` = percentile.95,
+      `98%(day)` = percentile.98,
+      `99%(day)` = percentile.99,
+      `99.5%(day)` = percentile.99.5,
+      `99.9%(day)` = percentile.99.9,
+      `100%(day)` = percentile.100
+    )
   
-  #count daily exceedances of 24-hr objectives: level A(5), level B(10), level C(13).
-  da<-nrow(subset(dt,dt[,2]>=5))
-  db<-nrow(subset(dt,dt[,2]>=10))
-  dc<-nrow(subset(dt,dt[,2]>=13))
-  
-  #calculate daily % of exceedances
-  pda<-round((da/nd)*100,2)
-  pdb<-round((db/nd)*100,2)
-  pdc<-round((dc/nd)*100,2)
-  
-  ######### 8hr AVE. PERC. & EXCEEDANCES ################
+  # # # 8hr AVE. PERC. & EXCEEDANCES # # #
   
   #calculate 8 hr. rolling average. 
   
@@ -97,32 +109,20 @@ coSASFcn<-function(data,cocolumn,dateColumn){
                     align="right")        #back running
  
  
-  #calculate percentiles for hourly rolling mean:
-  rp<-calcPercentile(roll8hr[,-2],
-                     pollutant="co.8hr",
-                     avg.time="year",
-                     percentile=c(0,10,25,50,75,90,95,98,99,99.5,99.9,100))
+  #count rolling ave. exceedances of 5 ppm:
+  roll8hrAbove5<-nrow(subset(roll8hr,roll8hr[,3]>=5))
   
-  #count rolling ave. exceedances of objectives (same as for 24-hr):
-  ra<-nrow(subset(roll8hr,roll8hr[,3]>=5))
-  rb<-nrow(subset(roll8hr,roll8hr[,3]>=10))
-  rc<-nrow(subset(roll8hr,roll8hr[,3]>=13))
-  
-  #calculate rolling ave. % of exceedances  
-  rh<-nrow(roll8hr[complete.cases(roll8hr[,3]),])
-  
-  pra<-round((ra/rh)*100,2)
-  prb<-round((rb/rh)*100,2)
-  prc<-round((rc/rh)*100,2)
-  
-  ######  MONITORING DAYS/MO & /Q  ##################
-  
+  # # # MONITORING DAYS/MO & /Q # # #
   
   #calculate number of monitoring days each month
-  dm<-timeAverage(dt,avg.time="month",statistic="frequency")
+  dm<-timeAverage(dt,
+                  avg.time="month",
+                  statistic="frequency")
   
   #calculate number of monitoring days each quarter
-  dq<-timeAverage(dt,avg.time="3 month",statistic="frequency")
+  dq<-timeAverage(dt,
+                  avg.time="3 month",
+                  statistic="frequency")
   
   #calculate total no. days each quarter
   alld<-timeAverage(cosub,avg.time="day")
@@ -130,71 +130,74 @@ coSASFcn<-function(data,cocolumn,dateColumn){
           sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
   
   #calculate quarterly data capture (%)
-  q<-round((dq[,2]/allq)*100,0)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
   
-  #Change dm from 12 observations of 2 variables to 1 observation of 12 variables for making summary (sas) below
-  dm<-dm %>% 
-    mutate(date=format(date,"%m")) %>%
-    spread(key=date,value=CO)
+  
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
+  # variables for making summary (sas) below
+  dm %<>% 
+    dplyr::mutate(date=format(date,"%m")) %>%
+    tidyr::spread(key=date,value=CO)
   
   #
-  names(dm)<-format(as.POSIXct(stringr::str_c("2000",names(dm),"01",sep = "-"),
-                               "%Y-%m-%d",tz="UTC"),
-                    "%b")
+  names(dm) <- stringr::str_c(
+    format(as.POSIXct(stringr::str_c("2000", names(dm), "01", sep = "-"),
+                      "%Y-%m-%d", tz = "UTC"),
+           "%b"),
+    "(days)",sep = " ")
   
   #do something similar for q
-  q<-t(q)
-  colnames(q)<-c("PercQ1","PercQ2","PercQ3","PercQ4")
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,CO) 
   
   
-  ########### CREATE SUMMARY TABLE (SAME AS SAS)  #############
-  #Create and print summary table
-  sas<-data.frame(Site=id,
-                  Year=as.numeric(format(hp$date,"%Y")),
-                  Valid_Days= nd,
-                  Valid_Hrs= nh,
-                  Hr_Mean=round(mean(cosub$CO,na.rm=T),2),
-                  Hr_StDev=round(sd(cosub$CO,na.rm=T),2),
-                  round(hp[2:length(hp)],2),
-                  No_Hr_Ex_A=ha,
-                  Perc_Hr_Ex_A=pha,
-                  No_Hr_Ex_B=hb,
-                  Perc_Hr_Ex_B=phb,
-                  No_Hr_Ex_C=hc,
-                  Perc_Hr_Ex_C=phc,
-                  round(dp[2:length(dp)],2),
-                  No_Day_Ex_A=da,
-                  Perc_Day_Ex_A=pda,
-                  No_Day_Ex_B=db,
-                  Perc_Day_Ex_B=pdb,
-                  No_Day_Ex_C=dc,
-                  Perc_Day_Ex_C=pdc,
-                  round(rp[2:length(rp)],2),
-                  No_8hr_Ex_A=ra,
-                  Perc_8hr_Ex_A=pra,
-                  No_8hr_Ex_B=rb,
-                  Perc_8hr_Ex_B=prb,
-                  No_8hr_Ex_C=rc,
-                  Perc_8hr_Ex_C=prc,
-                  dm,
-                  q
-                  
-                  ) #sas
- 
- names(sas)[7:18]<-stringr::str_replace(names(sas[7:18]),
-                                        "percentile",
-                                        "Hr_P")
- 
- names(sas)[25:36]<-stringr::str_replace(
-   stringr::str_replace(names(sas)[25:36],".1$",""),
-   "percentile","Day_P") 
- 
- names(sas)[43:54]<-stringr::str_replace(
-                stringr::str_replace(names(sas)[43:54],".2$",""),
-                "percentile","Roll8hr_P") 
- 
+  # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
   
- sas
+  (
+    sas <- tibble::tibble(
+      
+      `STATION NAME` = data %>%
+        dplyr::pull(STATION_NAME_FULL) %>%
+        unique,
+      
+      YEAR = as.numeric(format(hp$date, "%Y")),
+      
+      `VALID DAYS`= nd,
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(cosub$CO,na.rm=T),2),
+      
+    ) %>%
+      
+      dplyr::bind_cols(
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+              2),
+        
+        # Hourly Exceedances of 13 ppm
+        tibble::tibble(`HOURLY EXCEEDANCES > 13 ppm`=
+                         hoursAbove13),
+        
+        # Daily Percentiles
+        round(dp %>% dplyr::select(-date),
+              2),
+        
+        # Exceedances of Rolling 8hr > 5 PPm
+        tibble::tibble(`EXCEEDANCES OF ROLLING 8HR > 5 ppm`=roll8hrAbove5),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        q
+      ) 
+    
+  ) # end sas
  
 }
 
