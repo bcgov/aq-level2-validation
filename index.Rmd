@@ -1,0 +1,58 @@
+---
+title: "Annual Data Validation"
+author: "Air Quality Section | Regional Operations Branch"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params:
+  preppedData: "./regionalPreppedData/Kootenay_1of2.rds"
+  year: 2019
+site: bookdown::bookdown_site
+output: 
+  bookdown::gitbook:
+    config:
+      toc:
+        collapse: section
+---
+
+# Preamble {-}
+
+Add description here.
+
+```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      echo = FALSE)
+
+library(tidyverse)
+library(openair)
+library(Hmisc)
+library(xts)
+library(plotly)
+library(RCurl)
+library(DT)
+library(feather)
+library(magrittr)
+library(readxl)
+library(gdata)
+
+# functions to calculate SAS stats from hourly data
+source("./SAS_from_ftpData/pm25sasFcn.R")
+source("./SAS_from_ftpData/pm10sasFcn.R")
+source("./SAS_from_ftpData/no2sasFcn.R")
+source("./SAS_from_ftpData/nosasFcn.R")
+source("./SAS_from_ftpData/so2sasFcn.R")
+source("./SAS_from_ftpData/o3sasFcn.R")
+source("./SAS_from_ftpData/h2ssasFcn.R")
+source("./SAS_from_ftpData/trssasFcn.R")
+source("./SAS_from_ftpData/cosasFcn.R")
+
+# path to ecms sas reports saved locally:
+sasReports<-"C:/HagaR/AnnualDataValidation/SAS_reports"
+
+source("plotlyFcn.R")
+source("emptyPlot.R")
+
+```
+
+```{r importData}
+data<-readRDS(params$preppedData) 
+```

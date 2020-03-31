@@ -8,3 +8,6 @@ unverifiedData.feather
 stations.rds
 .DS_Store
 unverifiedData_unpadded.feather
+_book-output*
+_bookdown_files*
+_Kootenay_1of2*

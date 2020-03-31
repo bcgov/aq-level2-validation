@@ -1,0 +1,319 @@
+# Hourly time series {.tabset}
+
+```{r hourlyPlotOptions}
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+## PM~2.5~
+
+```{r pm25hourly}
+pm25plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("pm25"))
+  
+  
+}
+
+htmltools::tagList(pm25plots)
+```
+
+
+## PM~10~
+
+```{r pm10hourly}
+pm10plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("pm10"))
+  
+  
+}
+
+htmltools::tagList(pm10plots)
+```
+
+## O~3~
+
+```{r o3hourly}
+o3plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("o3"))
+  
+  
+}
+
+htmltools::tagList(o3plots)
+```
+
+## NO~2~
+
+```{r no2hourly}
+no2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("no2"))
+  
+  
+}
+
+htmltools::tagList(no2plots)
+```
+
+## NO
+
+```{r nohourly}
+noplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("no"))
+  
+  
+}
+
+htmltools::tagList(noplots)
+```
+
+## NO~x~
+
+```{r noxhourly}
+noxplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% "NOx") %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter="NOx")
+  
+  
+}
+
+htmltools::tagList(noxplots)
+```
+
+
+## SO~2~
+
+```{r so2hourly}
+so2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("so2"))
+  
+  
+}
+
+htmltools::tagList(so2plots)
+```
+
+## CO
+
+```{r cohourly}
+coplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("co")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("co"))
+  
+  
+}
+
+htmltools::tagList(coplots)
+```
+
+## TRS
+
+```{r trshourly}
+trsplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("trs"))
+  
+  
+}
+
+htmltools::tagList(trsplots)
+```
+
+## H~2~S
+
+```{r h2shourly}
+h2splots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("h2s"))
+  
+  
+}
+
+htmltools::tagList(h2splots)
+```
+
+## WS
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wspd_sclrhourly}
+wspd_sclrplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("wspd_sclr"))
+  
+  
+}
+
+htmltools::tagList(wspd_sclrplots)
+```
+
+## WD
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wdir_vecthourly}
+wdir_vectplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("wdir_vect"))
+  
+  
+}
+
+htmltools::tagList(wdir_vectplots)
+```
+
+## Temp
+
+```{r temp_meanhourly}
+temp_meanplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("temp_mean"))
+  
+  
+}
+
+htmltools::tagList(temp_meanplots)
+```
+
+## Humidity
+
+```{r humidityhourly}
+humidityplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
+       group_by_at(vars(STATION_NAME_FULL,INSTRUMENT)) %>%
+       distinct(STATION_NAME_FULL,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {emptyPlot} else {
+  
+  plotlyFcn(data,
+            parameter=toupper("humidity"))
+  
+  
+}
+
+htmltools::tagList(humidityplots)
+```

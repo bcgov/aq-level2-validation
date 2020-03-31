@@ -1,0 +1,13 @@
+# Data Summary
+
+**Stations selected include: `r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique %>% sort`.**
+
+```{r dataSummary, cache=TRUE}
+
+DT::datatable(data %>%
+                dplyr::distinct(STATION_NAME_FULL,PARAMETER,INSTRUMENT) %>%
+                arrange(STATION_NAME_FULL),
+              caption = "Summary of data selected for validation.",
+              rownames = FALSE)
+```
+

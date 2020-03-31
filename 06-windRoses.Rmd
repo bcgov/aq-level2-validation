@@ -1,0 +1,85 @@
+# Wind Roses
+
+```{r windCache}
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+```{r windDataPrep}
+# select wind data, get it in openair format
+
+windData <- data %>%
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
+  dplyr::select(date = DATE_PST,
+                STATION_NAME_FULL,
+                PARAMETER,
+                ROUNDED_VALUE) %>%
+  tidyr::pivot_wider(.,
+                     names_from = PARAMETER,
+                     values_from = ROUNDED_VALUE) %>%
+  dplyr::rename(ws = WSPD_SCLR,
+                wd = WDIR_VECT) %>%
+  dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                wd = ifelse(is.na(ws), NA, wd))
+
+```
+
+```{r windRose}
+purrr::walk(windData %>%
+      dplyr::pull(STATION_NAME_FULL) %>%
+      unique,
+    
+    function(station){
+      # FOR TESTING
+      # station<-"QUESNEL SENIOR SECONDARY MET_60"
+      
+      windData %<>%
+        dplyr::filter(STATION_NAME_FULL %in% station)
+      
+      if(nrow(windData)==sum(is.na(windData$ws))){
+        
+        paste("There is no paired wind data at",station)
+        
+      } else {
+      
+      #number of calm hours
+      ncalm <- windData %>%
+        dplyr::filter(ws < 0.5) %>%
+        dplyr::summarise(calms = n())
+      
+      #total number of valid ws hours
+      ntotal <- windData %>%
+        dplyr::filter(!is.na(ws)) %>%
+        dplyr::summarise(total = n())
+      
+      #percentage calm (ws<0.5 m/s)
+      pcalm <- round(100 * ncalm / ntotal,
+                     digits = 2)
+      
+      #filter out calm windData
+      roseData <- windData %>%
+        dplyr::filter(ws >= 0.5)
+      
+      #windRose
+      windRose(
+        roseData,
+        annotate = FALSE,
+        breaks = c(0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1),
+        #Beaufort scale with 0.5 as lowest cut point.
+        sub = paste("Calms (<0.5m/s)=", pcalm, "%"),
+        key.position = "right",
+        main = stringr::str_c("Wind Rose at ",station),
+        angle = 360 / 16,
+        #16 spokes
+        cols = "jet",
+        paddle = FALSE
+      ) 
+      
+      } # end else
+      
+    } #end function(station)
+    
+    ) # map
+
+
+```
