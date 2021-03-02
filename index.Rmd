@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: "./regionalPreppedData/Kootenay_1of2.rds"
+  preppedData: "./regionalPreppedData/Kootenay_2of2.rds"
   year: 2019
 site: bookdown::bookdown_site
 output: 
@@ -12,10 +12,6 @@ output:
       toc:
         collapse: section
 ---
-
-# Preamble {-}
-
-Add description here.
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
 knitr::opts_chunk$set(warning = FALSE,
@@ -56,3 +52,38 @@ source("emptyPlot.R")
 ```{r importData}
 data<-readRDS(params$preppedData) 
 ```
+
+
+```{r testing, include=FALSE}
+# cranbrook muriel baxter July 24 1300
+(
+crbk<-data %>%
+  dplyr::filter(STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER"))
+
+crbk %>%
+  dplyr::filter(lubridate::date(DATE_PST) %in% lubridate::as_date(c("2019-07-24","2019-07-25"))) %>%
+  dplyr::select(PARAMETER,
+                DATE_PST,
+                ROUNDED_VALUE) %>% View
+
+
+
+# skookumchuk missing wdir (ben says look for uvect)
+
+(skook<-data %>%
+  dplyr::filter(STATION_NAME_FULL=="SKOOKUMCHUCK FARSTAD WAY_60")
+  
+  )
+
+skook %>% 
+  dplyr::pull(PARAMETER) %>%
+  unique
+
+```
+
+
+# Preamble {-}
+
+Stations included in this analysis include: 
+
+`r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique %>% sort`.

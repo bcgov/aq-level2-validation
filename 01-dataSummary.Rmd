@@ -1,7 +1,5 @@
 # Data Summary
 
-**Stations selected include: `r data %>% dplyr::pull(STATION_NAME_FULL) %>% unique %>% sort`.**
-
 ```{r dataSummary, cache=TRUE}
 
 DT::datatable(data %>%

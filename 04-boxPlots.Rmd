@@ -1,6 +1,5 @@
 # Box Plots {.tabset}
 
-
 ```{r boxPlotOptions}
 knitr::opts_chunk$set(cache = TRUE)
 ```
@@ -1127,14 +1126,13 @@ suppressWarnings(
 
 ## NO~x~
 
-
 ```{r noxmonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
@@ -1145,13 +1143,13 @@ suppressWarnings(
     
     #FOR TESTING - 9 total
 # (station<-(data %>%
-#              dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+#              dplyr::filter(PARAMETER %in% "NOx") %>%
 #              dplyr::pull(STATION_NAME_FULL) %>%
 #              unique)[4])
     
     plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("nox"))
+                             PARAMETER %in% "NOx")
     
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1168,7 +1166,7 @@ suppressWarnings(
            x = "",
            y = stringr::str_c("Hourly nox (",
                               data %>%
-                                dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+                                dplyr::filter(PARAMETER %in% "NOx") %>%
                                 dplyr::pull(UNIT) %>% unique, ")",
                               sep = ""
              )
@@ -1206,7 +1204,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
@@ -1216,7 +1214,7 @@ suppressWarnings(
     
     plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("nox"))%>%
+                             PARAMETER %in% "NOx")%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
                                         "Mon",
@@ -1246,7 +1244,7 @@ suppressWarnings(
         y = stringr::str_c(
           "Hourly nox (",
           data %>%
-            dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
             dplyr::pull(UNIT) %>% unique,
           ")",
           sep = ""
@@ -1286,7 +1284,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+             dplyr::filter(PARAMETER %in% "NOx") %>%
              dplyr::pull(STATION_NAME_FULL) %>%
              unique,
   
@@ -1295,7 +1293,7 @@ suppressWarnings(
     {
     plotData<-data %>% 
              dplyr::filter(STATION_NAME_FULL %in% station &
-                             PARAMETER %in% toupper("nox"))
+                             PARAMETER %in% "NOx")
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
       dplyr::pull(nas)){
@@ -1317,7 +1315,7 @@ suppressWarnings(
         y = stringr::str_c(
           "Hourly nox (",
           data %>%
-            dplyr::filter(PARAMETER %in% toupper("nox")) %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
             dplyr::pull(UNIT) %>% unique,
           ")",
           sep = ""
