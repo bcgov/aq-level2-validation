@@ -4,7 +4,7 @@
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Castlegar Zinio Park" &
+#   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
 #            PARAMETER=="NO") %>% distinct()
 # 
 # noSASFcn(data)
@@ -21,7 +21,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("no") &
-  #                   STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER")
+  #                   STATION_NAME=="CRANBROOK MURIEL BAXTER")
   # END TESTING
   
   #default arguments
@@ -105,7 +105,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
     sas <- tibble::tibble(
       
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),

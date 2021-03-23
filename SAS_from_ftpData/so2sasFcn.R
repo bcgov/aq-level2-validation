@@ -4,7 +4,7 @@
 # FOR TESTING
 # # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Trail Butler Park" &
+#   dplyr::filter(STATION_NAME=="Trail Butler Park" &
 #            PARAMETER=="SO2") %>% distinct()
 # 
 # so2SASFcn(data)
@@ -22,7 +22,7 @@ so2SASFcn<-function(data,so2column,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("so2") &
-  #                   STATION_NAME_FULL=="BIRCHBANK GOLF COURSE")
+  #                   STATION_NAME=="BIRCHBANK GOLF COURSE")
   # END TESTING
   
   #default arguments
@@ -154,7 +154,7 @@ so2SASFcn<-function(data,so2column,dateColumn){
     sas <- tibble::tibble(
       
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),

@@ -4,7 +4,7 @@
 
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Victoria Topaz" &
+#   dplyr::filter(STATION_NAME=="Victoria Topaz" &
 #            PARAMETER=="CO") %>%
 #   distinct()
 # 
@@ -23,7 +23,7 @@ coSASFcn<-function(data,cocolumn,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("co") &
-  #                   STATION_NAME_FULL=="KELOWNA COLLEGE")
+  #                   STATION_NAME=="KELOWNA COLLEGE")
   # END TESTING
   
   #default arguments
@@ -160,7 +160,7 @@ coSASFcn<-function(data,cocolumn,dateColumn){
     sas <- tibble::tibble(
       
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),

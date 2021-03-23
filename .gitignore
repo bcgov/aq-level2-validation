@@ -13,3 +13,8 @@ _bookdown_files*
 _Kootenay_1of2*
 _Kootenay_2of2*
 *.png
+*.css
+*.js
+*.json
+*.ttf
+*reference-keys.txt

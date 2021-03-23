@@ -2,7 +2,7 @@
 
 
 ```{r histogramOptions}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 ```
 
 ## PM~2.5~
@@ -12,8 +12,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -22,7 +21,7 @@ suppressWarnings(
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm25"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -58,7 +57,7 @@ suppressWarnings(
     
   plotly::ggplotly(p) 
     
-    }  else{paste("There is no PM2.5 data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -79,8 +78,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -89,7 +87,7 @@ suppressWarnings(
     {
     
     plotData <- data %>%
-      dplyr::filter(STATION_NAME_FULL %in% station &
+      dplyr::filter(STATION_NAME %in% station &
                       PARAMETER %in% toupper("pm10"))
     
     if (nrow(plotData) != plotData %>%
@@ -125,7 +123,7 @@ suppressWarnings(
       
       plotly::ggplotly(p) 
     
-    }  else{paste("There is no PM10 data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -146,8 +144,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -156,7 +153,7 @@ suppressWarnings(
     {
 
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("o3"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -193,7 +190,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)  
     
-    }  else{paste("There is no o3 data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -214,8 +211,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -224,7 +220,7 @@ suppressWarnings(
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no2"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -260,7 +256,7 @@ suppressWarnings(
       
       plotly::ggplotly(p) 
     
-    }  else{paste("There is no no2 data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -280,8 +276,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -290,7 +285,7 @@ suppressWarnings(
     {
 
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -326,7 +321,7 @@ suppressWarnings(
       
       plotly::ggplotly(p) 
     
-    }  else{paste("There is no NO data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -345,8 +340,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -354,7 +348,7 @@ suppressWarnings(
     {
 
     plotData <- data %>%
-      dplyr::filter(STATION_NAME_FULL %in% station &
+      dplyr::filter(STATION_NAME %in% station &
                       PARAMETER %in% "NOx")
     
     if(nrow(plotData)!=plotData %>% 
@@ -390,7 +384,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)
     
-    }  else{paste("There is no nox data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -410,8 +404,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -420,7 +413,7 @@ suppressWarnings(
     {
    
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("so2"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -456,7 +449,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)  
     
-    }  else{paste("There is no so2 data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -476,8 +469,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("co")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -486,7 +478,7 @@ suppressWarnings(
     {
 
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("co"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -522,7 +514,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)  
     
-    }  else{paste("There is no co data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -543,8 +535,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -554,7 +545,7 @@ suppressWarnings(
     
    
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("trs"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -590,7 +581,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)  
     
-    }  else{paste("There is no trs data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   
@@ -610,8 +601,7 @@ suppressWarnings(
   htmltools::tagList(
   
   purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
+             dplyr::pull(STATION_NAME) %>%
              unique,
   
   function(station)
@@ -620,7 +610,7 @@ suppressWarnings(
     {
    
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("h2s"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -656,7 +646,7 @@ suppressWarnings(
       
       plotly::ggplotly(p)  
     
-    }  else{paste("There is no h2s data for",station)}#end if and else
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
   

@@ -1,43 +1,53 @@
 # Box Plots {.tabset}
 
 ```{r boxPlotOptions}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
+
+station<-data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique
 ```
 
 ## PM~2.5~
 
+```{r pm25Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no PM2.5 data at this station.")}
+
+```
+
+
 ```{r pm25monthly}
+
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
   
     {
     
-    #FOR TESTING - 9 total
-# (station<-(data %>%
-#              dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
-#              unique)[4])
-    
+
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm25"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
-      dplyr::pull(nas)){
+    if(nrow(plotData)!= nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+       ){
     
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -66,7 +76,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no PM2.5 data for",station)}#end if and else
+    } 
       
     } #end plot function
   
@@ -82,17 +92,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm25"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -112,7 +119,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -144,9 +151,8 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no PM2.5 data for",station)}#end if and else
+    } 
     
-      
     } #end plot function
   
   )# end map
@@ -162,16 +168,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("PM25")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm25"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -183,7 +186,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -215,7 +218,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no PM2.5 data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -229,15 +232,24 @@ suppressWarnings(
 
 ## PM~10~
 
+```{r pm10Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no PM10 data at this station.")}
+
+```
+
 ```{r pm10monthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -247,11 +259,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm10"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -261,7 +273,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -290,7 +302,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no PM10 data for",station)}#end if and else
+    }
       
     } #end plot function
   
@@ -306,17 +318,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm10"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -336,7 +345,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -368,7 +377,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no pm10 data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -386,16 +395,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm10"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -407,7 +413,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -439,7 +445,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no pm10 data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -454,15 +460,25 @@ suppressWarnings(
 
 ## O~3~
 
+
+```{r o3Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no O3 data at this station.")}
+
+```
+
 ```{r o3monthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -472,11 +488,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("o3"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -486,7 +502,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -515,7 +531,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no o3 data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -531,17 +547,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("o3"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -561,7 +574,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -593,7 +606,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no o3 data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -611,16 +624,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("o3"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -632,7 +642,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -664,7 +674,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no o3 data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -678,15 +688,24 @@ suppressWarnings(
 
 ## NO~2~
 
+```{r no2Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no NO2 data at this station.")}
+
+```
+
 ```{r no2monthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -696,11 +715,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no2"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -710,7 +729,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -739,7 +758,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no no2 data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -755,17 +774,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no2"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -785,7 +801,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -817,7 +833,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no no2 data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -835,16 +851,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no2"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -856,7 +869,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -888,7 +901,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no no2 data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -902,15 +915,24 @@ suppressWarnings(
 
 ## NO
 
+```{r noData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no NO data at this station.")}
+
+```
+
 ```{r nomonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -920,11 +942,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% toupper("no")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -934,7 +956,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -960,11 +982,10 @@ suppressWarnings(
         scale_fill_brewer(palette = "Set1")+
       facet_wrap( ~ INSTRUMENT, scales = "free") 
     
-  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no no data for",station)}#end if and else
-      
+    } 
+    
     } #end plot function
   
   )# end map
@@ -979,17 +1000,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -1009,7 +1027,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1041,7 +1059,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no no data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -1059,16 +1077,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("no")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1080,7 +1095,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1112,7 +1127,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no no data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -1126,15 +1141,24 @@ suppressWarnings(
 
 ## NO~x~
 
+```{r noxData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx")
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no NOx data at this station.")}
+
+```
+
 ```{r noxmonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -1144,11 +1168,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% "NOx") %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% "NOx")
     
     if(nrow(plotData)!=plotData %>% 
@@ -1158,7 +1182,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -1187,7 +1211,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no nox data for",station)}#end if and else
+    } 
       
     } #end plot function
   
@@ -1203,17 +1227,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% "NOx")%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -1233,7 +1254,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1265,7 +1286,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no nox data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -1283,16 +1304,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% "NOx") %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% "NOx")
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1304,7 +1322,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1336,7 +1354,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no nox data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -1350,29 +1368,34 @@ suppressWarnings(
 
 ## SO~2~
 
+```{r so2Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no SO2 data at this station.")}
+
+```
+
 ```{r so2monthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
   
     {
     
-    #FOR TESTING - 9 total
-# (station<-(data %>%
-#              dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
-#              unique)[4])
+
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("so2"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -1382,7 +1405,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -1411,7 +1434,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no so2 data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -1427,17 +1450,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("so2"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -1457,7 +1477,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1489,7 +1509,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no so2 data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -1507,16 +1527,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("so2"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1528,7 +1545,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1560,7 +1577,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no so2 data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -1574,29 +1591,34 @@ suppressWarnings(
 
 ## CO
 
+```{r coData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no CO data at this station.")}
+
+```
+
 ```{r comonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("co")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
   
     {
     
-    #FOR TESTING - 9 total
-# (station<-(data %>%
-#              dplyr::filter(PARAMETER %in% toupper("co")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
-#              unique)[4])
+
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("co"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -1606,7 +1628,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -1635,7 +1657,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no co data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -1651,17 +1673,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("co")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("co"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -1681,7 +1700,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1713,7 +1732,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no co data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -1731,16 +1750,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("co")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("co"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1752,7 +1768,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1784,7 +1800,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no co data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -1798,30 +1814,35 @@ suppressWarnings(
 
 ## TRS
 
+```{r trsData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no TRS data at this station.")}
+
+```
+
 
 ```{r trsmonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
   
     {
     
-    #FOR TESTING - 9 total
-# (station<-(data %>%
-#              dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
-#              unique)[4])
+
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("trs"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -1831,7 +1852,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -1860,7 +1881,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no trs data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -1876,17 +1897,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("trs"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -1906,7 +1924,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -1938,7 +1956,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no trs data for",station)}#end if and else
+    }
     
       
     } #end plot function
@@ -1956,16 +1974,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("trs"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -1977,7 +1992,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -2009,7 +2024,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no trs data for",station)}#end if and else
+    } 
     
     } #end plot function
   
@@ -2023,15 +2038,24 @@ suppressWarnings(
 
 ## H~2~S
 
+```{r h2sData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(ROUNDED_VALUE)))
+){htmltools::tags$p("There is no H2S data at this station.")}
+
+```
+
 ```{r h2smonthly}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
     
@@ -2041,11 +2065,11 @@ suppressWarnings(
     #FOR TESTING - 9 total
 # (station<-(data %>%
 #              dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-#              dplyr::pull(STATION_NAME_FULL) %>%
+#              dplyr::pull(STATION_NAME) %>%
 #              unique)[4])
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("h2s"))
     
     if(nrow(plotData)!=plotData %>% 
@@ -2055,7 +2079,7 @@ suppressWarnings(
     p<-ggplot(data = plotData,
            aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
                y = ROUNDED_VALUE,
-               fill=STATION_NAME_FULL)
+               fill=STATION_NAME)
            ) +
       geom_boxplot() +
       labs(title = paste("Monthly Boxplot:",
@@ -2084,7 +2108,7 @@ suppressWarnings(
   # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
     plotly::ggplotly(p) 
     
-    }  else{paste("There is no h2s data for",station)}#end if and else
+    }  
       
     } #end plot function
   
@@ -2100,17 +2124,14 @@ suppressWarnings(
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("h2s"))%>%
         dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
                                      c("Sun",
@@ -2130,7 +2151,7 @@ suppressWarnings(
         x = weekday,
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -2162,7 +2183,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no h2s data for",station)}#end if and else
+    } 
     
       
     } #end plot function
@@ -2180,16 +2201,13 @@ suppressWarnings(
   
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-             dplyr::pull(STATION_NAME_FULL) %>%
-             unique,
+  purrr::map(station,
   
   function(station)
   # station<-"Abbotsford A Columbia Street"
     {
     plotData<-data %>% 
-             dplyr::filter(STATION_NAME_FULL %in% station &
+             dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("h2s"))
     if(nrow(plotData)!=plotData %>% 
       dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
@@ -2201,7 +2219,7 @@ suppressWarnings(
         x = format(DATE_PST,"%H"),
         #alter this for different boxplots
         y = ROUNDED_VALUE,
-        fill = STATION_NAME_FULL
+        fill = STATION_NAME
       )
     ) +
       geom_boxplot() +
@@ -2233,7 +2251,7 @@ suppressWarnings(
     
     plotly::ggplotly(p)
     
-    } else{paste("There is no h2s data for",station)}#end if and else
+    } 
     
     } #end plot function
   

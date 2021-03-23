@@ -14,7 +14,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% "PM25" &
-  #                   STATION_NAME_FULL=="REVELSTOKE_TRAILER" &
+  #                   STATION_NAME=="REVELSTOKE_TRAILER" &
   #                   INSTRUMENT=="PM25_T640")
   # END TESTING
   
@@ -131,7 +131,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   (
     sas <- tibble::tibble(
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       INSTRUMENT = data %>%
         dplyr::pull(INSTRUMENT) %>%

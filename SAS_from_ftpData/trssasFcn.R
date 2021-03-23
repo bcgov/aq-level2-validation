@@ -5,7 +5,7 @@
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Pine River Gas Plant" &
+#   dplyr::filter(STATION_NAME=="Pine River Gas Plant" &
 #            PARAMETER=="TRS") %>% distinct()
 # 
 # trsSASFcn(data)
@@ -22,7 +22,7 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("trs") &
-  # STATION_NAME_FULL=="BESSBOROUGH 237 ROAD")
+  # STATION_NAME=="BESSBOROUGH 237 ROAD")
   # END TESTING
   
   #default arguments
@@ -151,7 +151,7 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
     sas <- tibble::tibble(
       
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),

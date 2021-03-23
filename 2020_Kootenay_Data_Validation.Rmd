@@ -1,0 +1,50 @@
+---
+title: "2020 Kootenay Data Validation"
+author: "Donna Haga, Sr. Air Quality Meteorologist"
+date: "23/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      echo = FALSE)
+
+library(tidyverse)
+library(openair)
+library(Hmisc)
+library(xts)
+library(plotly)
+library(RCurl)
+library(DT)
+library(feather)
+library(magrittr)
+library(readxl)
+library(gdata)
+
+
+
+```
+
+# {.tabset}
+
+## Golden Helipad
+
+### PM~2.5~
+
+```{r pm25Data}
+data<-readRDS("./preppedData/Golden Helipad.rds")
+
+day <- data %>%
+  dplyr::filter(PARAMETER == "PM25") %>%
+  dplyr::select(date = DATE_PST,
+                PM25 = ROUNDED_VALUE) %>%
+  openair::timeAverage(.,
+                       pollutant = "PM25",
+                       avg.time = "day",
+                       data.thresh = 75)
+
+day %>%
+  dplyr::filter(PM25>=25+0.5)
+```
+

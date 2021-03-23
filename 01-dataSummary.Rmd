@@ -1,10 +1,10 @@
 # Data Summary
 
-```{r dataSummary, cache=TRUE}
+```{r dataSummary, cache=FALSE}
 
 DT::datatable(data %>%
-                dplyr::distinct(STATION_NAME_FULL,PARAMETER,INSTRUMENT) %>%
-                arrange(STATION_NAME_FULL),
+                dplyr::distinct(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+                arrange(STATION_NAME),
               caption = "Summary of data selected for validation.",
               rownames = FALSE)
 ```

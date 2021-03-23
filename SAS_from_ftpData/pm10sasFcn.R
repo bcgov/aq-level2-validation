@@ -5,7 +5,7 @@
 
 # # subset for a single station and instrument for testing the function
 # data<-feather::read_feather("unverifiedData.feather") %>%
-#   dplyr::filter(STATION_NAME_FULL=="Golden Helipad" &
+#   dplyr::filter(STATION_NAME=="Golden Helipad" &
 #            PARAMETER=="PM10") %>% distinct()
 # 
 # pm10SASFcn(data)
@@ -23,7 +23,7 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% "PM10" &
-  #                   STATION_NAME_FULL=="REVELSTOKE_TRAILER" &
+  #                   STATION_NAME=="REVELSTOKE_TRAILER" &
   #                   INSTRUMENT=="PM10_T640")
   # END TESTING
   
@@ -140,7 +140,7 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
   (
     sas <- tibble::tibble(
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       INSTRUMENT = data %>%
         dplyr::pull(INSTRUMENT) %>%

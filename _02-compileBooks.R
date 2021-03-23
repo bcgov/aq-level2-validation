@@ -1,23 +1,29 @@
-# compile annual data validation reports for all files in regionalPreppedData:
+# compile annual data validation reports for each file in preppedDAta:
 
-#THIS ISN'T WORKING, DATA ISN'T CHANGING BETWEEN DIFFERENT REGIONS/FILES.
-
-root<-stringr::str_remove(dir("./regionalPreppedData"),
+root<-stringr::str_remove(dir("./preppedData"),
                           ".rds")
 
 purrr::walk(root,
             
             function(r){
               
+              # testing
+              
+              # (r<-root[1])
+              
+              # End testing
+              
               bookdown::render_book("_AnnualDataValidation.Rmd", 
                                     "bookdown::gitbook",
                                     output_dir = stringr::str_c("_",r,sep = ""),
                                     params = list(
-                                      preppedData = stringr::str_c("./regionalPreppedData/",
+                                      preppedData = stringr::str_c("./preppedData/",
                                                                    r,
-                                                                   ".rds", sep = ""),
-                                      year = 2019
+                                                                   ".rds", 
+                                                                   collapse = ""),
+                                      year = 2020
                                     )
+                
                                     
               ) 
               

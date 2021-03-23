@@ -1,16 +1,19 @@
 # SAS Statistics {.tabset}
 
 ```{r sasOptions}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
+
+sasReports<-"./SAS_reports"
 ```
 
+Note: all of the summaries below will have one fewer hour for the AQS sourced analysis. This is a bug, will try to resolve for next year.
 
 ## PM~2.5~
 ```{r pm25sas}
 pm25sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% "PM25") %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
                 #for testing
@@ -18,7 +21,7 @@ pm25sas<-purrr::map_dfr((data %>%
                
                stn<-data %>%
                  dplyr::filter(PARAMETER %in% "PM25" &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(stn$INSTRUMENT),
 
@@ -53,7 +56,7 @@ if(length(pm25Stns)!=0) {
 
 pm25sasECMS <- readxl::read_excel(
   file.path(sasReports,
-            "2019_PM2.5_UNSUPPRESSED.xlsx"))
+            "PM2.5_UNSUPPRESSED.xlsx"))
 
 # get pm25 stations in data
 pm25Stns<-data %>%
@@ -108,7 +111,7 @@ pm25sasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -118,14 +121,14 @@ pm25sasDT <- bind_rows(
 
 pm10sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% "PM10") %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% "PM10" &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -157,13 +160,14 @@ if(length(pm10Stns!=0)){
 
 # import ecms sas from excel
 pm10sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_PM10_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "PM10_UNSUPPRESSED.xlsx")) %>%
 
 # remove secondary header row
 dplyr::slice(-1) %>%
   
   # remove quarterly capture (duplicated)
-  dplyr::select(-c(40:43), -c(`EMS ID`,
+  dplyr::select(-c(`EMS ID`,
                               `NAPS ID`,
                               REGION,
                               OWNER,
@@ -220,7 +224,7 @@ pm10sasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -230,14 +234,14 @@ pm10sasDT <- bind_rows(
 
 no2sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("no2") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -268,9 +272,10 @@ if(length(no2Stns)!=0){
 
 # import ecms sas from excel
 no2sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_NO2_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "NO2_UNSUPPRESSED.xlsx")) %>%
   
-  # remove unneeded columna
+  # remove unneeded column
   dplyr::select(-c(`EMS ID`,                    
                    `NAPS ID`,
                    REGION,
@@ -326,7 +331,7 @@ no2sasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -337,14 +342,14 @@ no2sasDT <- bind_rows(
 
 nosas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("no")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("no") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -375,7 +380,8 @@ if(length(noStns)!=0){
 
 # import ecms sas from excel
 nosasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_NO_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "NO_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -433,7 +439,7 @@ nosasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -444,14 +450,14 @@ nosasDT <- bind_rows(
 
 so2sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("so2") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -482,7 +488,8 @@ if(length(so2Stns)!=0){
 
 # import ecms sas from excel
 so2sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_SO2_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "SO2_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -539,7 +546,7 @@ so2sasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -551,14 +558,14 @@ Some of these statistics are based on 8-hour rolling averages, requiring the las
 
 o3sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("o3") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -589,7 +596,8 @@ if(length(o3Stns!=0)){
 
 # import ecms sas from excel
 o3sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_OZONE_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "OZONE_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -647,7 +655,7 @@ o3sasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -658,14 +666,14 @@ o3sasDT <- bind_rows(
 
 h2ssas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("h2s") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -695,7 +703,8 @@ h2sStns<-data %>%
 if(length(h2sStns)!=0){
 # import ecms sas from excel
 h2ssasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_H2S_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "H2S_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -755,7 +764,7 @@ h2ssasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -765,14 +774,14 @@ h2ssasDT <- bind_rows(
 
 trssas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("trs") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -803,7 +812,8 @@ if(length(trsStns!=0)){
 
 # import ecms sas from excel
 trssasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_TRS_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "TRS_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -861,7 +871,7 @@ trssasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
@@ -873,14 +883,14 @@ Some of these statistics are based on 8-hour rolling averages, requiring the las
 
 cosas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("co")) %>%
-                dplyr::distinct(STATION_NAME_FULL) %>%
-                arrange(STATION_NAME_FULL))$STATION_NAME_FULL,
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
 
                station<-data %>%
                  dplyr::filter(PARAMETER %in% toupper("co") &
-                                 STATION_NAME_FULL %in% station)
+                                 STATION_NAME %in% station)
 
                purrr::map_dfr(unique(station$INSTRUMENT),
 
@@ -912,7 +922,8 @@ if(length(coStns)!=0){
 
 # import ecms sas from excel
 cosasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            "2019_CO_UNSUPPRESSED.xlsx")) %>%
+  file.path(sasReports,                                            
+            "CO_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
   dplyr::select(-c(`EMS ID`,                    
@@ -970,7 +981,7 @@ cosasDT <- bind_rows(
     )
   )
 } else {
-  print("There is no data for this parameter.")
+ htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 

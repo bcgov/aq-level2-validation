@@ -16,7 +16,7 @@ o3SASFcn<-function(data,o3column,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("o3") &
-  #                   STATION_NAME_FULL=="CRANBROOK MURIEL BAXTER")
+  #                   STATION_NAME=="CRANBROOK MURIEL BAXTER")
   # END TESTING
   
   #default arguments
@@ -145,7 +145,7 @@ o3SASFcn<-function(data,o3column,dateColumn){
     sas <- tibble::tibble(
       
       `STATION NAME` = data %>%
-        dplyr::pull(STATION_NAME_FULL) %>%
+        dplyr::pull(STATION_NAME) %>%
         unique,
       
       YEAR = as.numeric(format(hp$date, "%Y")),

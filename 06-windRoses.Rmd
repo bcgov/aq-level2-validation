@@ -1,7 +1,7 @@
 # Wind Roses
 
 ```{r windCache}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 ```
 
 
@@ -9,24 +9,49 @@ knitr::opts_chunk$set(cache = TRUE)
 # select wind data, get it in openair format
 
 windData <- data %>%
-  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
-  dplyr::select(date = DATE_PST,
-                STATION_NAME_FULL,
-                PARAMETER,
-                ROUNDED_VALUE) %>%
-  tidyr::pivot_wider(.,
-                     names_from = PARAMETER,
-                     values_from = ROUNDED_VALUE) %>%
-  dplyr::rename(ws = WSPD_SCLR,
-                wd = WDIR_VECT) %>%
-  dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
-                wd = ifelse(is.na(ws), NA, wd))
+  
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT"))
+
+
+if( all(nrow(windData)!=0, # at least one row of data
+        any(unique(windData$PARAMETER) %in% "WSPD_SCLR"),
+        any(unique(windData$PARAMETER) %in% "WDIR_VECT")
+    )
+  ){
+  
+  windData %<>%
+    
+    dplyr::select(date = DATE_PST,
+                  STATION_NAME,
+                  PARAMETER,
+                  ROUNDED_VALUE) %>%
+    
+    tidyr::pivot_wider(.,
+                       names_from = PARAMETER,
+                       values_from = ROUNDED_VALUE) %>%
+    
+    dplyr::rename(ws = WSPD_SCLR,
+                  wd = WDIR_VECT) %>%
+    
+    dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                  wd = ifelse(is.na(ws), NA, wd))
+}
+
+  
 
 ```
 
 ```{r windRose}
+if(all(nrow(windData)!=0, # at least one row of data
+        any(names(windData) %in% "ws"),
+        any(names(windData) %in% "wd")
+
+    )
+) {
+  
+
 purrr::walk(windData %>%
-      dplyr::pull(STATION_NAME_FULL) %>%
+      dplyr::pull(STATION_NAME) %>%
       unique,
     
     function(station){
@@ -34,7 +59,7 @@ purrr::walk(windData %>%
       # station<-"QUESNEL SENIOR SECONDARY MET_60"
       
       windData %<>%
-        dplyr::filter(STATION_NAME_FULL %in% station)
+        dplyr::filter(STATION_NAME %in% station)
       
       if(nrow(windData)==sum(is.na(windData$ws))){
         
@@ -80,6 +105,12 @@ purrr::walk(windData %>%
     } #end function(station)
     
     ) # map
+  
+} else{
+  
+  htmltools::tags$p("This station either doesn't measure wind, or it is missing one of WSPD_SCLR or WDIR_VECT")
+  
+}
 
 
 ```
