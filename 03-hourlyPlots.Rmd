@@ -17,8 +17,9 @@ pm25plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-            parameter=toupper("pm25"))
+ plotlyFcn(data,
+          allData,
+          parameter=toupper("pm25"))
   
   
 }
@@ -41,6 +42,7 @@ pm10plots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+            allData,
             parameter=toupper("pm10"))
   
   
@@ -63,6 +65,8 @@ o3plots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("o3"))
   
   
@@ -84,7 +88,9 @@ no2plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
+  plotlyFcn(data,    
+            allData,
+
             parameter=toupper("no2"))
   
   
@@ -107,6 +113,8 @@ noplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("no"))
   
   
@@ -129,6 +137,8 @@ noxplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter="NOx")
   
   
@@ -152,6 +162,8 @@ so2plots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("so2"))
   
   
@@ -174,6 +186,8 @@ coplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("co"))
   
   
@@ -196,6 +210,8 @@ trsplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("trs"))
   
   
@@ -218,6 +234,8 @@ h2splots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("h2s"))
   
   
@@ -242,6 +260,8 @@ wspd_sclrplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("wspd_sclr"))
   
   
@@ -266,6 +286,8 @@ wdir_vectplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("wdir_vect"))
   
   
@@ -288,6 +310,8 @@ temp_meanplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("temp_mean"))
   
   
@@ -310,6 +334,8 @@ humidityplots<-if(
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
   plotlyFcn(data,
+                        allData,
+
             parameter=toupper("humidity"))
   
   

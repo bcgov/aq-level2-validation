@@ -3,6 +3,9 @@
 root<-stringr::str_remove(dir("./preppedData"),
                           ".rds")
 
+# golden helipad
+root<-root[32]
+
 purrr::walk(root,
             
             function(r){
