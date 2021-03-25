@@ -27,7 +27,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
     dplyr::select(date=!!dateColumn,
             PM25=!!pm25column)
 
-  dt<-timeAverage(pm25sub,
+  dt<-openair::timeAverage(pm25sub,
                   pollutant="PM25",
                   avg.time="day",
                   data.thresh=75)

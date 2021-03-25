@@ -1,4 +1,4 @@
-# Hourly time series {.tabset}
+# Time series {.tabset}
 
 ```{r hourlyPlotOptions}
 knitr::opts_chunk$set(cache = FALSE)

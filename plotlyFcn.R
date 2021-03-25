@@ -29,29 +29,50 @@ plotlyFcn<-function(data, # hourly data
                  dplyr::filter(PARAMETER %in% parameter &
                           STATION_NAME %in% station) %>% 
                  dplyr::mutate(TIME_AVG=factor(TIME_AVG,
-                                               levels = c("Daily",
-                                                          "Hourly")))
+                                               levels = c("Hourly",
+                                               "24-HR Running Ave",
+                                                 "Daily")))
                
                
                p<- ggplot2::ggplot(plotData,
                                aes(x=DATE_PST,
                                    y=ROUNDED_VALUE,
-                                   linetype=TIME_AVG,
-                                   color=INSTRUMENT))+
-                 geom_line() +
+                                   color=TIME_AVG,
+                                   linetype=INSTRUMENT))+
+                 geom_line(alpha=1.0) +
+                 
+                 # geom_point(alpha=0.8,
+                 #            pch=21)+
                  
                  labs(title=paste(station,
                                   "Hourly and Daily",
                                   parameter),
                       x="",
-                      y="Concentration") +
+                      y=parameter) +
+                 
+                 scale_color_brewer(palette = "Set1")+
                         
-                     scale_color_viridis_d() +
+                     # scale_color_viridis_d(option = "D") +
                  
-                 scale_linetype_manual(values=c("solid",
-                                                "dotted")) +
+                 # scale_linetype_manual(values=c("solid",
+                 #                                "dotted")) +
                  
-                 theme_bw()
+                 scale_y_continuous(breaks = seq(0,
+                                                 max(plotData$ROUNDED_VALUE,
+                                                     na.rm = TRUE)*1.05,
+                                                 20)#,
+                                    # minor_breaks = seq(10,
+                                    #                    max(plotData$ROUNDED_VALUE,
+                                    #                        na.rm = TRUE)*1.05,
+                                    #                    20)
+                                    )+
+                 
+                 scale_x_datetime(date_breaks = "2 weeks",
+                                  date_labels = "%b %d")+
+                 
+                 theme_bw()+
+                 
+                 theme(axis.text.x = element_text(angle = 90))
                    
                    
                

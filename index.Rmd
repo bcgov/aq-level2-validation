@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[20],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[32],collapse="")
   year: 2020
 site: bookdown::bookdown_site
 output: 
@@ -14,6 +14,18 @@ output:
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
+# To do's for next year:
+# - add metric for how much data is in each report
+# - add range slider to plotly so it's easy to pan along axes:
+ #(https://plotly.com/r/range-slider/)
+# - improve labels on x and y axes in timeseries
+# - add points on timeseries
+# - round aqs stats to match ecms
+# - add previous year of met data for comparison
+# - add difference column (plot) for AQS vs ECMS calculated SAS stats
+# - include station name in report title
+# - 
+
 knitr::opts_chunk$set(warning = FALSE,
                       message = FALSE,
                       echo = FALSE)
@@ -62,9 +74,23 @@ day<-data %>%
     dplyr::rename(date=DATE_PST) %>%
     dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
     dplyr::group_modify(~ openair::timeAverage(.x,
-                                               pollutant="PARAMETER",
+                                               pollutant="ROUNDED_VALUE",
                                                avg.time = "day",
                                                data.thresh = 75)
+    ) %>%
+    ungroup %>%
+    dplyr::rename(DATE_PST=date)
+
+`24hr`<-data %>%
+    # rename to date for openair
+    dplyr::rename(date=DATE_PST) %>%
+    dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+    dplyr::group_modify(~ openair::rollingMean(.x,
+                                               pollutant="ROUNDED_VALUE",
+                                               width = 24,
+                                               align = "right",
+                                               data.thresh = 75,
+                                               new.name = "ROUNDED_VALUE")
     ) %>%
     ungroup %>%
     dplyr::rename(DATE_PST=date)
@@ -80,13 +106,12 @@ allData<-data %>%
   dplyr::mutate(TIME_AVG = "Hourly") %>%
   dplyr::bind_rows(.,
                    day %>%
-                     dplyr::mutate(TIME_AVG = "Daily"))
+                     dplyr::mutate(TIME_AVG = "Daily")) %>%
+  dplyr::bind_rows(.,
+                   `24hr` %>%
+                     dplyr::mutate(TIME_AVG = "24-HR Running Ave"))
 
-# allData %>%
-#   dplyr::filter(TIME_AVG=="Hourly")
-# 
-# allData %>%
-#   dplyr::filter(TIME_AVG=="Daily")
+
 ```
 
 
