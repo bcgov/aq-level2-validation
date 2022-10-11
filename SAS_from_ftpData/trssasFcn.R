@@ -18,7 +18,7 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   library(rlang)
   
   #for testing
-  # trscolumn<-"ROUNDED_VALUE"
+  # trscolumn<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("trs") &
@@ -26,7 +26,7 @@ trsSASFcn<-function(data,trscolumn,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(trscolumn)){trscolumn<-"ROUNDED_VALUE"}
+  if(missing(trscolumn)){trscolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-trs}
   

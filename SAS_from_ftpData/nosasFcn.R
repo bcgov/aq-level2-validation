@@ -17,7 +17,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   library(rlang)
   
   #for testing
-  # nocolumn<-"ROUNDED_VALUE"
+  # nocolumn<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("no") &
@@ -25,7 +25,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(nocolumn)){nocolumn<-"ROUNDED_VALUE"}
+  if(missing(nocolumn)){nocolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no}
   

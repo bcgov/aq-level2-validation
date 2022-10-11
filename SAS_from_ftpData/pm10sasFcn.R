@@ -19,7 +19,7 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
   library(rlang)
   
   #FOR TESTING
-  # pm10column<-"ROUNDED_VALUE"
+  # pm10column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% "PM10" &
@@ -28,7 +28,7 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(pm10column)){pm10column<-"ROUNDED_VALUE"}
+  if(missing(pm10column)){pm10column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm10}
   

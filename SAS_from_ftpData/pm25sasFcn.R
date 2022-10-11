@@ -10,7 +10,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   library(rlang)
   
   #FOR TESTING
-  # pm25column<-"ROUNDED_VALUE"
+  # pm25column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% "PM25" &
@@ -19,7 +19,7 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(pm25column)){pm25column<-"ROUNDED_VALUE"}
+  if(missing(pm25column)){pm25column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm25}
   
@@ -140,7 +140,8 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
       `VALID HOURS`=nh,
       `ANNUAL 1-HR AVG`=round(mean(pm25sub$PM25,na.rm=T),2),
       `VALID DAYS`= nd,
-      `ANNUAL DAILY AVG`=round(mean(dt$PM25,na.rm=T),2)
+      `ANNUAL DAILY AVG`=round(mean(dt$PM25,na.rm=T),2),
+      `DAILY AVG, 3-YR AVG` = NA_real_ # added to sas summary in 2021, i don't calculate it
     ) %>%
       dplyr::bind_cols(round(hp %>% dplyr::select(-date),
                              2)) %>%

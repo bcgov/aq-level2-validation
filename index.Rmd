@@ -3,8 +3,8 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[32],collapse="")
-  year: 2020
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[1],collapse="")
+  year: 2021
 site: bookdown::bookdown_site
 output: 
   bookdown::gitbook:
@@ -15,16 +15,10 @@ output:
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
 # To do's for next year:
-# - add metric for how much data is in each report
 # - add range slider to plotly so it's easy to pan along axes:
  #(https://plotly.com/r/range-slider/)
-# - improve labels on x and y axes in timeseries
-# - add points on timeseries
 # - round aqs stats to match ecms
-# - add previous year of met data for comparison
-# - add difference column (plot) for AQS vs ECMS calculated SAS stats
-# - include station name in report title
-# - 
+# - add difference row to sas summary
 
 knitr::opts_chunk$set(warning = FALSE,
                       message = FALSE,
@@ -62,9 +56,16 @@ source("emptyPlot.R")
 ```
 
 ```{r importData}
-data<-readRDS(params$preppedData) 
+data<-readRDS(params$preppedData)
 
-# data<-readRDS("./preppedData/Golden Helipad.rds")
+# data<-readRDS("./preppedData/Grand Forks City Hall.rds")
+
+prevYrWind<-data %>%
+  dplyr::filter(lubridate::year(DATE_PST)==(params$year-1) &
+                  PARAMETER %in% c("WSPD_SCLR","WDIR_VECT"))
+
+data %<>%
+  dplyr::filter(lubridate::year(DATE_PST)==params$year)
 ```
 
 
@@ -74,7 +75,7 @@ day<-data %>%
     dplyr::rename(date=DATE_PST) %>%
     dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
     dplyr::group_modify(~ openair::timeAverage(.x,
-                                               pollutant="ROUNDED_VALUE",
+                                               pollutant="RAW_VALUE",
                                                avg.time = "day",
                                                data.thresh = 75)
     ) %>%
@@ -86,11 +87,11 @@ day<-data %>%
     dplyr::rename(date=DATE_PST) %>%
     dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
     dplyr::group_modify(~ openair::rollingMean(.x,
-                                               pollutant="ROUNDED_VALUE",
+                                               pollutant="RAW_VALUE",
                                                width = 24,
                                                align = "right",
                                                data.thresh = 75,
-                                               new.name = "ROUNDED_VALUE")
+                                               new.name = "RAW_VALUE")
     ) %>%
     ungroup %>%
     dplyr::rename(DATE_PST=date)
@@ -117,8 +118,6 @@ allData<-data %>%
 
 # Preamble {-}
 
-Stations included in this analysis include: 
-
-`r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`.
+**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort` and includes `r nrow(data)+nrow(prevYrWind)` hours of data**. 
 
 Link to [ECMS SAS summaries, summary plots, and data capture stats](https://envistaweb.env.gov.bc.ca/aqo/stats/StatIndex.html).

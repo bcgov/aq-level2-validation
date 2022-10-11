@@ -64,6 +64,7 @@ pm25Stns<-data %>%
   dplyr::pull(STATION_NAME) %>%
   unique
 
+# pm25sasECMS %>%
 pm25sasECMS %<>%
   dplyr::select(-c(`EMS ID`,
                    `NAPS ID`,
@@ -82,9 +83,10 @@ names(pm25sasECMS)<-names(pm25sas)
 
 ```{r pm25sasDT}
 
-if(length(pm25Stns)!=0) {
+if(length(pm25Stns)!=0 & nrow(pm25sasECMS)==0) {
 
 # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+  
 pm25sasDT <- bind_rows(
   pm25sasECMS %>%
     dplyr::mutate_all(as.character) %>%
@@ -520,7 +522,9 @@ names(so2sasECMS) <- names(so2sas)
 
 if(length(so2Stns)!=0) {
 
-  # issues with binding, mismatching column formats (character vs integer), so2t being able to convert from one form to the other. Convert everything to character for data table.
+
+  
+    # issues with binding, mismatching column formats (character vs integer), so2t being able to convert from one form to the other. Convert everything to character for data table.
 so2sasDT <- bind_rows(
   so2sasECMS %>%
     dplyr::mutate_all(as.character) %>%

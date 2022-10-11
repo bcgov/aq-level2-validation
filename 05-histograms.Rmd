@@ -25,11 +25,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("pm25"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p<-ggplot(data = plotData,
-       aes(x = ROUNDED_VALUE,
+       aes(x = RAW_VALUE,
            fill = INSTRUMENT,
            color = INSTRUMENT)) +
   
@@ -91,11 +91,11 @@ suppressWarnings(
                       PARAMETER %in% toupper("pm10"))
     
     if (nrow(plotData) != plotData %>%
-        dplyr::summarise(nas = sum(is.na(ROUNDED_VALUE))) %>%
+        dplyr::summarise(nas = sum(is.na(RAW_VALUE))) %>%
         dplyr::pull(nas)) {
       
       p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -157,12 +157,12 @@ suppressWarnings(
                              PARAMETER %in% toupper("o3"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     
       p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -224,11 +224,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("no2"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -289,11 +289,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("no"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -352,11 +352,11 @@ suppressWarnings(
                       PARAMETER %in% "NOx")
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -417,11 +417,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("so2"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -482,11 +482,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("co"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
      p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -549,11 +549,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("trs"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
@@ -614,11 +614,11 @@ suppressWarnings(
                              PARAMETER %in% toupper("h2s"))
     
     if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(ROUNDED_VALUE))) %>%
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
       dplyr::pull(nas)){
     
     p <- ggplot(data = plotData,
-                  aes(x = ROUNDED_VALUE,
+                  aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         

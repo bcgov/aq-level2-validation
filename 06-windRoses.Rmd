@@ -10,7 +10,9 @@ knitr::opts_chunk$set(cache = FALSE)
 
 windData <- data %>%
   
-  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT"))
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
+  dplyr::bind_rows(.,
+                   prevYrWind)
 
 
 if( all(nrow(windData)!=0, # at least one row of data
@@ -24,11 +26,11 @@ if( all(nrow(windData)!=0, # at least one row of data
     dplyr::select(date = DATE_PST,
                   STATION_NAME,
                   PARAMETER,
-                  ROUNDED_VALUE) %>%
+                  RAW_VALUE) %>%
     
     tidyr::pivot_wider(.,
                        names_from = PARAMETER,
-                       values_from = ROUNDED_VALUE) %>%
+                       values_from = RAW_VALUE) %>%
     
     dplyr::rename(ws = WSPD_SCLR,
                   wd = WDIR_VECT) %>%
@@ -50,16 +52,20 @@ if(all(nrow(windData)!=0, # at least one row of data
 ) {
   
 
-purrr::walk(windData %>%
-      dplyr::pull(STATION_NAME) %>%
-      unique,
+purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
     
-    function(station){
-      # FOR TESTING
-      # station<-"QUESNEL SENIOR SECONDARY MET_60"
+    function(year){
+      
+      # TESTING
+      
+      # year<-yearToValidate
+      
+      # END TESTING
+      
+      station<-unique(windData$STATION_NAME)
       
       windData %<>%
-        dplyr::filter(STATION_NAME %in% station)
+        dplyr::filter(lubridate::year(date) %in% year)
       
       if(nrow(windData)==sum(is.na(windData$ws))){
         
@@ -91,9 +97,9 @@ purrr::walk(windData %>%
         annotate = FALSE,
         breaks = c(0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1),
         #Beaufort scale with 0.5 as lowest cut point.
-        sub = paste("Calms (<0.5m/s)=", pcalm, "%"),
+        sub = paste("Calms (=<0.5m/s)=", pcalm, "%"),
         key.position = "right",
-        main = stringr::str_c("Wind Rose at ",station),
+        main = stringr::str_c(year," Wind Rose at ",station),
         angle = 360 / 16,
         #16 spokes
         cols = "jet",

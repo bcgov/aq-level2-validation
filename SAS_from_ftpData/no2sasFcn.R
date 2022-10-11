@@ -18,7 +18,7 @@ no2SASFcn<-function(data,no2column,dateColumn){
   library(rlang)
   
   #for testing
-  # no2column<-"ROUNDED_VALUE"
+  # no2column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("no2") &
@@ -27,7 +27,7 @@ no2SASFcn<-function(data,no2column,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(no2column)){no2column<-"ROUNDED_VALUE"}
+  if(missing(no2column)){no2column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no2}
   

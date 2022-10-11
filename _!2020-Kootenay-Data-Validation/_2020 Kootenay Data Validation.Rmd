@@ -1,0 +1,184 @@
+---
+title: "Trail Wind Data ![](ENV_H.png){width=300px height=100px align=right}"
+author:
+  name: Donna Haga, Sr. Air Quality Meteorologist
+  email: Donna.Haga@gov.bc.ca
+  affiliation: Air Quality Section (Assessments) | Monitoring, Assessment & Stewardship
+  date: "`r paste('Last updated: ',format(Sys.Date(),'%b %d, %Y'))`"
+output:
+  bookdown::html_document2:
+    toc: yes
+    df_print: paged
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: journal
+    highlight: tango
+    code_folding: hide
+    fig_caption: yes
+  html_notebook:
+    toc: yes
+    number_sections: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: journal
+    highlight: tango
+    code_folding: hide
+    fig_caption: yes
+---
+
+
+```{r setup, include=FALSE,message=FALSE,warning=FALSE}
+knitr::opts_chunk$set(warning=FALSE,
+                      message = FALSE,
+                      fig.align = "center",
+                      results = "asis")
+
+library(tidyverse)
+library(magrittr)
+library(xts)
+library(dygraphs)
+library(openair)
+library(data.table)
+library(DT)
+library(gridExtra)
+
+# source function to import feather data:
+source("../../dataImport/functions/importFeatherFcn.R")
+
+# source function that pads time series with NA from github:
+# devtools::source_url("https://raw.githubusercontent.com/DonnaHaga/dataImport/master/functions/NAfillFcn.R")
+
+source("../../dataImport/functions/NAfillFcn.R")
+```
+
+
+# Summary Plots {.tabset}
+
+```{r declareImportParameters,cache=TRUE}
+
+# c drive
+featherFolder<-"C:/airFTPdata"
+
+# All data since 2009
+(feather<-c(file.path(featherFolder,
+                      "AnnualSummary",
+                      "2009-LatestVerified"),
+            file.path(featherFolder,
+                      "Hourly_Raw_Air_Data",
+                      "Year_to_Date")
+))
+
+station<-c("Trail Butler Park",
+           "Birchbank Golf Course",
+           "Trail Columbia Gardens Airport",
+           "Warfield Elementary")
+
+parameter<-c("WSPD_SCLR",
+             "WDIR_VECT")
+
+
+# data for all stations in this year
+year<-2020 
+```
+
+```{r importDataFromScratch,cache=TRUE}
+# Last 10 years of wind data for Teck Metals stations
+
+
+# import data
+system.time({
+data<-importFeatherFcn(feather=feather,
+                       station=station,
+                       parameter=parameter,
+                       year=year) 
+})
+
+data<-data$stationData
+
+saveRDS(data,
+        "TeckMetalsWind_2020-10years.rds")
+
+# unique(lubridate::year(data$DATE_PST))
+```
+
+```{r importDataSubsequent}
+
+data<-readr::read_rds("TeckMetalsWind_2020-10years.rds")
+
+```
+
+
+
+**This report includes `r nrow(data)` hours of data.**
+
+```{r windData,cache=TRUE}
+windData <- data %>%
+  
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT") &
+                  lubridate::year(DATE_PST)!=(year+1)) %>%
+  
+    dplyr::select(date = DATE_PST,
+                  STATION_NAME,
+                  PARAMETER,
+                  ROUNDED_VALUE) %>%
+    
+    tidyr::pivot_wider(.,
+                       names_from = PARAMETER,
+                       values_from = ROUNDED_VALUE) %>%
+    
+    dplyr::rename(ws = WSPD_SCLR,
+                  wd = WDIR_VECT) %>%
+    
+    dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                  wd = ifelse(is.na(ws), NA, wd))
+
+# unique(lubridate::year(windData$date))
+
+```
+
+```{r summaryPlots,cache=TRUE}
+
+
+purrr::walk(c(
+  "Trail Butler Park",
+  "Birchbank Golf Course",
+  "Trail Columbia Gardens Airport",
+  "Warfield Elementary"
+),
+
+function(x) {
+  p<-openair::summaryPlot(
+    windData %>%
+      dplyr::filter(STATION_NAME == x),
+    pollutant = c("ws", "wd"),
+    type = "STATION_NAME",
+    main=paste("Wind Speed & Direction at",
+            x),
+    percentile = 1.0,
+    na.len=24,
+    avg.time = "day"
+            )
+  p$plot
+  
+} #end function
+) #end map
+
+
+
+
+```
+
+Need dates in years when bearings/wind heads were changed. every other year change bearings on anemometer's propellor. Alternativng every other year replace vane and propellor (wind head). ENV checks in Victoria every other year, they usually fail.
+
+
+
+
+Made pdf's for all the wind roses. look in `_!2020 Kootenay Data Validation` folder.
+```{r windRosePDFs}
+source('C:/HagaR/AnnualDataValidation/_!2020 Kootenay Data Validation/TrailWindRosePlots.R')
+
+```
+
+

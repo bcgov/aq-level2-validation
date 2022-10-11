@@ -18,7 +18,7 @@ h2sSASFcn<-function(data,h2scolumn,dateColumn){
   library(rlang)
   
   #for testing
-  # h2scolumn<-"ROUNDED_VALUE"
+  # h2scolumn<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("h2s") &
@@ -26,7 +26,7 @@ h2sSASFcn<-function(data,h2scolumn,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(h2scolumn)){h2scolumn<-"ROUNDED_VALUE"}
+  if(missing(h2scolumn)){h2scolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-h2s}
   

@@ -19,7 +19,7 @@ coSASFcn<-function(data,cocolumn,dateColumn){
   library(rlang)
   
   #for testing
-  # cocolumn<-"ROUNDED_VALUE"
+  # cocolumn<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("co") &
@@ -27,7 +27,7 @@ coSASFcn<-function(data,cocolumn,dateColumn){
   # END TESTING
   
   #default arguments
-  if(missing(cocolumn)){cocolumn<-"ROUNDED_VALUE"}
+  if(missing(cocolumn)){cocolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-co}
   

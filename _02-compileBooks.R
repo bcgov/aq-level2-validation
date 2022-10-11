@@ -3,20 +3,20 @@
 root<-stringr::str_remove(dir("./preppedData"),
                           ".rds")
 
-# golden helipad
-# root<-root[32]
+yearToValidate<-2021
 
-purrr::walk(root,
+purrr::walk(root[1:length(root)],
             
             function(r){
               
               # testing
               
-              # (r<-root[1])
+              (r<-root[1])
               
               # End testing
               
-              bookdown::render_book("_AnnualDataValidation.Rmd", 
+             
+             bookdown::render_book(".", # this will compile all the rmd files listed in _bookdown.yml
                                     "bookdown::gitbook",
                                     output_dir = stringr::str_c("_",r,sep = ""),
                                     params = list(
@@ -24,7 +24,7 @@ purrr::walk(root,
                                                                    r,
                                                                    ".rds", 
                                                                    collapse = ""),
-                                      year = 2020
+                                      year = yearToValidate
                                     )
                 
                                     

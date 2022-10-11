@@ -1,20 +1,6 @@
 ---
-title: "Import Data"
+title: "Import and Prep Data"
 output: html_notebook
-params:
-  airFTP: 
-    input: select
-    label: "Mirrored FTP locally:"
-    value: "C:/airFTPdata"
-    choices: ["C:/airFTPdata","/Volumes/DataScience/airFTPdata"]
-  stations: 
-    label: "Select list of stations to import:"
-    value:  "allStations.csv"
-    input: file
-  preppedData: 
-    value: "Kootenay_1of1.rds"
-    
-    
 ---
 
 Must have local mirrored copy of ftp site in .feather format. (www.github.com/DonnaHaga/dataImport)
@@ -36,7 +22,7 @@ Specify the paths to the local FTP duplicate (.feather); type of data (time peri
 ```{r pathsToData}
 # Path to feather data: 
 
-airFTP<-params$airFTP
+airFTP<-"C:/airFTPdata"
 
 # path to unverified data
 (dataPath<-file.path(airFTP,
@@ -46,16 +32,17 @@ airFTP<-params$airFTP
 ```{r declareParameters}
 
 # FILTER FOR YEAR TO VALIDATE:
-yearToValidate<-2020
+yearToValidate<-2021
 
 # Import feather data for all parameters and combine into one tibble,
 # filter for yearToValidate
 
 # list all files in dataPath:
-dir(dataPath)
+ # dir(dataPath)
 
 parameters<-c("CO",
               "H2S",
+              "HF",
               "HUMIDITY",
               "NO",
               "NO2",
@@ -69,31 +56,59 @@ parameters<-c("CO",
               "WDIR_VECT",
               "WSPD_SCLR")
 
+
 # generate allStations = character vector of all stations:
-(allStations<-feather::read_feather(file.path(dataPath,
-                                             "bc_air_monitoring_stations.feather")) %>%
-  dplyr::pull(STATION_NAME)) %>% unique
+allStations <- feather::read_feather(file.path(dataPath,
+                                               "bc_air_monitoring_stations.feather")) %>%
+  dplyr::pull(STATION_NAME) %>% unique
 ```
 
 ```{r importData}
 # call the importFeatherFcn to import data into R.
+system.time({
 data<-purrr::map_dfr(parameters,
                      
                      function(x){
                        
                        paste("Importing",x,"data...")
                        
-                       importFeatherFcn(feather=dataPath,
+                       importFeatherFcn(folder=dataPath,
                                         parameter = x,
-                                        # I'm not sure why I had this here instead of just x
-                                        # parameter = stringr::str_replace(x,
-                                        #                                  ".feather",
-                                        #                                  ""),
-                                        station=allStations,
-                                        year=yearToValidate)$stationData
+                                        station="all")
+                                        
                      })  %>%# map_dfr
   # filter for yearToValidate:
   dplyr::filter(format(DATE_PST,"%Y") %in% yearToValidate)
+
+})
+
+# GOT TO HERE
+# saveRDS(data,"2021data.rds")
+
+# import previous year's wind data for comparison
+prevYrWind<-purrr::map_dfr(c("WSPD_SCLR","WDIR_VECT"),
+                     
+                     function(x){
+                       
+                       paste("Importing",x,"data...")
+                       
+                       importFeatherFcn(
+                         # path to unverified data
+                         folder=file.path(airFTP,
+                                           "AnnualSummary",
+                                           yearToValidate-1),
+                                        parameter = x,
+                                        station="all")
+                       
+                     })  %>%# map_dfr
+  # filter for yearToValidate-1:
+  dplyr::filter(format(DATE_PST,"%Y") %in% (yearToValidate-1))
+
+
+# bind the two data sets together, call it data
+data<-dplyr::bind_rows(data,
+                 prevYrWind)
+
 
 # TESTING - issues with double hours
 # (test<-importFeatherFcn(feather=dataPath,
@@ -119,6 +134,8 @@ Pad time series with NA's to complete the annual time series. Note this includes
 ```{r allStations}
 # all stations in yearToValidate
 (allStations<-data %>%
+   # filter for yearToValidate:
+  dplyr::filter(format(DATE_PST,"%Y") %in% yearToValidate) %>%
           dplyr::pull(STATION_NAME) %>%
           unique %>%
           sort

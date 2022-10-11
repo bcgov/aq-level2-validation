@@ -36,7 +36,7 @@ plotlyFcn<-function(data, # hourly data
                
                p<- ggplot2::ggplot(plotData,
                                aes(x=DATE_PST,
-                                   y=ROUNDED_VALUE,
+                                   y=RAW_VALUE,
                                    color=TIME_AVG,
                                    linetype=INSTRUMENT))+
                  geom_line(alpha=1.0) +
@@ -58,11 +58,11 @@ plotlyFcn<-function(data, # hourly data
                  #                                "dotted")) +
                  
                  scale_y_continuous(breaks = seq(0,
-                                                 max(plotData$ROUNDED_VALUE,
+                                                 max(plotData$RAW_VALUE,
                                                      na.rm = TRUE)*1.05,
                                                  20)#,
                                     # minor_breaks = seq(10,
-                                    #                    max(plotData$ROUNDED_VALUE,
+                                    #                    max(plotData$RAW_VALUE,
                                     #                        na.rm = TRUE)*1.05,
                                     #                    20)
                                     )+
