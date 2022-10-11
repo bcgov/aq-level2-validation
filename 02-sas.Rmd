@@ -188,8 +188,11 @@ dplyr::slice(-1) %>%
 
 # MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
 
+# utils::View(names(pm10sasECMS))
+# utils::View(names(pm10sas))
+# 
 # tibble::tibble(names(pm10sasECMS),
-#                names(pm10sas)) %>% View
+#                names(pm10sas)) %>% utils::View(.)
 
 pm10sasECMS %<>%
   dplyr::select(1:31,33,34,32,everything())
@@ -201,10 +204,11 @@ names(pm10sasECMS) <- names(pm10sas)
 ```
 
 ```{r pm10sasDT}
+#2021 update
+if(length(pm25Stns)!=0 & nrow(pm25sasECMS)!=0) {
 
-if(length(pm10Stns)!=0) {
-
-  # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+# issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+  
 pm10sasDT <- bind_rows(
   pm10sasECMS %>%
     dplyr::mutate_all(as.character) %>%
@@ -216,8 +220,8 @@ pm10sasDT <- bind_rows(
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
-  
-   
+
+
    DT::datatable(
     pm10sasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -229,10 +233,14 @@ pm10sasDT <- bind_rows(
       paging = TRUE,
       pageLength = 25
     )
-  )
-} else {
+  ) } 
+
+if(length(pm10Stns)==0 & nrow(pm10sasECMS)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
+
+if(length(pm10Stns)!=0 & nrow(pm10sasECMS)==0){
+   htmltools::tags$p("No SAS summary for this parameter.")}
 ```
 
 ## NO~2~

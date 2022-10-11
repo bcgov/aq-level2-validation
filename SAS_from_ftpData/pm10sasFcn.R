@@ -149,7 +149,8 @@ pm10SASFcn<-function(data,pm10column,dateColumn){
       `VALID HOURS`=nh,
       `ANNUAL 1-HR AVG`=round(mean(pm10sub$PM10,na.rm=T),2),
       `VALID DAYS`= nd,
-      `ANNUAL DAILY AVG`=round(mean(dt$PM10,na.rm=T),2)
+      `ANNUAL DAILY AVG`=round(mean(dt$PM10,na.rm=T),2),
+      `DAILY AVG, 3-YR AVG` = NA_real_ # added to sas summary in 2021, i don't calculate it
     ) %>%
       dplyr::bind_cols(round(hp %>% dplyr::select(-date),
                              2)) %>%
