@@ -83,7 +83,7 @@ names(pm25sasECMS)<-names(pm25sas)
 
 ```{r pm25sasDT}
 
-if(length(pm25Stns)!=0 & nrow(pm25sasECMS)==0) {
+if(length(pm25Stns)!=0 & nrow(pm25sasECMS)!=0) {
 
 # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
   
@@ -111,10 +111,15 @@ pm25sasDT <- bind_rows(
       paging = TRUE,
       pageLength = 25
     )
-  )
-} else {
+  ) } 
+
+if(length(pm25Stns)==0 & nrow(pm25sasECMS)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
+
+if(length(pm25Stns)!=0 & nrow(pm25sasECMS)==0){
+   htmltools::tags$p("No SAS summary for this parameter.")}
+
 ```
 
 
