@@ -83,18 +83,22 @@ names(pm25sasECMS)<-names(pm25sas)
 
 ```{r pm25sasDT}
 
-if(length(pm25Stns)!=0 & nrow(pm25sasECMS)!=0) {
 
-# issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
-  
+
+if(length(pm25Stns)!=0){
+
+  if(exists("pm25sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 pm25sasDT <- bind_rows(
   pm25sasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   pm25sas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
@@ -111,15 +115,20 @@ pm25sasDT <- bind_rows(
       paging = TRUE,
       pageLength = 25
     )
-  ) } 
+  )
+   
+  }
+  
+  if(!exists("pm25sasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
 
-if(length(pm25Stns)==0 & nrow(pm25sasECMS)==0) {
+
+
+# case 2: no data for this parameter
+if(length(pm25Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
-
-if(length(pm25Stns)!=0 & nrow(pm25sasECMS)==0){
-   htmltools::tags$p("No SAS summary for this parameter.")}
-
 ```
 
 
@@ -204,19 +213,20 @@ names(pm10sasECMS) <- names(pm10sas)
 ```
 
 ```{r pm10sasDT}
-#2021 update
-if(length(pm25Stns)!=0 & nrow(pm25sasECMS)!=0) {
+if(length(pm10Stns)!=0){
 
-# issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
-  
+  if(exists("pm10sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 pm10sasDT <- bind_rows(
   pm10sasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   pm10sas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
@@ -233,14 +243,20 @@ pm10sasDT <- bind_rows(
       paging = TRUE,
       pageLength = 25
     )
-  ) } 
+  )
+   
+  }
+  
+  if(!exists("pm10sasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
 
-if(length(pm10Stns)==0 & nrow(pm10sasECMS)==0) {
+
+
+# case 2: no data for this parameter
+if(length(pm10Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
-
-if(length(pm10Stns)!=0 & nrow(pm10sasECMS)==0){
-   htmltools::tags$p("No SAS summary for this parameter.")}
 ```
 
 ## NO~2~
@@ -317,22 +333,25 @@ names(no2sasECMS) <- names(no2sas)
 ```
 
 ```{r no2sasDT}
+if(length(no2Stns)!=0){
 
-if(length(no2Stns)!=0) {
-  
-  # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+  if(exists("no2sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 no2sasDT <- bind_rows(
   no2sasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   no2sas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
- 
+
+
    DT::datatable(
     no2sasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -345,11 +364,20 @@ no2sasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("no2sasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(no2Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
-
 
 ## NO
 
@@ -425,22 +453,25 @@ names(nosasECMS) <- names(nosas)
 ```
 
 ```{r nosasDT}
+if(length(noStns)!=0){
 
-if(length(noStns!=0)){
+  if(exists("nosasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
-  # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 nosasDT <- bind_rows(
   nosasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   nosas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
-   
+
+
    DT::datatable(
     nosasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -453,7 +484,17 @@ nosasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("nosasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(noStns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
@@ -532,24 +573,25 @@ names(so2sasECMS) <- names(so2sas)
 ```
 
 ```{r so2sasDT}
+if(length(so2Stns)!=0){
 
-if(length(so2Stns)!=0) {
+  if(exists("so2sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
-
-  
-    # issues with binding, mismatching column formats (character vs integer), so2t being able to convert from one form to the other. Convert everything to character for data table.
 so2sasDT <- bind_rows(
   so2sasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   so2sas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
-   
+
+
    DT::datatable(
     so2sasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -562,7 +604,17 @@ so2sasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("so2sasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(so2Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
@@ -643,22 +695,25 @@ names(o3sasECMS) <- names(o3sas)
 ```
 
 ```{r o3sasDT}
+if(length(o3Stns)!=0){
 
-if(length(o3Stns)!=0) {
-  
-  # issues with binding, mismatching column formats (character vs integer), o3t being able to convert from one form to the other. Convert everything to character for data table.
+  if(exists("o3sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 o3sasDT <- bind_rows(
   o3sasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   o3sas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
- 
+
+
    DT::datatable(
     o3sasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -671,7 +726,17 @@ o3sasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("o3sasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(o3Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
@@ -743,6 +808,9 @@ dplyr::slice(-1) %>%
 # tibble::tibble(names(h2ssasECMS),
 #                names(h2ssas)) %>% View
 
+utils::View(names(h2ssasECMS))
+
+# got to here
 names(h2ssasECMS) <- names(h2ssas)
 
 } 
@@ -751,23 +819,25 @@ names(h2ssasECMS) <- names(h2ssas)
 
 ```{r h2ssasDT}
 
-if(length(h2sStns)!=0) {
-  
-  # issues with binding, mismatching column formats (character vs integer), h2st being able to convert from one form to the other. Convert everything to character for data table.
+if(length(h2sStns)!=0){
+
+  if(exists("h2ssasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 h2ssasDT <- bind_rows(
- 
-   h2ssasECMS %>%
+  h2ssasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   h2ssas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
-  
- 
+
+
    DT::datatable(
     h2ssasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -780,9 +850,20 @@ h2ssasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("h2ssasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(h2sStns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
+
 ```
 
 ## TRS
@@ -859,22 +940,25 @@ names(trssasECMS) <- names(trssas)
 ```
 
 ```{r trssasDT}
+if(length(trsStns)!=0){
 
-if(length(trsStns)!=0) {
-  
-  # issues with binding, mismatching column formats (character vs integer), trst being able to convert from one form to the other. Convert everything to character for data table.
+  if(exists("trssasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
 trssasDT <- bind_rows(
   trssasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   trssas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
- 
+
+
    DT::datatable(
     trssasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -887,7 +971,17 @@ trssasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
+   
+  }
+  
+  if(!exists("trssasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(trsStns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
@@ -969,22 +1063,25 @@ names(cosasECMS) <- names(cosas)
 ```
 
 ```{r cosasDT}
+if(length(coStns)!=0){
 
-if(length(coStns)!=0) {
+  if(exists("cosasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
-  # issues with binding, mismatching column formats (character vs integer), cot being able to convert from one form to the other. Convert everything to character for data table.
 cosasDT <- bind_rows(
   cosasECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
-  
+
   cosas %>%
     mutate_all(as.character)
-  
+
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
   dplyr::select(ORIGIN, everything())
-   
+
+
    DT::datatable(
     cosasDT,
     caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
@@ -997,8 +1094,18 @@ cosasDT <- bind_rows(
       pageLength = 25
     )
   )
-} else {
- htmltools::tags$p("There is no data for this parameter.")
+   
+  }
+  
+  if(!exists("cosasECMS")){
+    htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+
+
+# case 2: no data for this parameter
+if(length(coStns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
 }
 ```
 
