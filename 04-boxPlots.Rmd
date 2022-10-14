@@ -22,7 +22,9 @@ data %<>%
                      "NO2",
                      "NOx",
                      "O3",
-                     "SO2") ~ "ppb",
+                     "SO2",
+                     "H2S",
+                     "TRS") ~ "ppb",
     
     PARAMETER %in% c("PM10",
                      "PM25") ~ "ug/m3",

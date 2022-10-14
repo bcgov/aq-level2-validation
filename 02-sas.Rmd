@@ -9,31 +9,28 @@ sasReports<-"./SAS_reports"
 Note: all of the summaries below will have one fewer hour for the AQS sourced analysis. This is a bug, will try to resolve for next year.
 
 ## PM~2.5~
+
 ```{r pm25sas}
+
 pm25sas<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% "PM25") %>%
                 dplyr::distinct(STATION_NAME) %>%
                 arrange(STATION_NAME))$STATION_NAME,
 
              function(station){
-                #for testing
-               # station<-stations[1]
-               
-               stn<-data %>%
+
+               station<-data %>%
                  dplyr::filter(PARAMETER %in% "PM25" &
                                  STATION_NAME %in% station)
 
-               purrr::map_dfr(unique(stn$INSTRUMENT),
+               purrr::map_dfr(unique(station$INSTRUMENT),
 
                  function(instrument){
-                   
-                   # FOR TESTING
-                   # instrument<-"BAM 9800"
 
-                   inst<-stn %>%
+                   instrument<-station %>%
                      dplyr::filter(INSTRUMENT %in% instrument)
 
-                   pm25SASFcn(data=inst)
+                   pm25SASFcn(data=instrument)
 
                  }) #INSTRUMENT LOOP
 
@@ -44,47 +41,55 @@ pm25sas %<>% dplyr::mutate(ORIGIN="AQS")
 
 ```
 
+
 ```{r pm25sasECMS}
-# get pm25 stations in data
-pm25Stns<-data %>%
-  dplyr::filter(PARAMETER==toupper("pm25")) %>%
-  dplyr::pull(STATION_NAME) %>%
-  unique
-
-
-if(length(pm25Stns)!=0) {
-
-pm25sasECMS <- readxl::read_excel(
-  file.path(sasReports,
-            "PM2.5_UNSUPPRESSED.xlsx"))
-
 # get pm25 stations in data
 pm25Stns<-data %>%
   dplyr::filter(PARAMETER=="PM25") %>%
   dplyr::pull(STATION_NAME) %>%
   unique
 
-# pm25sasECMS %>%
-pm25sasECMS %<>%
-  dplyr::select(-c(`EMS ID`,
-                   `NAPS ID`,
-                   REGION,
-                   OWNER,
-                   UNIT)) %>%
-  dplyr::filter(YEAR == params$year &
-                  `STATION NAME` %in% stringr::str_replace(pm25Stns,
-                                                           "_", " ")) %>%
-  dplyr::mutate(ORIGIN = "ECMS")
+if(length(pm25Stns!=0)){
 
-names(pm25sasECMS)<-names(pm25sas)
+# import ecms sas from excel
+pm25sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "PM2.5_UNSUPPRESSED.xlsx")) %>%
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+  
+  # remove quarterly capture (duplicated)
+  dplyr::select(-c(`EMS ID`,
+                              `NAPS ID`,
+                              REGION,
+                              OWNER,
+                              UNIT)) %>%
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm25Stns, "_", " "))
+
+
+# MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
+
+# utils::View(names(pm25sasECMS))
+# utils::View(names(pm25sas))
+# 
+# tibble::tibble(names(pm25sasECMS),
+#                names(pm25sas)) %>% utils::View(.)
+
+pm25sasECMS %<>%
+  dplyr::select(1:31,33,34,32,everything())
+
+names(pm25sasECMS) <- names(pm25sas)
 
 }
+ 
 ```
 
 ```{r pm25sasDT}
-
-
-
 if(length(pm25Stns)!=0){
 
   if(exists("pm25sasECMS")){
@@ -106,7 +111,9 @@ pm25sasDT <- bind_rows(
 
    DT::datatable(
     pm25sasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(pm25sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -117,20 +124,16 @@ pm25sasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")} # this seems redundant - TO DO: TRY REMOVING IT AND SEE IF IT CRASHES
   }
-  
-  if(!exists("pm25sasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(pm25Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
-```
 
+```
 
 ## PM~10~
 ```{r pm10sas}
@@ -234,7 +237,9 @@ pm10sasDT <- bind_rows(
 
    DT::datatable(
     pm10sasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(pm10sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -245,18 +250,15 @@ pm10sasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("pm10sasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(pm10Stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
+
 ```
 
 ## NO~2~
@@ -354,7 +356,9 @@ no2sasDT <- bind_rows(
 
    DT::datatable(
     no2sasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(no2sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -365,13 +369,9 @@ no2sasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("no2sasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(no2Stns)==0) {
@@ -474,7 +474,9 @@ nosasDT <- bind_rows(
 
    DT::datatable(
     nosasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(nosasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -485,13 +487,9 @@ nosasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("nosasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(noStns)==0) {
@@ -594,7 +592,9 @@ so2sasDT <- bind_rows(
 
    DT::datatable(
     so2sasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(so2sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -605,13 +605,9 @@ so2sasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("so2sasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(so2Stns)==0) {
@@ -716,7 +712,9 @@ o3sasDT <- bind_rows(
 
    DT::datatable(
     o3sasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(o3sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -727,13 +725,9 @@ o3sasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("o3sasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(o3Stns)==0) {
@@ -808,7 +802,7 @@ dplyr::slice(-1) %>%
 # tibble::tibble(names(h2ssasECMS),
 #                names(h2ssas)) %>% View
 
-utils::View(names(h2ssasECMS))
+# utils::View(names(h2ssasECMS))
 
 # got to here
 names(h2ssasECMS) <- names(h2ssas)
@@ -818,7 +812,6 @@ names(h2ssasECMS) <- names(h2ssas)
 ```
 
 ```{r h2ssasDT}
-
 if(length(h2sStns)!=0){
 
   if(exists("h2ssasECMS")){
@@ -840,7 +833,9 @@ h2ssasDT <- bind_rows(
 
    DT::datatable(
     h2ssasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(h2ssasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -851,19 +846,14 @@ h2ssasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("h2ssasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(h2sStns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
-
 ```
 
 ## TRS
@@ -961,7 +951,9 @@ trssasDT <- bind_rows(
 
    DT::datatable(
     trssasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(trssasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -972,13 +964,9 @@ trssasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("trssasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(trsStns)==0) {
@@ -1084,7 +1072,9 @@ cosasDT <- bind_rows(
 
    DT::datatable(
     cosasDT,
-    caption = "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+    caption = dplyr::if_else(nrow(cosasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
     options = list(
       scrollX = TRUE,
       scroller = TRUE,
@@ -1095,13 +1085,9 @@ cosasDT <- bind_rows(
     )
   )
    
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
   }
-  
-  if(!exists("cosasECMS")){
-    htmltools::tags$p("No SAS summary for this parameter.")}
-  }
-
-
 
 # case 2: no data for this parameter
 if(length(coStns)==0) {

@@ -1,0 +1,4692 @@
+---
+title: "Annual Data Validation"
+author: "Air Quality Section | Regional Operations Branch"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params:
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[4],collapse="")
+  year: 2021
+site: bookdown::bookdown_site
+output: 
+  bookdown::gitbook:
+    config:
+      toc:
+        collapse: section
+---
+
+```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
+# To do's for next year:
+# - add range slider to plotly so it's easy to pan along axes:
+ #(https://plotly.com/r/range-slider/)
+# - round aqs stats to match ecms
+# - add difference row to sas summary
+
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      echo = FALSE)
+
+library(tidyverse)
+library(openair)
+library(Hmisc)
+library(xts)
+library(plotly)
+library(RCurl)
+library(DT)
+library(feather)
+library(magrittr)
+library(readxl)
+library(gdata)
+
+# functions to calculate SAS stats from hourly data
+source("./SAS_from_ftpData/pm25sasFcn.R")
+source("./SAS_from_ftpData/pm10sasFcn.R")
+source("./SAS_from_ftpData/no2sasFcn.R")
+source("./SAS_from_ftpData/nosasFcn.R")
+source("./SAS_from_ftpData/so2sasFcn.R")
+source("./SAS_from_ftpData/o3sasFcn.R")
+source("./SAS_from_ftpData/h2ssasFcn.R")
+source("./SAS_from_ftpData/trssasFcn.R")
+source("./SAS_from_ftpData/cosasFcn.R")
+
+# path to ecms sas reports saved locally:
+sasReports<-"C:/HagaR/AnnualDataValidation/SAS_reports"
+
+source("plotlyFcn.R")
+source("emptyPlot.R")
+
+```
+
+```{r importData}
+data<-readRDS(params$preppedData)
+
+# data<-readRDS("./preppedData/Grand Forks City Hall.rds")
+
+prevYrWind<-data %>%
+  dplyr::filter(lubridate::year(DATE_PST)==(params$year-1) &
+                  PARAMETER %in% c("WSPD_SCLR","WDIR_VECT"))
+
+data %<>%
+  dplyr::filter(lubridate::year(DATE_PST)==params$year)
+```
+
+
+```{r dailyData}
+day<-data %>%
+    # rename to date for openair
+    dplyr::rename(date=DATE_PST) %>%
+    dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+    dplyr::group_modify(~ openair::timeAverage(.x,
+                                               pollutant="RAW_VALUE",
+                                               avg.time = "day",
+                                               data.thresh = 75)
+    ) %>%
+    ungroup %>%
+    dplyr::rename(DATE_PST=date)
+
+`24hr`<-data %>%
+    # rename to date for openair
+    dplyr::rename(date=DATE_PST) %>%
+    dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+    dplyr::group_modify(~ openair::rollingMean(.x,
+                                               pollutant="RAW_VALUE",
+                                               width = 24,
+                                               align = "right",
+                                               data.thresh = 75,
+                                               new.name = "RAW_VALUE")
+    ) %>%
+    ungroup %>%
+    dplyr::rename(DATE_PST=date)
+
+```
+
+
+```{r hourlyAndDaily}
+
+# combine hourly and day data sets in one tidy tibble
+allData<-data %>%
+  dplyr::select(names(day)) %>%
+  dplyr::mutate(TIME_AVG = "Hourly") %>%
+  dplyr::bind_rows(.,
+                   day %>%
+                     dplyr::mutate(TIME_AVG = "Daily")) %>%
+  dplyr::bind_rows(.,
+                   `24hr` %>%
+                     dplyr::mutate(TIME_AVG = "24-HR Running Ave"))
+
+
+```
+
+
+# Preamble {-}
+
+**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`**. 
+
+Link to [ECMS SAS summaries, summary plots, and data capture stats](https://envistaweb.env.gov.bc.ca/aqo/stats/StatIndex.html).
+
+<!--chapter:end:index.Rmd-->
+
+# Data Summary
+
+```{r dataSummary, cache=FALSE}
+
+DT::datatable(data %>%
+                dplyr::distinct(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+                arrange(STATION_NAME),
+              caption = "Summary of data selected for validation.",
+              rownames = FALSE)
+```
+
+
+<!--chapter:end:01-dataSummary.Rmd-->
+
+# SAS Statistics {.tabset}
+
+```{r sasOptions}
+knitr::opts_chunk$set(cache = FALSE)
+
+sasReports<-"./SAS_reports"
+```
+
+Note: all of the summaries below will have one fewer hour for the AQS sourced analysis. This is a bug, will try to resolve for next year.
+
+## PM~2.5~
+
+```{r pm25sas}
+
+pm25sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% "PM25") %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% "PM25" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm25SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+pm25sas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+
+```{r pm25sasECMS}
+# get pm25 stations in data
+pm25Stns<-data %>%
+  dplyr::filter(PARAMETER=="PM25") %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(pm25Stns!=0)){
+
+# import ecms sas from excel
+pm25sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "PM2.5_UNSUPPRESSED.xlsx")) %>%
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+  
+  # remove quarterly capture (duplicated)
+  dplyr::select(-c(`EMS ID`,
+                              `NAPS ID`,
+                              REGION,
+                              OWNER,
+                              UNIT)) %>%
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm25Stns, "_", " "))
+
+
+# MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
+
+# utils::View(names(pm25sasECMS))
+# utils::View(names(pm25sas))
+# 
+# tibble::tibble(names(pm25sasECMS),
+#                names(pm25sas)) %>% utils::View(.)
+
+pm25sasECMS %<>%
+  dplyr::select(1:31,33,34,32,everything())
+
+names(pm25sasECMS) <- names(pm25sas)
+
+}
+ 
+```
+
+```{r pm25sasDT}
+if(length(pm25Stns)!=0){
+
+  if(exists("pm25sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+pm25sasDT <- bind_rows(
+  pm25sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  pm25sas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    pm25sasDT,
+    caption = dplyr::if_else(nrow(pm25sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")} # this seems redundant - TO DO: TRY REMOVING IT AND SEE IF IT CRASHES
+  }
+
+# case 2: no data for this parameter
+if(length(pm25Stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+
+```
+
+## PM~10~
+```{r pm10sas}
+
+pm10sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% "PM10") %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% "PM10" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm10SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+pm10sas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+
+```{r pm10sasECMS}
+# get pm10 stations in data
+pm10Stns<-data %>%
+  dplyr::filter(PARAMETER=="PM10") %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(pm10Stns!=0)){
+
+# import ecms sas from excel
+pm10sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "PM10_UNSUPPRESSED.xlsx")) %>%
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+  
+  # remove quarterly capture (duplicated)
+  dplyr::select(-c(`EMS ID`,
+                              `NAPS ID`,
+                              REGION,
+                              OWNER,
+                              UNIT)) %>%
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm10Stns, "_", " "))
+
+
+# MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
+
+# utils::View(names(pm10sasECMS))
+# utils::View(names(pm10sas))
+# 
+# tibble::tibble(names(pm10sasECMS),
+#                names(pm10sas)) %>% utils::View(.)
+
+pm10sasECMS %<>%
+  dplyr::select(1:31,33,34,32,everything())
+
+names(pm10sasECMS) <- names(pm10sas)
+
+}
+ 
+```
+
+```{r pm10sasDT}
+if(length(pm10Stns)!=0){
+
+  if(exists("pm10sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+pm10sasDT <- bind_rows(
+  pm10sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  pm10sas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    pm10sasDT,
+    caption = dplyr::if_else(nrow(pm10sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(pm10Stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+
+```
+
+## NO~2~
+
+```{r no2sas}
+
+no2sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("no2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   no2SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+no2sas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r no2sasECMS}
+# get no2 stations in data
+no2Stns<-data %>%
+  dplyr::filter(PARAMETER==toupper("no2")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(no2Stns)!=0){
+
+# import ecms sas from excel
+no2sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "NO2_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded column
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(no2Stns, "_", " "))
+
+
+# tibble::tibble(names(no2sasECMS),
+#                names(no2sas)) %>% View
+
+names(no2sasECMS) <- names(no2sas)
+
+}
+ 
+```
+
+```{r no2sasDT}
+if(length(no2Stns)!=0){
+
+  if(exists("no2sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+no2sasDT <- bind_rows(
+  no2sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  no2sas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    no2sasDT,
+    caption = dplyr::if_else(nrow(no2sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(no2Stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## NO
+
+```{r nosas}
+
+nosas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("no")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("no") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   noSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  # add column origin for where calculations originate from
+nosas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r nosasECMS}
+# get no stations in data
+noStns<-data %>%
+  dplyr::filter(PARAMETER==toupper("no")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(noStns)!=0){
+
+# import ecms sas from excel
+nosasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "NO_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(noStns, "_", " "))
+
+
+# tibble::tibble(names(nosasECMS),
+#                names(nosas)) %>% View
+
+names(nosasECMS) <- names(nosas)
+
+}
+ 
+```
+
+```{r nosasDT}
+if(length(noStns)!=0){
+
+  if(exists("nosasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+nosasDT <- bind_rows(
+  nosasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  nosas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    nosasDT,
+    caption = dplyr::if_else(nrow(nosasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(noStns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+
+## SO~2~
+
+```{r so2sas}
+
+so2sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("so2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   so2SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+    # add column origin for where calculations originate from
+so2sas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r so2sasECMS}
+# get so2 stations in data
+so2Stns<-data %>%
+  dplyr::filter(PARAMETER==toupper("so2")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(so2Stns)!=0){
+
+# import ecms sas from excel
+so2sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "SO2_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(so2Stns, "_", " "))
+
+
+# tibble::tibble(names(so2sasECMS),
+#                names(so2sas)) %>% View
+
+names(so2sasECMS) <- names(so2sas)
+ 
+}
+```
+
+```{r so2sasDT}
+if(length(so2Stns)!=0){
+
+  if(exists("so2sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+so2sasDT <- bind_rows(
+  so2sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  so2sas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    so2sasDT,
+    caption = dplyr::if_else(nrow(so2sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(so2Stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## O~3~
+
+Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQS calculations, these 7 hours were not included which leads to small differences with the ECMS calculations.
+
+```{r o3sas}
+
+o3sas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("o3") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   o3SASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+ # add column origin for where calculations originate from
+o3sas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r o3sasECMS}
+# get o3 stations in data
+o3Stns<-data %>%
+  dplyr::filter(PARAMETER==toupper("o3")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(o3Stns!=0)){
+
+# import ecms sas from excel
+o3sasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "OZONE_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(o3Stns, "_", " "))
+
+
+# tibble::tibble(names(o3sasECMS),
+#                names(o3sas)) %>% View
+
+names(o3sasECMS) <- names(o3sas)
+
+}
+ 
+```
+
+```{r o3sasDT}
+if(length(o3Stns)!=0){
+
+  if(exists("o3sasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+o3sasDT <- bind_rows(
+  o3sasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  o3sas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    o3sasDT,
+    caption = dplyr::if_else(nrow(o3sasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(o3Stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+
+## H~2~S
+
+```{r h2ssas}
+
+h2ssas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("h2s") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   h2sSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  # add column origin for where calculations originate from
+h2ssas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r h2ssasECMS}
+# get h2s stations in data
+h2sStns<-data %>%
+  dplyr::filter(PARAMETER==toupper("h2s")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(h2sStns)!=0){
+# import ecms sas from excel
+h2ssasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "H2S_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(h2sStns, "_", " "))
+
+# CHECK THE COLUMNS MATCH
+# tibble::tibble(names(h2ssasECMS),
+#                names(h2ssas)) %>% View
+
+# utils::View(names(h2ssasECMS))
+
+# got to here
+names(h2ssasECMS) <- names(h2ssas)
+
+} 
+ 
+```
+
+```{r h2ssasDT}
+if(length(h2sStns)!=0){
+
+  if(exists("h2ssasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+h2ssasDT <- bind_rows(
+  h2ssasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  h2ssas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    h2ssasDT,
+    caption = dplyr::if_else(nrow(h2ssasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(h2sStns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## TRS
+
+```{r trssas}
+
+trssas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("trs") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   trsSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+   # add column origin for where calculations originate from
+trssas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r trssasECMS}
+# get trs stations in data
+trsStns<-data %>%
+  dplyr::filter(PARAMETER==toupper("trs")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(trsStns!=0)){
+
+# import ecms sas from excel
+trssasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "TRS_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(trsStns, "_", " "))
+
+# CHECK THE COLUMNS MATCH
+# tibble::tibble(names(trssasECMS),
+#                names(trssas)) %>% View
+
+names(trssasECMS) <- names(trssas)
+
+}
+ 
+```
+
+```{r trssasDT}
+if(length(trsStns)!=0){
+
+  if(exists("trssasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+trssasDT <- bind_rows(
+  trssasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  trssas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    trssasDT,
+    caption = dplyr::if_else(nrow(trssasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(trsStns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## CO
+
+Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQS calculations, these 7 hours were not included which leads to small differences with the ECMS calculations.
+
+```{r cosas}
+
+cosas<-purrr::map_dfr((data %>%
+                dplyr::filter(PARAMETER %in% toupper("co")) %>%
+                dplyr::distinct(STATION_NAME) %>%
+                arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data %>%
+                 dplyr::filter(PARAMETER %in% toupper("co") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station %>%
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   coSASFcn(data=instrument)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  
+# add column origin for where calculations originate from
+cosas %<>% dplyr::mutate(ORIGIN="AQS")
+
+```
+
+```{r cosasECMS}
+# get co stations in data
+coStns<-data %>%
+  dplyr::filter(PARAMETER==toupper("co")) %>%
+  dplyr::pull(STATION_NAME) %>%
+  unique
+
+if(length(coStns)!=0){
+
+# import ecms sas from excel
+cosasECMS <- readxl::read_excel(
+  file.path(sasReports,                                            
+            "CO_UNSUPPRESSED.xlsx")) %>%
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) %>% 
+
+# remove secondary header row
+dplyr::slice(-1) %>%
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "ECMS") %>%
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(coStns, "_", " "))
+
+
+# tibble::tibble(names(cosasECMS),
+#                names(cosas)) %>% View
+
+names(cosasECMS) <- names(cosas)
+
+}
+ 
+```
+
+```{r cosasDT}
+if(length(coStns)!=0){
+
+  if(exists("cosasECMS")){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+cosasDT <- bind_rows(
+  cosasECMS %>%
+    dplyr::mutate_all(as.character) %>%
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  cosas %>%
+    mutate_all(as.character)
+
+) %>%
+  dplyr::arrange(`STATION NAME`) %>%
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    cosasDT,
+    caption = dplyr::if_else(nrow(cosasECMS)!=0,
+                             "ECMS and AQS calculated statistics.There will be one fewer valid hour compared to ECMS stats, I'll try to resolve this for next year.",
+                             "AQS calculated statistics. (No summary available from ECMS.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No SAS summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(coStns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+
+<!--chapter:end:02-sas.Rmd-->
+
+# Time series {.tabset}
+
+```{r hourlyPlotOptions}
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+## PM~2.5~
+
+```{r pm25hourly}
+pm25plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+ plotlyFcn(data,
+          allData,
+          parameter=toupper("pm25"))
+  
+  
+}
+
+htmltools::tagList(pm25plots)
+```
+
+
+## PM~10~
+
+```{r pm10hourly}
+pm10plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+            allData,
+            parameter=toupper("pm10"))
+  
+  
+}
+
+htmltools::tagList(pm10plots)
+```
+
+## O~3~
+
+```{r o3hourly}
+o3plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("o3"))
+  
+  
+}
+
+htmltools::tagList(o3plots)
+```
+
+## NO~2~
+
+```{r no2hourly}
+no2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,    
+            allData,
+
+            parameter=toupper("no2"))
+  
+  
+}
+
+htmltools::tagList(no2plots)
+```
+
+## NO
+
+```{r nohourly}
+noplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("no"))
+  
+  
+}
+
+htmltools::tagList(noplots)
+```
+
+## NO~x~
+
+```{r noxhourly}
+noxplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% "NOx") %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter="NOx")
+  
+  
+}
+
+htmltools::tagList(noxplots)
+```
+
+
+## SO~2~
+
+```{r so2hourly}
+so2plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("so2"))
+  
+  
+}
+
+htmltools::tagList(so2plots)
+```
+
+## CO
+
+```{r cohourly}
+coplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("co")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("co"))
+  
+  
+}
+
+htmltools::tagList(coplots)
+```
+
+## TRS
+
+```{r trshourly}
+trsplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("trs"))
+  
+  
+}
+
+htmltools::tagList(trsplots)
+```
+
+## H~2~S
+
+```{r h2shourly}
+h2splots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("h2s"))
+  
+  
+}
+
+htmltools::tagList(h2splots)
+```
+
+## WS
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wspd_sclrhourly}
+wspd_sclrplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("wspd_sclr"))
+  
+  
+}
+
+htmltools::tagList(wspd_sclrplots)
+```
+
+## WD
+
+Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
+
+```{r wdir_vecthourly}
+wdir_vectplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("wdir_vect"))
+  
+  
+}
+
+htmltools::tagList(wdir_vectplots)
+```
+
+## Temp
+
+```{r temp_meanhourly}
+temp_meanplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("temp_mean"))
+  
+  
+}
+
+htmltools::tagList(temp_meanplots)
+```
+
+## Humidity
+
+```{r humidityhourly}
+humidityplots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
+       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
+       distinct(STATION_NAME,INSTRUMENT) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotlyFcn(data,
+                        allData,
+
+            parameter=toupper("humidity"))
+  
+  
+}
+
+htmltools::tagList(humidityplots)
+```
+
+<!--chapter:end:03-timeSeries.Rmd-->
+
+# Box Plots {.tabset}
+
+```{r boxPlotOptions}
+knitr::opts_chunk$set(cache = FALSE)
+
+station<-data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique
+```
+
+```{r dataPrep}
+# add units becuase it is used below and in the plots
+
+# look at all the unique paramters
+# data %>% dplyr::distinct(PARAMETER)
+
+data %<>%
+  mutate(UNIT=dplyr::case_when(
+    
+    PARAMETER %in% c("CO",
+                     "NO",
+                     "NO2",
+                     "NOx",
+                     "O3",
+                     "SO2",
+                     "H2S",
+                     "TRS") ~ "ppb",
+    
+    PARAMETER %in% c("PM10",
+                     "PM25") ~ "ug/m3",
+    
+    PARAMETER == "HUMIDITY" ~ "%",
+    
+    PARAMETER == "TEMP_MEAN" ~ "deg. C",
+    
+    PARAMETER == "WDIR_VECT" ~ "deg.",
+    
+    PARAMETER == "WSPD_SCLR" ~ "m/s"
+    
+    
+    
+    
+  ))
+
+
+```
+
+
+## PM~2.5~
+
+```{r pm25Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no PM2.5 data at this station.")}
+
+```
+
+
+```{r pm25monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))
+    
+    if(nrow(plotData)!= nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+       ){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly PM2.5 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    } 
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r pm25hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM2.5 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r pm25diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly PM2.5 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## PM~10~
+
+```{r pm10Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no PM10 data at this station.")}
+
+```
+
+```{r pm10monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly PM10 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r pm10hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly pm10 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r pm10diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm10"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly pm10 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+## O~3~
+
+
+```{r o3Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no O3 data at this station.")}
+
+```
+
+```{r o3monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly o3 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r o3hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly o3 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r o3diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly o3 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## NO~2~
+
+```{r no2Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no NO2 data at this station.")}
+
+```
+
+```{r no2monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly no2 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r no2hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly no2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r no2diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly no2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## NO
+
+```{r noData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no NO data at this station.")}
+
+```
+
+```{r nomonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("no")) %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly no (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("no")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+    plotly::ggplotly(p) 
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r nohebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly no (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r nodiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly no (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("no")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## NO~x~
+
+```{r noxData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx")
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no NOx data at this station.")}
+
+```
+
+```{r noxmonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% "NOx") %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx")
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly nox (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% "NOx") %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    } 
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r noxhebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx")%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly nox (",
+          data %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r noxdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% "NOx")
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly nox (",
+          data %>%
+            dplyr::filter(PARAMETER %in% "NOx") %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## SO~2~
+
+```{r so2Data}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no SO2 data at this station.")}
+
+```
+
+```{r so2monthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly so2 (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r so2hebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly so2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r so2diurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly so2 (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## CO
+
+```{r coData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no CO data at this station.")}
+
+```
+
+```{r comonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly co (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("co")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r cohebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly co (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("co")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r codiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly co (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("co")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## TRS
+
+```{r trsData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no TRS data at this station.")}
+
+```
+
+
+```{r trsmonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly trs (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r trshebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly trs (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    }
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r trsdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly trs (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## H~2~S
+
+```{r h2sData}
+
+plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+
+if(nrow(plotData)== nrow(plotData %>%
+                             dplyr::filter(is.na(RAW_VALUE)))
+){htmltools::tags$p("There is no H2S data at this station.")}
+
+```
+
+```{r h2smonthly}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+    
+  
+    {
+    
+    #FOR TESTING - 9 total
+# (station<-(data %>%
+#              dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+#              dplyr::pull(STATION_NAME) %>%
+#              unique)[4])
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+           aes(x = reorder(format(DATE_PST, "%b"), DATE_PST), #alter this for different boxplots
+               y = RAW_VALUE,
+               fill=STATION_NAME)
+           ) +
+      geom_boxplot() +
+      labs(title = paste("Monthly Boxplot:",
+                         station),
+           x = "",
+           y = stringr::str_c("Hourly h2s (",
+                              data %>%
+                                dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+                                dplyr::pull(UNIT) %>% unique, ")",
+                              sep = ""
+             )
+           ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      )+ 
+        scale_fill_brewer(palette = "Set1")+
+      facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  # Error in fix.by(by.y, y) : 'by' must specify uniquely valid columns
+    plotly::ggplotly(p) 
+    
+    }  
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+```{r h2shebdomadal}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))%>%
+        dplyr::mutate(weekday=factor(format(DATE_PST,"%a"),
+                                     c("Sun",
+                                        "Mon",
+                                        "Tue",
+                                        "Wed",
+                                        "Thu",
+                                        "Fri",
+                                        "Sat")))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData ,
+      aes(
+        x = weekday,
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Hebdomadal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly h2s (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) # end suppressWarnings
+
+```
+
+```{r h2sdiurnal}
+suppressWarnings(
+  
+  htmltools::tagList(
+  
+  purrr::map(station,
+  
+  function(station)
+  # station<-"Abbotsford A Columbia Street"
+    {
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(
+      data = plotData,
+      aes(
+        x = format(DATE_PST,"%H"),
+        #alter this for different boxplots
+        y = RAW_VALUE,
+        fill = STATION_NAME
+      )
+    ) +
+      geom_boxplot() +
+      scale_x_discrete()+
+      labs(
+        title = paste("Diurnal Boxplot:",station),
+        x = "",
+        y = stringr::str_c(
+          "Hourly h2s (",
+          data %>%
+            dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+            dplyr::pull(UNIT) %>% unique,
+          ")",
+          sep = ""
+        )
+      ) +
+      theme_bw() +
+      theme(
+        # axis.text.x = element_text(
+        #   # angle = 60,
+        #   vjust = 1,
+        #   hjust = 1
+        # ),
+        legend.position = "none",
+        legend.title = element_blank()
+      ) +
+      scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~ INSTRUMENT, scales = "free")
+    
+    plotly::ggplotly(p)
+    
+    } 
+    
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+<!--chapter:end:04-boxPlots.Rmd-->
+
+# Histograms {.tabset}
+
+
+```{r histogramOptions}
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+## PM~2.5~
+
+```{r pm25histogram}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("pm25"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p<-ggplot(data = plotData,
+       aes(x = RAW_VALUE,
+           fill = INSTRUMENT,
+           color = INSTRUMENT)) +
+  
+  geom_histogram(alpha = 0.25,
+                 binwidth = 1) +
+  
+  labs(
+    title = paste("Histogram:",
+                  station),
+    y = "Count",
+    x = stringr::str_c(
+      "Hourly PM2.5 (",
+      data %>%
+        dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
+        dplyr::pull(UNIT) %>% unique,
+      ")",
+      sep = ""
+    )
+  ) +
+  theme_bw() +
+  theme(legend.position = "none",
+        legend.title = element_blank()) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap( ~ INSTRUMENT, scales = "free") 
+    
+  plotly::ggplotly(p) 
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+## PM~10~
+
+```{r pm10histogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+    
+    plotData <- data %>%
+      dplyr::filter(STATION_NAME %in% station &
+                      PARAMETER %in% toupper("pm10"))
+    
+    if (nrow(plotData) != plotData %>%
+        dplyr::summarise(nas = sum(is.na(RAW_VALUE))) %>%
+        dplyr::pull(nas)) {
+      
+      p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly PM10 (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p) 
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+## O~3~
+
+```{r o3histogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("o3"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    
+      p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly O3 (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("o3")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+
+## NO~2~
+
+```{r no2histogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+    
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly NO2 (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("no2")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p) 
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## NO
+
+```{r nohistogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("no"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly NO (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("no")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p) 
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## NO~x~
+
+```{r noxhistogram}
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+  
+    {
+
+    plotData <- data %>%
+      dplyr::filter(STATION_NAME %in% station &
+                      PARAMETER %in% "NOx")
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly NOx (",
+            data %>%
+              dplyr::filter(PARAMETER %in% "NOx") %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## SO~2~
+
+```{r so2histogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+   
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("so2"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly SO2 (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("so2")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## CO
+
+```{r cohistogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("co"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+     p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly CO (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("co")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## TRS
+
+
+```{r trshistogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+    
+   
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("trs"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly TRS (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("trs")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+## H~2~S
+
+```{r h2shistogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data %>%
+             dplyr::pull(STATION_NAME) %>%
+             unique,
+  
+  function(station)
+    
+  
+    {
+   
+    plotData<-data %>% 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+    
+    if(nrow(plotData)!=plotData %>% 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+      dplyr::pull(nas)){
+    
+    p <- ggplot(data = plotData,
+                  aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = stringr::str_c(
+            "Hourly H2S (",
+            data %>%
+              dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
+              dplyr::pull(UNIT) %>% unique,
+            ")",
+            sep = ""
+          )
+        ) +
+        theme_bw() +
+        theme(legend.position = "none",
+              legend.title = element_blank()) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
+
+<!--chapter:end:05-histograms.Rmd-->
+
+# Wind Roses
+
+```{r windCache}
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+
+```{r windDataPrep}
+# select wind data, get it in openair format
+
+windData <- data %>%
+  
+  dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
+  dplyr::bind_rows(.,
+                   prevYrWind)
+
+
+if( all(nrow(windData)!=0, # at least one row of data
+        any(unique(windData$PARAMETER) %in% "WSPD_SCLR"),
+        any(unique(windData$PARAMETER) %in% "WDIR_VECT")
+    )
+  ){
+  
+  windData %<>%
+    
+    dplyr::select(date = DATE_PST,
+                  STATION_NAME,
+                  PARAMETER,
+                  RAW_VALUE) %>%
+    
+    tidyr::pivot_wider(.,
+                       names_from = PARAMETER,
+                       values_from = RAW_VALUE) %>%
+    
+    dplyr::rename(ws = WSPD_SCLR,
+                  wd = WDIR_VECT) %>%
+    
+    dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                  wd = ifelse(is.na(ws), NA, wd))
+}
+
+  
+
+```
+
+```{r windRose}
+if(all(nrow(windData)!=0, # at least one row of data
+        any(names(windData) %in% "ws"),
+        any(names(windData) %in% "wd")
+
+    )
+) {
+  
+
+purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
+    
+    function(year){
+      
+      # TESTING
+      
+      # year<-yearToValidate
+      
+      # END TESTING
+      
+      station<-unique(windData$STATION_NAME)
+      
+      windData %<>%
+        dplyr::filter(lubridate::year(date) %in% year)
+      
+      if(nrow(windData)==sum(is.na(windData$ws))){
+        
+        paste("There is no paired wind data at",station)
+        
+      } else {
+      
+      #number of calm hours
+      ncalm <- windData %>%
+        dplyr::filter(ws < 0.5) %>%
+        dplyr::summarise(calms = n())
+      
+      #total number of valid ws hours
+      ntotal <- windData %>%
+        dplyr::filter(!is.na(ws)) %>%
+        dplyr::summarise(total = n())
+      
+      #percentage calm (ws<0.5 m/s)
+      pcalm <- round(100 * ncalm / ntotal,
+                     digits = 2)
+      
+      #filter out calm windData
+      roseData <- windData %>%
+        dplyr::filter(ws >= 0.5)
+      
+      #windRose
+      windRose(
+        roseData,
+        annotate = FALSE,
+        breaks = c(0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1),
+        #Beaufort scale with 0.5 as lowest cut point.
+        sub = paste("Calms (=<0.5m/s)=", pcalm, "%"),
+        key.position = "right",
+        main = stringr::str_c(year," Wind Rose at ",station),
+        angle = 360 / 16,
+        #16 spokes
+        cols = "jet",
+        paddle = FALSE
+      ) 
+      
+      } # end else
+      
+    } #end function(station)
+    
+    ) # map
+  
+} else{
+  
+  htmltools::tags$p("This station either doesn't measure wind, or it is missing one of WSPD_SCLR or WDIR_VECT")
+  
+}
+
+
+```
+
+<!--chapter:end:06-windRoses.Rmd-->
+
+# Minute Plots
+
+For next year: minute data plotted above a year of hourly data – that is two separate figures plotted one above the other… with negative values in a different colour
+
+<!--chapter:end:07-minuteData.Rmd-->
+
+# SHARP drift
+
+For next year: 3 channel SHARP 5030 neph drift is important to identify
+
+<!--chapter:end:08-sharpDrift.Rmd-->
+

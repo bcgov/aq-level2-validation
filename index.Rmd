@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[1],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[17],collapse="")
   year: 2021
 site: bookdown::bookdown_site
 output: 
@@ -118,6 +118,6 @@ allData<-data %>%
 
 # Preamble {-}
 
-**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort` and includes `r nrow(data)+nrow(prevYrWind)` hours of data**. 
+**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`**. 
 
 Link to [ECMS SAS summaries, summary plots, and data capture stats](https://envistaweb.env.gov.bc.ca/aqo/stats/StatIndex.html).

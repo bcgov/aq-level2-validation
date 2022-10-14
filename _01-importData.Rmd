@@ -82,7 +82,7 @@ data<-purrr::map_dfr(parameters,
 
 })
 
-# GOT TO HERE
+
 # saveRDS(data,"2021data.rds")
 
 # import previous year's wind data for comparison

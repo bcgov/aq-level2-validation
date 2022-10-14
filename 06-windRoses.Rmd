@@ -14,6 +14,11 @@ windData <- data %>%
   dplyr::bind_rows(.,
                    prevYrWind)
 
+#find duplicates
+windData %>% 
+  dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
+  dplyr::filter(n()>1)
+
 
 if( all(nrow(windData)!=0, # at least one row of data
         any(unique(windData$PARAMETER) %in% "WSPD_SCLR"),

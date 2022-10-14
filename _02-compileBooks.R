@@ -5,13 +5,13 @@ root<-stringr::str_remove(dir("./preppedData"),
 
 yearToValidate<-2021
 
-purrr::walk(root[1:length(root)],
+purrr::walk(root[17],#:length(root)],
             
             function(r){
               
               # testing
               
-              (r<-root[1])
+              # (r<-root[1])
               
               # End testing
               
