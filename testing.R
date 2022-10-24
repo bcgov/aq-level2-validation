@@ -166,7 +166,7 @@ write.csv(duplicates,
 # instrument =="unspecified" from data set (06-windRoses.Rmd)
 
 ###########
-# PRINCE GEORGE PULP - issue with humidity
+# PRINCE GEORGE PULP - issue with humidity - resolved (humidity only started in 2022 i.e. no data in 2021 (year being validated))
 data <- tibble::as_tibble(
   
   data.table::fread(
@@ -201,10 +201,83 @@ data %>%
 
 
 
-# prince rupert roosevelt park school (wdir_vect)
+# prince rupert roosevelt park school - compiled but no wdir_vect data
 
 # valemount - wind
+data <- tibble::as_tibble(
+  
+  data.table::fread(
+    "ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020/WDIR_VECT.csv",
+    header = TRUE,
+    verbose = TRUE,
+    showProgress = TRUE,
+    fill = TRUE,
+    colClasses = "character"
+  ) %>%
+    
+    dplyr::bind_rows(
+      
+      data.table::fread(
+        "ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/Hourly_Raw_Air_Data/Year_to_Date/WDIR_VECT.csv",
+        header = TRUE,
+        verbose = TRUE,
+        showProgress = TRUE,
+        fill = TRUE,
+        colClasses = "character"
+      )  
+    )
+  
+) %>% 
+  dplyr::filter(STATION_NAME=="Valemount") 
 
 
-# warfield elementary
+wsdata<-data
+
+wsdata %>% distinct(STATION_NAME,STATION_NAME_FULL,PARAMETER,INSTRUMENT,LATITUDE,LONGITUDE)
+
+wddata<-data
+
+wddata %>% distinct(STATION_NAME,STATION_NAME_FULL,PARAMETER,INSTRUMENT,LATITUDE,LONGITUDE)
+
+data %>% 
+  dplyr::group_by(DATE_PST,STATION_NAME,PARAMETER) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+
+
+data<-dplyr::bind_rows(
+  feather::read_feather("C:\\HagaR\\AnnualDataValidation/unverifieddata_unpadded.feather")
+)
+
+data %>% 
+  
+  dplyr::group_by(DATE_PST,STATION_NAME,PARAMETER) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+
+
+data %<>%
+  
+  dplyr::filter(STATION_NAME=="Valemount" & PARAMETER %in% c("WSPD_SCLR","WDIR_VECT")) %>%
+
+dplyr::select(date = DATE_PST,
+              STATION_NAME,
+              PARAMETER,
+              RAW_VALUE) %>%
+  
+  tidyr::pivot_wider(.,
+                     names_from = PARAMETER,
+                     values_from = RAW_VALUE) %>%
+  
+  dplyr::rename(ws = WSPD_SCLR,
+                wd = WDIR_VECT) %>%
+  
+  dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
+                wd = ifelse(is.na(ws), NA, wd))
+
+
+wsdata %>%
+  dplyr::arrange(DATE_PST)
+
+# warfield elementary - don't include wind data in validation.
 

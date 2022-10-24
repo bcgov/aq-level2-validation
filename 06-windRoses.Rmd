@@ -1,5 +1,7 @@
 # Wind Roses
 
+Wind roses for `r params$year` and `r params$year-1`.
+
 ```{r windCache}
 knitr::opts_chunk$set(cache = FALSE)
 ```
@@ -24,9 +26,14 @@ windData <- data %>%
   dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED"))
 
 #find duplicates
-# windData %>% 
-#   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
-#   dplyr::filter(n()>1)
+ # windData %>%
+ #    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
+ #    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+ #    dplyr::filter(n > 1L) %>%
+ #   dplyr::left_join(.,
+ #                    windData,
+ #                    by=c("DATE_PST","STATION_NAME","PARAMETER"))
+  
 
 
 if( all(nrow(windData)!=0, # at least one row of data
@@ -35,10 +42,12 @@ if( all(nrow(windData)!=0, # at least one row of data
     )
   ){
   
+ 
   windData %<>%
     
     dplyr::select(date = DATE_PST,
                   STATION_NAME,
+                  INSTRUMENT,
                   PARAMETER,
                   RAW_VALUE) %>%
     
