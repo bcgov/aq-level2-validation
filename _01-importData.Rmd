@@ -110,21 +110,23 @@ data<-dplyr::bind_rows(data,
                  prevYrWind)
 
 
-# TESTING - issues with double hours
-# (test<-importFeatherFcn(feather=dataPath,
-#                        parameter = "WSPD_SCLR",
-#                        station = "Abbotsford A Columbia Street",
-#   year=2020)$stationData %>%
-#     
-#     dplyr::arrange(DATE_PST) %>%
-#     
-#     dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
-#   ) 
-# 
-# test %>% last(.,n=10)
-# 
-# NAfillFcn(test )%>%
+#TESTING - issues with double hours
+# test <- data %>% 
+#   dplyr::filter(STATION_NAME=="Colwood City Hall" & 
+#                   PARAMETER == "WSPD_SCLR")
+#   
+# test_padded<-NAfillFcn(test )%>%
 #   dplyr::arrange(DATE_PST)
+# 
+# 
+# test_padded %>%
+#   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
+#   dplyr::filter(n()>1)
+# 
+# utils::View(test %>% arrange(DATE_PST))
+# 
+# 
+# test %>% distinct(PARAMETER,INSTRUMENT)
 ```
 
 Pad time series with NA's to complete the annual time series. Note this includes down to the STATION_NAME_FULL looping level. (updated in Mar 2020). Looping through STATION_NAME isn't sufficient because it can lead to duplicates (between, for example, Birchbank_Golf_Course and Birchbank_Golf_Course_60).
@@ -150,7 +152,7 @@ Pad time series with NA's to complete the annual time series. Note this includes
 
 # save imported and formatted data to 
 feather::write_feather(data,
-                       "unverifiedData_unpadded.feather")
+                       "unverifieddata_unpadded.feather")
 
 # save list of stations:
 

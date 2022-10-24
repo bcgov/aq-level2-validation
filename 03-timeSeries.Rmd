@@ -10,9 +10,7 @@ knitr::opts_chunk$set(cache = FALSE)
 pm25plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("pm25") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -34,9 +32,7 @@ htmltools::tagList(pm25plots)
 pm10plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("pm10") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -57,9 +53,7 @@ htmltools::tagList(pm10plots)
 o3plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("o3") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -81,9 +75,7 @@ htmltools::tagList(o3plots)
 no2plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("no2") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -105,9 +97,7 @@ htmltools::tagList(no2plots)
 noplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("no")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("no") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -129,9 +119,7 @@ htmltools::tagList(noplots)
 noxplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% "NOx") %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% "NOx" & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -154,9 +142,7 @@ htmltools::tagList(noxplots)
 so2plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("so2") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -178,9 +164,7 @@ htmltools::tagList(so2plots)
 coplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("co")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("co") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -202,9 +186,7 @@ htmltools::tagList(coplots)
 trsplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("trs") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -226,9 +208,7 @@ htmltools::tagList(trsplots)
 h2splots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("h2s") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -252,9 +232,7 @@ Something to look for: ws/wd lock due to rime on the anemometer or vane, data co
 wspd_sclrplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("wspd_sclr") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -278,9 +256,7 @@ Something to look for: ws/wd lock due to rime on the anemometer or vane, data co
 wdir_vectplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("wdir_vect")& !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -302,9 +278,7 @@ htmltools::tagList(wdir_vectplots)
 temp_meanplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("temp_mean") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -326,9 +300,7 @@ htmltools::tagList(temp_meanplots)
 humidityplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("humidity") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {

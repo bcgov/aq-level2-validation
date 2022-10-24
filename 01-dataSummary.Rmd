@@ -3,9 +3,52 @@
 ```{r dataSummary, cache=FALSE}
 
 DT::datatable(data %>%
-                dplyr::distinct(STATION_NAME,PARAMETER,INSTRUMENT) %>%
-                arrange(STATION_NAME),
+                dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+                dplyr::summarise(`# Valid Hours`=sum(!is.na(RAW_VALUE))),
               caption = "Summary of data selected for validation.",
               rownames = FALSE)
 ```
 
+# Daily Data Completeness
+
+75% data completeness threshold applied to each day (i.e. 18+ valid hours needed in a day for the day to be valid)
+
+
+```{r monthlyCapturePlot,fig.width=8,fig.height=13,fig.cap="Hourly data capture by month across the ENV AQHI monitoring network (2009-2020)."}
+# myColors<-rev(RColorBrewer::brewer.pal(n=3,name="RdBu"))[c(1,3)]
+
+ggplot2::ggplot(
+  day %>%
+    
+    dplyr::mutate(`Validity` = dplyr::if_else(is.na(RAW_VALUE),
+                                              "Invalid",
+                                              "Valid")),
+  aes(x = DATE_PST,
+      y = PARAMETER,
+      fill = Validity)
+) +
+  
+  # ggplot2::facet_wrap(vars(PARAMETER)) +
+  
+  ggplot2::geom_tile(aes(color=`Validity`)) +
+  
+  scale_fill_manual(values=c("red","blue"))+
+  
+  scale_color_manual(values=c("red","blue"))+
+
+  # scale_x_date(breaks=seq(lubridate::ymd("2020-01-01"),
+  #                         lubridate::ymd("2021-12-31"),
+  #                         by="1 month"),
+  #              date_labels = "%b-%Y")+
+  
+  ggplot2::theme_bw() +
+  
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5),
+        legend.position = "top") +
+  
+  labs(title="Daily Data Capture",
+       x="",
+       y="")
+
+
+```

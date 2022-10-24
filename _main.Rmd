@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[4],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[81],collapse="")
   year: 2021
 site: bookdown::bookdown_site
 output: 
@@ -65,7 +65,9 @@ prevYrWind<-data %>%
                   PARAMETER %in% c("WSPD_SCLR","WDIR_VECT"))
 
 data %<>%
-  dplyr::filter(lubridate::year(DATE_PST)==params$year)
+  dplyr::filter(lubridate::year(DATE_PST)==params$year) %>%
+  dplyr::group_by(PARAMETER) %>%
+  dplyr::filter(!all(is.na(RAW_VALUE))) %>% dplyr::ungroup(.)
 ```
 
 
@@ -120,8 +122,6 @@ allData<-data %>%
 
 **This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`**. 
 
-Link to [ECMS SAS summaries, summary plots, and data capture stats](https://envistaweb.env.gov.bc.ca/aqo/stats/StatIndex.html).
-
 <!--chapter:end:index.Rmd-->
 
 # Data Summary
@@ -129,12 +129,55 @@ Link to [ECMS SAS summaries, summary plots, and data capture stats](https://envi
 ```{r dataSummary, cache=FALSE}
 
 DT::datatable(data %>%
-                dplyr::distinct(STATION_NAME,PARAMETER,INSTRUMENT) %>%
-                arrange(STATION_NAME),
+                dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+                dplyr::summarise(`# Valid Hours`=sum(!is.na(RAW_VALUE))),
               caption = "Summary of data selected for validation.",
               rownames = FALSE)
 ```
 
+# Daily Data Completeness
+
+75% data completeness threshold applied to each day (i.e. 18+ valid hours needed in a day for the day to be valid)
+
+
+```{r monthlyCapturePlot,fig.width=8,fig.height=13,fig.cap="Hourly data capture by month across the ENV AQHI monitoring network (2009-2020)."}
+# myColors<-rev(RColorBrewer::brewer.pal(n=3,name="RdBu"))[c(1,3)]
+
+ggplot2::ggplot(
+  day %>%
+    
+    dplyr::mutate(`Validity` = dplyr::if_else(is.na(RAW_VALUE),
+                                              "Invalid",
+                                              "Valid")),
+  aes(x = DATE_PST,
+      y = PARAMETER,
+      fill = Validity)
+) +
+  
+  # ggplot2::facet_wrap(vars(PARAMETER)) +
+  
+  ggplot2::geom_tile(aes(color=`Validity`)) +
+  
+  scale_fill_manual(values=c("red","blue"))+
+  
+  scale_color_manual(values=c("red","blue"))+
+
+  # scale_x_date(breaks=seq(lubridate::ymd("2020-01-01"),
+  #                         lubridate::ymd("2021-12-31"),
+  #                         by="1 month"),
+  #              date_labels = "%b-%Y")+
+  
+  ggplot2::theme_bw() +
+  
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5),
+        legend.position = "top") +
+  
+  labs(title="Daily Data Capture",
+       x="",
+       y="")
+
+
+```
 
 <!--chapter:end:01-dataSummary.Rmd-->
 
@@ -1250,9 +1293,7 @@ knitr::opts_chunk$set(cache = FALSE)
 pm25plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("pm25") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1274,9 +1315,7 @@ htmltools::tagList(pm25plots)
 pm10plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("pm10") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1297,9 +1336,7 @@ htmltools::tagList(pm10plots)
 o3plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("o3") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1321,9 +1358,7 @@ htmltools::tagList(o3plots)
 no2plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("no2") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1345,9 +1380,7 @@ htmltools::tagList(no2plots)
 noplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("no")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("no") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1369,9 +1402,7 @@ htmltools::tagList(noplots)
 noxplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% "NOx") %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% "NOx" & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1394,9 +1425,7 @@ htmltools::tagList(noxplots)
 so2plots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("so2") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1418,9 +1447,7 @@ htmltools::tagList(so2plots)
 coplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("co")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("co") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1442,9 +1469,7 @@ htmltools::tagList(coplots)
 trsplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("trs") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1466,9 +1491,7 @@ htmltools::tagList(trsplots)
 h2splots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("h2s") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1492,9 +1515,7 @@ Something to look for: ws/wd lock due to rime on the anemometer or vane, data co
 wspd_sclrplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("wspd_sclr") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1518,9 +1539,7 @@ Something to look for: ws/wd lock due to rime on the anemometer or vane, data co
 wdir_vectplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("wdir_vect")& !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1542,9 +1561,7 @@ htmltools::tagList(wdir_vectplots)
 temp_meanplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("temp_mean") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -1566,9 +1583,7 @@ htmltools::tagList(temp_meanplots)
 humidityplots<-if(
   
   (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
-       group_by_at(vars(STATION_NAME,INSTRUMENT)) %>%
-       distinct(STATION_NAME,INSTRUMENT) %>%
+       dplyr::filter(PARAMETER %in% toupper("humidity") & !is.na(RAW_VALUE)) %>%
        nrow(.))==0
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
@@ -4567,7 +4582,21 @@ windData <- data %>%
   
   dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
   dplyr::bind_rows(.,
-                   prevYrWind)
+                   prevYrWind) %>%
+  
+  # 2021 VALIDATION BUGS
+  
+  # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
+  # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
+  # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data).
+  # So, remove this data for now until it gets dealt wiht.
+  
+  dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED"))
+
+#find duplicates
+# windData %>% 
+#   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
+#   dplyr::filter(n()>1)
 
 
 if( all(nrow(windData)!=0, # at least one row of data

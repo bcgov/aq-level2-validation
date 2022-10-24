@@ -12,12 +12,21 @@ windData <- data %>%
   
   dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
   dplyr::bind_rows(.,
-                   prevYrWind)
+                   prevYrWind) %>%
+  
+  # 2021 VALIDATION BUGS
+  
+  # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
+  # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
+  # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data).
+  # So, remove this data for now until it gets dealt wiht.
+  
+  dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED"))
 
 #find duplicates
-windData %>% 
-  dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
-  dplyr::filter(n()>1)
+# windData %>% 
+#   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT,DATE_PST) %>%
+#   dplyr::filter(n()>1)
 
 
 if( all(nrow(windData)!=0, # at least one row of data

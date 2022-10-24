@@ -1,11 +1,30 @@
 # compile annual data validation reports for each file in preppedDAta:
 
-root<-stringr::str_remove(dir("./preppedData"),
-                          ".rds")
+root<-!(stringr::str_remove(dir("./preppedData"),
+                          ".rds") %in% c("Warfield Elementary"))
 
 yearToValidate<-2021
 
-purrr::walk(root[17],#:length(root)],
+# # # ISSUES WITH THESE STATIONS IN ROOT # # # 
+
+# duplicates identified at: (these stations are outstanding - need to compile reports)
+# 17 colwood city hall (wspd_sclr, wdir_vect)
+# 76 prince george exploration place (humidity, wdir_vect, wspd_sclr)
+# 108 vanderhoof courthouse (wdir_vect, wspd_sclr)
+
+#21 crofton elementary - report compiles but lacking northerly winds
+#22 crofton substation - no wind speed data
+#23 duncan college street - duplicates in STATION_NAME, PARAMETER, DATE_PST (Duncan college street_60 has instrument=UNSPECIFIED and all the data is "")
+
+#83 prince rupert roosevelt park school - did not compile. issue with wdir_vecthourly (error in seq "to" must be a finite number)
+#104 valemount - did not compile. issue with wind as per above for colwood, etc.
+#108 vanderhoof courthouse - did not compile same issues with duplicated in wind as per above
+#111 warfield elementary wspd_sclrhourly error in sequence 'to' must be a finite number
+
+
+# utils::View(root)
+
+purrr::walk(root[81],#:length(root)],
             
             function(r){
               
