@@ -17,9 +17,7 @@ yearToValidate<-2021
 #23 duncan college street - duplicates in STATION_NAME, PARAMETER, DATE_PST (Duncan college street_60 has instrument=UNSPECIFIED and all the data is "")
 #83 prince rupert roosevelt park school - compiled but no wdir_vect
 
-#104 valemount - did not compile. issue with wind as per above for colwood, etc.
-#111 warfield elementary wspd_sclrhourly error in sequence 'to' must be a finite number - REMOVING WIND FROM VALIDATION
-
+#104 valemount - issue with wind data metadata
 
 # utils::View(root)
 
@@ -27,7 +25,12 @@ yearToValidate<-2021
 #                  "Prince George Exploration Place",
 #                  "Vanderhoof Courthouse"))]
 
-purrr::walk(root[104],#:length(root)],
+purrr::walk(root[85:103],
+  # 
+  # root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
+  #                                   "Prince George Exploration Place",
+  #                                   "Valemount",
+  #                                   "Vanderhoof Courthouse"))],
             
             function(r){
               

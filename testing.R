@@ -203,7 +203,8 @@ data %>%
 
 # prince rupert roosevelt park school - compiled but no wdir_vect data
 
-# valemount - wind
+# valemount - wind - never was able to identify the duplicates below, but adding  
+# instrument to the select all in 06-windRoses allowed for report to compile.
 data <- tibble::as_tibble(
   
   data.table::fread(
@@ -279,5 +280,4 @@ dplyr::select(date = DATE_PST,
 wsdata %>%
   dplyr::arrange(DATE_PST)
 
-# warfield elementary - don't include wind data in validation.
 

@@ -17,4 +17,8 @@ _Kootenay_2of2*
 *.js
 *.json
 *.ttf
+*.rdx
+*.rdb
+*.Rdata
 *reference-keys.txt
+_AnnualDataValidation_cache

@@ -1,6 +1,16 @@
 # Wind Roses
 
-Wind roses for `r params$year` and `r params$year-1`.
+Wind roses for `r params$year` and `r params$year-1`. 
+
+Things to look for when validating wind data:
+
++ Annual windrose
++ Windrose from previous years
++ Percent calm winds for the past 5-8 years
++ Do we have any pictures of the station?
++ Does the windrose make sense to you relative to the local topography?
++ RH - does RH get to 100% or does it max out at 97%? Has this changed recently?
++ Can I see any obvious breakpoints in a strip chart where something changes/
 
 ```{r windCache}
 knitr::opts_chunk$set(cache = FALSE)
@@ -47,7 +57,7 @@ if( all(nrow(windData)!=0, # at least one row of data
     
     dplyr::select(date = DATE_PST,
                   STATION_NAME,
-                  INSTRUMENT,
+                  # INSTRUMENT,
                   PARAMETER,
                   RAW_VALUE) %>%
     
@@ -58,8 +68,8 @@ if( all(nrow(windData)!=0, # at least one row of data
     dplyr::rename(ws = WSPD_SCLR,
                   wd = WDIR_VECT) %>%
     
-    dplyr::mutate(ws = ifelse(is.na(wd), NA, ws),
-                  wd = ifelse(is.na(ws), NA, wd))
+    dplyr::mutate(ws = ifelse(is.na(wd), NA_real_, ws),
+                  wd = ifelse(is.na(ws), NA_real_, wd))
 }
 
   
