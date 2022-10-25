@@ -19,14 +19,17 @@ yearToValidate<-2021
 
 #104 valemount - issue with wind data metadata
 
-# utils::View(root)
+utils::View(root)
 
-# root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
-#                  "Prince George Exploration Place",
-#                  "Vanderhoof Courthouse"))]
+root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
+                 "Prince George Exploration Place",
+                 "Vanderhoof Courthouse"))]
 
-purrr::walk(root[85:103],
-  # 
+utils::View(root)
+
+
+purrr::walk(root[17:length(root)],
+  
   # root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
   #                                   "Prince George Exploration Place",
   #                                   "Valemount",

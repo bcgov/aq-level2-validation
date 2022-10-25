@@ -85,24 +85,37 @@ data<-purrr::map_dfr(parameters,
 
 # saveRDS(data,"2021data.rds")
 
-# import previous year's wind data for comparison
-prevYrWind<-purrr::map_dfr(c("WSPD_SCLR","WDIR_VECT"),
-                     
-                     function(x){
-                       
-                       paste("Importing",x,"data...")
-                       
-                       importFeatherFcn(
-                         # path to unverified data
-                         folder=file.path(airFTP,
-                                           "AnnualSummary",
-                                           yearToValidate-1),
-                                        parameter = x,
-                                        station="all")
-                       
-                     })  %>%# map_dfr
-  # filter for yearToValidate-1:
-  dplyr::filter(format(DATE_PST,"%Y") %in% (yearToValidate-1))
+# import previous x years wind data for comparison
+prevYrWind <-
+  
+  purrr::map_dfr((yearToValidate - 6):(yearToValidate - 1),
+                 
+                 function(windYr) {
+                   
+                   purrr::map_dfr(c("WSPD_SCLR", "WDIR_VECT"),
+                                  
+                                  function(x) {
+                                    
+                                    paste("Importing",
+                                          x,
+                                          "data for the year ",
+                                          windYr,
+                                          "...")
+                                    
+                                    importFeatherFcn(
+                                      # path to unverified data
+                                      folder = file.path(airFTP,
+                                                         "AnnualSummary",
+                                                         windYr),
+                                      parameter = x,
+                                      station = "all"
+                                    )
+                                    
+                                  })
+                 }) %>% # map_dfr
+  
+  # filter for last X years of data:
+  dplyr::filter(format(DATE_PST, "%Y") %in% (yearToValidate - 6):(yearToValidate - 1))
 
 
 # bind the two data sets together, call it data
@@ -129,7 +142,7 @@ data<-dplyr::bind_rows(data,
 # test %>% distinct(PARAMETER,INSTRUMENT)
 ```
 
-Pad time series with NA's to complete the annual time series. Note this includes down to the STATION_NAME_FULL looping level. (updated in Mar 2020). Looping through STATION_NAME isn't sufficient because it can lead to duplicates (between, for example, Birchbank_Golf_Course and Birchbank_Golf_Course_60).
+Pad time series with NA's to complete the annual time series. Note this includes down to the STATION_NAME_FULL looping level. (updated in Mar 2020). Looping through STATION_NAME isn't sufficient because it can lead to duplicates (between, for example, Birchbank_Golf_Course and Birchbank_Golf_Course_60). 2021 - is this still true?
 
 
 

@@ -280,4 +280,12 @@ dplyr::select(date = DATE_PST,
 wsdata %>%
   dplyr::arrange(DATE_PST)
 
+##### 
+# BURNS LAKE SHERATON EAST - ISSUE WITH WIND DUPLICATES ONCE PREV 5 YEARS WAS ADDED
+# find duplicates
 
+data %>% dplyr::filter(STATION_NAME=="Burns Lake Sheraton East" & 
+                         PARAMETER %in% c("WSPD_SCLR",
+                                          "WDIR_VECT")) %>%
+  dplyr::group_by(lubridate::year(DATE_PST)) %>%
+  dplyr::distinct(INSTRUMENT)

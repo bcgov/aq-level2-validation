@@ -1,6 +1,6 @@
 # Wind Roses
 
-Wind roses for `r params$year` and `r params$year-1`. 
+Wind roses for `r params$year` and 5 previous years (when available). 
 
 Things to look for when validating wind data:
 
@@ -33,7 +33,13 @@ windData <- data %>%
   # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data).
   # So, remove this data for now until it gets dealt wiht.
   
-  dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED"))
+  dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED")) %>%
+  
+  # burns lake sheraton east - duplicates in wind data (one is prob from _60 but should still get cleaned up). sent a note to ted's group.
+  
+  dplyr::filter(!(STATION_NAME=="Burns Lake Sheraton East" & 
+                    INSTRUMENT == "WIND DIR VECTOR" &
+                    lubridate::year(DATE_PST)==2016))
 
 #find duplicates
  # windData %>%
@@ -42,9 +48,9 @@ windData <- data %>%
  #    dplyr::filter(n > 1L) %>%
  #   dplyr::left_join(.,
  #                    windData,
- #                    by=c("DATE_PST","STATION_NAME","PARAMETER"))
-  
+ #                    by=c("DATE_PST","STATION_NAME","PARAMETER")) %>% utils::View(.)
 
+ 
 
 if( all(nrow(windData)!=0, # at least one row of data
         any(unique(windData$PARAMETER) %in% "WSPD_SCLR"),
@@ -77,11 +83,17 @@ if( all(nrow(windData)!=0, # at least one row of data
 ```
 
 ```{r windRose}
-if(all(nrow(windData)!=0, # at least one row of data
-        any(names(windData) %in% "ws"),
-        any(names(windData) %in% "wd")
-
-    )
+if(all(
+  # at least a row of data
+  nrow(windData) != 0, 
+  # some data in the year being validated
+  length(unique(lubridate::year(windData$date)) %in% params$year)!=0,
+  # a column called ws
+  any(names(windData) %in% "ws"),
+  # a column called wd
+  any(names(windData) %in% "wd")
+         
+       )
 ) {
   
 
@@ -91,7 +103,11 @@ purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
       
       # TESTING
       
-      # year<-yearToValidate
+      # year<-2020
+      # 
+      # windDataBackup<-windData
+      # 
+      # windData<-windDataBackup
       
       # END TESTING
       
@@ -99,12 +115,6 @@ purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
       
       windData %<>%
         dplyr::filter(lubridate::year(date) %in% year)
-      
-      if(nrow(windData)==sum(is.na(windData$ws))){
-        
-        paste("There is no paired wind data at",station)
-        
-      } else {
       
       #number of calm hours
       ncalm <- windData %>%
@@ -123,6 +133,16 @@ purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
       #filter out calm windData
       roseData <- windData %>%
         dplyr::filter(ws >= 0.5)
+      
+      if(nrow(windData)==sum(is.na(windData$ws)) | nrow(roseData)==0){
+        
+        paste("There is either no paired wind data at",
+              station,
+              "or there is no paired wind data above the 0.5 m/s threshold.")
+        
+      } else {
+      
+      
       
       #windRose
       windRose(
@@ -147,7 +167,7 @@ purrr::walk(unique(lubridate::year(windData$date)) %>% sort,
   
 } else{
   
-  htmltools::tags$p("This station either doesn't measure wind, or it is missing one of WSPD_SCLR or WDIR_VECT")
+  htmltools::tags$p("This station either doesn't measure wind, has no wind data for the year being validated, or it is missing one of WSPD_SCLR or WDIR_VECT")
   
 }
 

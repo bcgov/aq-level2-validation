@@ -1,0 +1,57 @@
+---
+title: "2021 Kootenay Data Validation"
+author: "Donna Haga"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+
+rawData<-feather::read_feather("C:\\HagaR\\AnnualDataValidation/unverifieddata_unpadded.feather")
+```
+
+## Birchbank Golf Course
+
+
+### 2020 data
+
+WSPD_SCLR and WDIR_VECT DATA is missing from ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020.
+
+```{r birchbank}
+
+data <- tibble::as_tibble(
+  
+  data.table::fread(
+    "ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020/WSPD_SCLR.csv",
+    header = TRUE,
+    verbose = TRUE,
+    showProgress = TRUE,
+    fill = TRUE,
+    colClasses = "character"
+  ) %>%
+  
+  dplyr::bind_rows(
+    
+    data.table::fread(
+     "ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020/WDIR_VECT.csv",
+      header = TRUE,
+      verbose = TRUE,
+      showProgress = TRUE,
+      fill = TRUE,
+      colClasses = "character"
+    )  
+  )
+    
+  )
+
+data %>%
+  dplyr::mutate(DATE_PST=lubridate::ymd_hm(DATE_PST,tz="Etc/GMT+8")) %>%
+  dplyr::filter(STATION_NAME=="Birchbank Golf Course" & 
+                  PARAMETER %in% c("WSPD_SCLR",
+                                   "WDIR_VECT") )
+
+```
+
