@@ -20,32 +20,43 @@ knitr::opts_chunk$set(cache = FALSE)
 ```{r windDataPrep}
 # select wind data, get it in openair format
 
-windData <- data %>%
+windData <- data %>% # data from importData chunk in index.Rmd
   
   dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")) %>%
+  
+  # contains X previous years as per _01.importData.html 
   dplyr::bind_rows(.,
                    prevYrWind) %>%
   
   # 2021 VALIDATION BUGS
   
+  # # # 
   # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
   # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
-  # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data).
-  # So, remove this data for now until it gets dealt wiht.
+  # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data). Filter out this data.
+  # communicated to ecms
   
   dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED")) %>%
   
-  # burns lake sheraton east - duplicates in wind data (one is prob from _60 but should still get cleaned up). sent a note to ted's group.
+  # # # 
+  # burns lake sheraton east - duplicates in wind data (one is prob from _60 but should still get cleaned up). 
+  # NOT communicated to ecms
   
   dplyr::filter(!(STATION_NAME=="Burns Lake Sheraton East" & 
                     INSTRUMENT == "WIND DIR VECTOR" &
-                    lubridate::year(DATE_PST)==2016)) #%>%
+                    lubridate::year(DATE_PST)==2016)) %>%
 
+  # # # 
   # courtenay elementary school - duplicates from 2017-01-01 until 2019-12-31 where instrument=WIND DIR VECTOR are all NA's and INSTRUMENT=WIND DIR have values
 
-  # dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
-  #                 INSTRUMENT=="WIND DIR VECTOR" & 
-  #                 lubridate::year(DATE_PST) %in% 2017:2019))
+
+  # remove wind direction duplicates (all NA values)
+  dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
+                  INSTRUMENT=="WIND DIR VECTOR" &
+                  lubridate::year(DATE_PST) %in% 2017:2019)) %>%
+  
+  # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value)
+  
 
 ## # # FIND DUPLICATES
  duplicates<-windData %>%
@@ -58,14 +69,28 @@ windData <- data %>%
  
  duplicates %>%
    dplyr::group_by(PARAMETER) %>%
-   dplyr::slice(1:6)
+   dplyr::slice(1:6) %>% utils::View()
+ 
+ # wind speed - two numeric values, one is always zero and one is the real numeric value
+ duplicates %>%
+   dplyr::filter(PARAMETER=="WSPD_SCLR") %>% 
+   
+   utils::View()
+ 
+ duplicates %>%
+   dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
+   dplyr::group_by(INSTRUMENT) %>% 
+   dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
+                    `# Hours`=dplyr::n())
  
  write.csv(duplicates,"duplicates.csv")
 
 duplicates %>%
   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
   dplyr::summarise(start=min(DATE_PST),
-                   end=max(DATE_PST))
+                   end=max(DATE_PST)) %>% utils::View()
+
+
  
  # # # END DUPLICATES
   
