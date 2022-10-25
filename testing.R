@@ -289,3 +289,23 @@ data %>% dplyr::filter(STATION_NAME=="Burns Lake Sheraton East" &
                                           "WDIR_VECT")) %>%
   dplyr::group_by(lubridate::year(DATE_PST)) %>%
   dplyr::distinct(INSTRUMENT)
+
+
+##### STATION_NAME_FULL
+
+importFeatherFcn(folder="C:/airFTPdata/Hourly_Raw_Air_Data/Year_to_Date",
+                 station = "Courtenay Elementary School",
+                 parameter = "CO")
+
+data <- tibble::as_tibble(
+  
+  data.table::fread(
+    "ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2017/WSPD_SCLR.csv",
+    header = TRUE,
+    verbose = TRUE,
+    showProgress = TRUE,
+    fill = TRUE,
+    colClasses = "character"
+  ) )
+
+names(data)

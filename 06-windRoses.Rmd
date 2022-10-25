@@ -39,18 +39,36 @@ windData <- data %>%
   
   dplyr::filter(!(STATION_NAME=="Burns Lake Sheraton East" & 
                     INSTRUMENT == "WIND DIR VECTOR" &
-                    lubridate::year(DATE_PST)==2016))
+                    lubridate::year(DATE_PST)==2016)) #%>%
 
-#find duplicates
- # windData %>%
- #    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
- #    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
- #    dplyr::filter(n > 1L) %>%
- #   dplyr::left_join(.,
- #                    windData,
- #                    by=c("DATE_PST","STATION_NAME","PARAMETER")) %>% utils::View(.)
+  # courtenay elementary school - duplicates from 2017-01-01 until 2019-12-31 where instrument=WIND DIR VECTOR are all NA's and INSTRUMENT=WIND DIR have values
 
+  # dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
+  #                 INSTRUMENT=="WIND DIR VECTOR" & 
+  #                 lubridate::year(DATE_PST) %in% 2017:2019))
+
+## # # FIND DUPLICATES
+ duplicates<-windData %>%
+    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
+    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+    dplyr::filter(n > 1L) %>%
+   dplyr::left_join(.,
+                    windData,
+                    by=c("DATE_PST","STATION_NAME","PARAMETER"))
  
+ duplicates %>%
+   dplyr::group_by(PARAMETER) %>%
+   dplyr::slice(1:6)
+ 
+ write.csv(duplicates,"duplicates.csv")
+
+duplicates %>%
+  dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+  dplyr::summarise(start=min(DATE_PST),
+                   end=max(DATE_PST))
+ 
+ # # # END DUPLICATES
+  
 
 if( all(nrow(windData)!=0, # at least one row of data
         any(unique(windData$PARAMETER) %in% "WSPD_SCLR"),
