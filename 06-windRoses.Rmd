@@ -32,9 +32,6 @@ windData <- data %>% # data from importData chunk in index.Rmd
   # # # #  2021 VALIDATION BUGS
   # # # # # # # # # # # # # # # # 
   
-  # # # PRINCE GEORGE EXPLORATION PLACE (root[76])
-  # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
-
   # # # VALEMOUNT (root[104])
   #
 
@@ -221,7 +218,43 @@ if(
       ) %>%
       # odd rows - shoudl be all NA's
       dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
+  )}
+
+# # # PRINCE GEORGE EXPLORATION PLACE (root[76])
+  # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
+# couldn't figure out how to add this to the pipe above (ideal option)
+  # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
+  # need to remove odd rows (NA's) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
+
+if(
+
+  stringr::str_detect(params$preppedData,
+                      "Prince George Exploration Place")
+){windData<-
+
+  dplyr::anti_join(
+    
+    windData,
+    
+    #isolate odd rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Prince George Exploration Place",
+        PARAMETER %in% c("WSPD_SCLR",
+                       "WDIR_VECT") &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2021-01-01 01:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2021-12-31 23:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>%
+      # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
       )}
+
+
 
 
 ```

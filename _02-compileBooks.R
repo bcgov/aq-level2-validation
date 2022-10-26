@@ -24,21 +24,14 @@ yearToValidate<-2021
 
 
 # new root with flagged stations removed
-root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
-                 "Prince George Exploration Place",
-                 "Valemount",
+root<-root[which(!root %in%  c("Valemount",
                  "Vanderhoof Courthouse"))]
 
 utils::View(root)
 
 
-purrr::walk(root[109],#:length(root)],
+purrr::walk("Prince George Exploration Place",#root[109],#:length(root)],
   
-  # root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
-  #                                   "Prince George Exploration Place",
-  #                                   "Valemount",
-  #                                   "Vanderhoof Courthouse"))],
-            
             function(r){
               
               # testing
