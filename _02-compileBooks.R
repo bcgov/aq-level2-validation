@@ -28,7 +28,7 @@ root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awa
 utils::View(root)
 
 
-purrr::walk(root[17:length(root)],
+purrr::walk(root[19:length(root)],
   
   # root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
   #                                   "Prince George Exploration Place",

@@ -22,3 +22,4 @@ _Kootenay_2of2*
 *.Rdata
 *reference-keys.txt
 _AnnualDataValidation_cache
+*.map
