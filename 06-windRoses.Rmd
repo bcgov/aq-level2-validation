@@ -70,39 +70,58 @@ windData <- data %>% # data from importData chunk in index.Rmd
   # # # FRASER LAKE ENDAKO MINES
   dplyr::filter(!(STATION_NAME=="Fraser Lake Endako Mines" &
                   INSTRUMENT=="UNSPECIFIED" &
-                  lubridate::year(DATE_PST)==2016))
+                  lubridate::year(DATE_PST)==2016)) %>%
+
+  # # # TAYLOR SOUTH HILL
+  # nuanced duplicates in wspd_sclr and wdir_vect for all of 2020. 
+  # For jan 1, 2020 00:00:00 INSTRUMENT %in% c("WIND DIR VECTOR", "WIND SPEED") need to removed
+  # for the rest of the year INSTRUMENT == "UNSPECIFIED" needs to be removed
+  dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
+                  INSTRUMENT %in% c("WIND DIR VECTOR",
+                                    "WIND SPEED") &
+                  DATE_PST==lubridate::ymd_hms("2020-01-01 00:00::00",
+                                               tz="Etc/GMT+8"))) %>%
+  
+  dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
+                  INSTRUMENT == "UNSPECIFIED" &
+                  DATE_PST %in% seq(lubridate::ymd_hms("2020-01-01 01:00::00",
+                                               tz="Etc/GMT+8"),
+                                    lubridate::ymd_hms("2020-12-31 23:00::00",
+                                               tz="Etc/GMT+8"),
+                                    by="hour"
+                                    )))
 
   
 # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
 # couldn't figure out how to add this to the pipe above (ideal option)
   # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value) between 2017-05-29 20:00:00 and 2017-06-01 00:00:00 (inclusive) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
 
-if(
-  
-  stringr::str_detect(params$preppedData,
-                      "Courtenay Elementary School")
-){windData<-
-  
-  dplyr::anti_join(
-    windData,
-    #isolate even rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Courtenay Elementary School",
-        PARAMETER == "WSPD_SCLR" &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2017-05-29 20:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2017-06-01 00:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>%
-      # even rows - shoudl be all zeros
-      dplyr::slice(seq(2,nrow(.),2))
-      )}
-
-## # # FIND DUPLICATES
+# if(
+#   
+#   stringr::str_detect(params$preppedData,
+#                       "Courtenay Elementary School")
+# ){windData<-
+#   
+#   dplyr::anti_join(
+#     windData,
+#     #isolate even rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Courtenay Elementary School",
+#         PARAMETER == "WSPD_SCLR" &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2017-05-29 20:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2017-06-01 00:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>%
+#       # even rows - shoudl be all zeros
+#       dplyr::slice(seq(2,nrow(.),2))
+#       )}
+# 
+# ## # # FIND DUPLICATES
 #  duplicates<-windData %>%
 #     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
 #     dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
@@ -110,34 +129,27 @@ if(
 #    dplyr::left_join(.,
 #                     windData,
 #                     by=c("DATE_PST","STATION_NAME","PARAMETER"))
-#  
+# 
 #  write.csv(duplicates,"duplicates.csv")
 # 
 #  duplicates %>%
 #    dplyr::group_by(PARAMETER) %>%
 #    dplyr::slice(1:6) %>% utils::View()
 # 
-#  # wind speed - two numeric values, one is always zero and one is the real numeric value
-#  duplicates %>%
-#    dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
-# 
-#    utils::View()
-# 
-#  
-#  # are any groups all NA's? makes it easy to remove
+#   # are any groups all NA's? makes it easy to remove
 #  duplicates %>%
 #    # dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
 #    dplyr::group_by(PARAMETER,INSTRUMENT) %>%
 #    dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
-#                     `# ObS`=sum(!is.na(RAW_VALUE)),
+#                     `# Obs`=sum(!is.na(RAW_VALUE)),
 #                     `# Hours`=dplyr::n())
 # 
-#  
+# 
 # 
 # duplicates %>%
 #   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
 #   dplyr::summarise(start=min(DATE_PST),
-#                    end=max(DATE_PST)) 
+#                    end=max(DATE_PST))
 
 
  
