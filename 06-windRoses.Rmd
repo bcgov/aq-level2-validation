@@ -156,6 +156,10 @@ windData <- data %>% # data from importData chunk in index.Rmd
   )
   )
 
+
+ # # # VALEMOUNT
+  #
+
   
 # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
 # couldn't figure out how to add this to the pipe above (ideal option)
@@ -216,7 +220,7 @@ if(
 #   dplyr::summarise(start=min(DATE_PST),
 #                    end=max(DATE_PST))
 # 
-# duplicates %>% 
+# duplicates %>%
 #   dplyr::arrange(PARAMETER,DATE_PST) %>% utils::View()
  
  # # # END DUPLICATES
