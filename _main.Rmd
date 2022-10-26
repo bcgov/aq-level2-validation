@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[20],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[32],collapse="")
   year: 2021
 site: bookdown::bookdown_site
 output: 
@@ -4856,6 +4856,18 @@ windData <- data %>% # data from importData chunk in index.Rmd
   
   # 2021 VALIDATION BUGS
   
+  # # # COLWOOD CITY HALL 
+  # duplicates in wspd_sclr,wdir_vect from 2020-01-01 03:00:00 to 2020-09-01 13:00:00 (one NA, one value)
+  
+  
+  # # # PRINCE GEORGE EXPLORATION PLACE
+  # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
+  
+  # # # VANDERHOOF COURTHOUSE
+  # duplicates in wspd_sclr,wdir_vect 2021-01-01 01:00:00 until 2021-12-31 23:00:00
+  
+  
+  
   # # # 
   # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
   # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
@@ -4879,7 +4891,13 @@ windData <- data %>% # data from importData chunk in index.Rmd
   # remove wind direction duplicates (all NA values)
   dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
                   INSTRUMENT=="WIND DIR VECTOR" &
-                  lubridate::year(DATE_PST) %in% 2017:2019)) 
+                  lubridate::year(DATE_PST) %in% 2017:2019))  %>%
+
+  # # # FRASER LAKE ENDAKO MINES
+  dplyr::filter(!(STATION_NAME=="Fraser Lake Endako Mines" &
+                  INSTRUMENT=="UNSPECIFIED" &
+                  lubridate::year(DATE_PST)==2016))
+
   
 # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
 # couldn't figure out how to add this to the pipe above (ideal option)
@@ -4919,28 +4937,33 @@ if(
 #                     windData,
 #                     by=c("DATE_PST","STATION_NAME","PARAMETER"))
 #  
+#  write.csv(duplicates,"duplicates.csv")
+# 
 #  duplicates %>%
 #    dplyr::group_by(PARAMETER) %>%
 #    dplyr::slice(1:6) %>% utils::View()
-#  
+# 
 #  # wind speed - two numeric values, one is always zero and one is the real numeric value
 #  duplicates %>%
-#    dplyr::filter(PARAMETER=="WSPD_SCLR") %>% 
-#    
-#    utils::View()
-#  
-#  duplicates %>%
 #    dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
-#    dplyr::group_by(INSTRUMENT) %>% 
-#    dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
-#                     `# Hours`=dplyr::n())
+# 
+#    utils::View()
+# 
 #  
-#  write.csv(duplicates,"duplicates.csv")
+#  # are any groups all NA's? makes it easy to remove
+#  duplicates %>%
+#    # dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
+#    dplyr::group_by(PARAMETER,INSTRUMENT) %>%
+#    dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
+#                     `# ObS`=sum(!is.na(RAW_VALUE)),
+#                     `# Hours`=dplyr::n())
+# 
+#  
 # 
 # duplicates %>%
 #   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
 #   dplyr::summarise(start=min(DATE_PST),
-#                    end=max(DATE_PST)) %>% utils::View()
+#                    end=max(DATE_PST)) 
 
 
  
