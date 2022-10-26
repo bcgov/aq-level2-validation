@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[97],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[99],collapse="")
   year: 2021
 site: bookdown::bookdown_site
 output: 
@@ -4899,7 +4899,7 @@ windData <- data %>% # data from importData chunk in index.Rmd
                   lubridate::year(DATE_PST)==2016)) %>%
 
   # # # TAYLOR SOUTH HILL
-  # nuanced duplicates in wspd_sclr and wdir_vect for all of 2020. 
+  # nuanced duplicates in wspd_sclr and wdir_vect for all of 2020.
   # For jan 1, 2020 00:00:00 INSTRUMENT %in% c("WIND DIR VECTOR", "WIND SPEED") need to removed
   # for the rest of the year INSTRUMENT == "UNSPECIFIED" needs to be removed
   dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
@@ -4907,7 +4907,7 @@ windData <- data %>% # data from importData chunk in index.Rmd
                                     "WIND SPEED") &
                   DATE_PST==lubridate::ymd_hms("2020-01-01 00:00::00",
                                                tz="Etc/GMT+8"))) %>%
-  
+
   dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
                   INSTRUMENT == "UNSPECIFIED" &
                   DATE_PST %in% seq(lubridate::ymd_hms("2020-01-01 01:00::00",
@@ -4915,38 +4915,103 @@ windData <- data %>% # data from importData chunk in index.Rmd
                                     lubridate::ymd_hms("2020-12-31 23:00::00",
                                                tz="Etc/GMT+8"),
                                     by="hour"
-                                    )))
+                                    ))) %>%
+
+  # # # TELKWA
+  # nuanced duplicates in WDIR_VECT. 
+  # 2015-10-01 00:00:00 - 2016-06-24 00:00:00 duplicates with NA for INSTRUMENT = WIND DIR or WIND SPEED and a value for INSTRUMENT = UNSPECIFIED
+  
+  dplyr::filter(!(STATION_NAME == "Telkwa" &
+                 DATE_PST %in%  seq(lubridate::ymd_hms("2015-01-01 00:00::00",
+                                               tz="Etc/GMT+8"),
+                                    lubridate::ymd_hms("2015-06-24 00:00::00",
+                                               tz="Etc/GMT+8"),
+                                    by="hour"
+                                    ) &
+                 INSTRUMENT %in% c("WIND DIR",
+                                   "WIND SPEED"))
+                 ) %>%
+  
+  
+  # 2015-06-24 01:00:00 - 2015-06-24 13:00:00 duplicate hours with two different values (for both WSPD_SCLR and WDIR_VECT)
+  # because we don't know which of the two values are correct we need to make them all NA. Still need an entry for every hour 
+  # so I'll remove instrument = unspecified but make instrument = wind dir or wind speed = NA
+  
+  dplyr::filter(!(
+    STATION_NAME == "Telkwa" &
+      DATE_PST %in%  seq(
+        lubridate::ymd_hms("2015-06-24 01:00::00",
+                           tz = "Etc/GMT+8"),
+        lubridate::ymd_hms("2015-06-24 13:00::00",
+                           tz = "Etc/GMT+8"),
+        by = "hour"
+      ) &
+      INSTRUMENT %in% c("UNSPECIFIED")
+  )) %>% 
+  
+  dplyr::mutate(
+    RAW_VALUE = dplyr::case_when(
+      STATION_NAME == "Telkwa" &
+        DATE_PST %in%  seq(
+          lubridate::ymd_hms("2015-06-24 01:00::00",
+                             tz = "Etc/GMT+8"),
+          lubridate::ymd_hms("2015-06-24 13:00::00",
+                             tz = "Etc/GMT+8"),
+          by = "hour"
+        ) &
+        INSTRUMENT %in% c("WIND DIR",
+                          "WIND SPEED") ~ NA_real_,
+      
+      TRUE ~ RAW_VALUE
+    )
+  ) %>%
+
+  # 2015-06-24 14:00:00 - 2015-12-31 23:00:00 duplicates with value for INSTRUMENT = WIND DIR or WIND SPEED and NA for INSTRUMENT = UNSPECIFIED
+
+  dplyr::filter(
+   !(
+    STATION_NAME == "Telkwa" &
+      DATE_PST %in%  seq(
+        lubridate::ymd_hms("2015-06-24 14:00::00",
+                           tz = "Etc/GMT+8"),
+        lubridate::ymd_hms("2015-12-31 23:00::00",
+                           tz = "Etc/GMT+8"),
+        by = "hour"
+      ) &
+      INSTRUMENT %in% c("UNSPECIFIED")
+  )
+  )
 
   
 # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
 # couldn't figure out how to add this to the pipe above (ideal option)
   # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value) between 2017-05-29 20:00:00 and 2017-06-01 00:00:00 (inclusive) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
 
-# if(
-#   
-#   stringr::str_detect(params$preppedData,
-#                       "Courtenay Elementary School")
-# ){windData<-
-#   
-#   dplyr::anti_join(
-#     windData,
-#     #isolate even rows to remove
-#     windData %>%
-#       dplyr::filter(
-#         STATION_NAME == "Courtenay Elementary School",
-#         PARAMETER == "WSPD_SCLR" &
-#           DATE_PST %in% seq(
-#             lubridate::ymd_hms("2017-05-29 20:00:00",
-#                                tz = "Etc/GMT+8"),
-#             lubridate::ymd_hms("2017-06-01 00:00:00",
-#                                tz = "Etc/GMT+8"),
-#             by = "hour"
-#           )
-#       ) %>%
-#       # even rows - shoudl be all zeros
-#       dplyr::slice(seq(2,nrow(.),2))
-#       )}
-# 
+if(
+
+  stringr::str_detect(params$preppedData,
+                      "Courtenay Elementary School")
+){windData<-
+
+  dplyr::anti_join(
+    windData,
+    #isolate even rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Courtenay Elementary School",
+        PARAMETER == "WSPD_SCLR" &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2017-05-29 20:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2017-06-01 00:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>%
+      # even rows - shoudl be all zeros
+      dplyr::slice(seq(2,nrow(.),2))
+      )}
+
 # ## # # FIND DUPLICATES
 #  duplicates<-windData %>%
 #     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
@@ -4976,8 +5041,9 @@ windData <- data %>% # data from importData chunk in index.Rmd
 #   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
 #   dplyr::summarise(start=min(DATE_PST),
 #                    end=max(DATE_PST))
-
-
+# 
+# duplicates %>% 
+#   dplyr::arrange(PARAMETER,DATE_PST) %>% utils::View()
  
  # # # END DUPLICATES
   

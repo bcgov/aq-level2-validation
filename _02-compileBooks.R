@@ -3,6 +3,9 @@
 root<-stringr::str_remove(dir("./preppedData"),
                           ".rds") 
 
+utils::View(root)
+
+
 yearToValidate<-2021
 
 # # # ISSUES WITH THESE STATIONS IN ROOT # # # 
@@ -19,7 +22,6 @@ yearToValidate<-2021
 
 #104 valemount - issue with wind data metadata
 
-utils::View(root)
 
 root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
                  "Prince George Exploration Place",
@@ -28,7 +30,7 @@ root<-root[which(!root %in%  c("Colwood City Hall", #this and stations below awa
 utils::View(root)
 
 
-purrr::walk(root[19:length(root)],
+purrr::walk(root[97:length(root)],
   
   # root[which(!root %in%  c("Colwood City Hall", #this and stations below awaiting fix to ftp from ecms
   #                                   "Prince George Exploration Place",
