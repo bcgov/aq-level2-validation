@@ -28,16 +28,18 @@ windData <- data %>% # data from importData chunk in index.Rmd
   dplyr::bind_rows(.,
                    prevYrWind) %>%
   
-  # 2021 VALIDATION BUGS
+  # # # # # # # # # # # # # # # # 
+  # # # #  2021 VALIDATION BUGS
+  # # # # # # # # # # # # # # # # 
   
-  # # # COLWOOD CITY HALL 
-  # duplicates in wspd_sclr,wdir_vect from 2020-01-01 03:00:00 to 2020-09-01 13:00:00 (one NA, one value)
-  
-  
-  # # # PRINCE GEORGE EXPLORATION PLACE
+  # # # PRINCE GEORGE EXPLORATION PLACE (root[76])
   # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
+
+  # # # VALEMOUNT (root[104])
+  #
+
   
-  # # # VANDERHOOF COURTHOUSE
+  # # # VANDERHOOF COURTHOUSE (root[108])
   # duplicates in wspd_sclr,wdir_vect 2021-01-01 01:00:00 until 2021-12-31 23:00:00
   
   
@@ -157,10 +159,7 @@ windData <- data %>% # data from importData chunk in index.Rmd
   )
 
 
- # # # VALEMOUNT
-  #
-
-  
+ 
 # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
 # couldn't figure out how to add this to the pipe above (ideal option)
   # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value) between 2017-05-29 20:00:00 and 2017-06-01 00:00:00 (inclusive) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
@@ -190,38 +189,85 @@ if(
       dplyr::slice(seq(2,nrow(.),2))
       )}
 
-# ## # # FIND DUPLICATES
-#  duplicates<-windData %>%
-#     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
-#     dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
-#     dplyr::filter(n > 1L) %>%
-#    dplyr::left_join(.,
-#                     windData,
-#                     by=c("DATE_PST","STATION_NAME","PARAMETER"))
-# 
-#  write.csv(duplicates,"duplicates.csv")
-# 
-#  duplicates %>%
-#    dplyr::group_by(PARAMETER) %>%
-#    dplyr::slice(1:6) %>% utils::View()
-# 
-#   # are any groups all NA's? makes it easy to remove
-#  duplicates %>%
-#    # dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
-#    dplyr::group_by(PARAMETER,INSTRUMENT) %>%
-#    dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
-#                     `# Obs`=sum(!is.na(RAW_VALUE)),
-#                     `# Hours`=dplyr::n())
-# 
-# 
-# 
-# duplicates %>%
-#   dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
-#   dplyr::summarise(start=min(DATE_PST),
-#                    end=max(DATE_PST))
-# 
-# duplicates %>%
-#   dplyr::arrange(PARAMETER,DATE_PST) %>% utils::View()
+
+# # # COLWOOD CITY HALL (root[17])
+# couldn't figure out how to add this to the pipe above (ideal option)
+  # duplicates in wspd_sclr,wdir_vect from 2020-01-01 03:00:00 to 2020-09-01 13:00:00 (one NA, one value)
+  # need to remove odd rows - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
+
+if(
+
+  stringr::str_detect(params$preppedData,
+                      "Colwood City Hall")
+){windData<-
+
+  dplyr::anti_join(
+    
+    windData,
+    
+    #isolate odd rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Colwood City Hall",
+        PARAMETER %in% c("WSPD_SCLR",
+                       "WDIR_VECT") &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2020-01-01 03:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2020-09-01 13:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>%
+      # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
+      )}
+
+
+```
+
+```{r duplicates,eval=FALSE,include=FALSE}
+# # # # # FIND DUPLICATES
+ duplicates<-windData %>%
+    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
+    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+    dplyr::filter(n > 1L) %>%
+   dplyr::left_join(.,
+                    windData,
+                    by=c("DATE_PST","STATION_NAME","PARAMETER"))
+
+# save duplicates as csv
+ write.csv(duplicates,"duplicates.csv")
+
+ 
+ # # # EXPLORATORY DATA ANALYSIS # # #
+ 
+ #look at the first 6 rows of each set of duplicates (by PARAMETER)
+ duplicates %>%
+   dplyr::group_by(PARAMETER) %>%
+   dplyr::slice(1:6) %>% utils::View()
+
+  # are any groups all NA's? makes it easy to remove
+ duplicates %>%
+   # dplyr::filter(PARAMETER=="WSPD_SCLR") %>%
+   dplyr::group_by(PARAMETER,INSTRUMENT) %>%
+   dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
+                    `# Obs`=sum(!is.na(RAW_VALUE)),
+                    `# Hours`=dplyr::n())
+
+
+# when did the duplicates start and end?
+duplicates %>%
+  dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+  dplyr::summarise(start=min(DATE_PST),
+                   end=max(DATE_PST))
+
+# to look at the whole data set (sorted by PARAMETER and DATE_PST)
+duplicates %>%
+  dplyr::arrange(PARAMETER,DATE_PST) %>% utils::View()
+
+# preview windData
+windData
  
  # # # END DUPLICATES
   
