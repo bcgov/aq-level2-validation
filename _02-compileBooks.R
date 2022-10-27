@@ -30,7 +30,7 @@ root<-root[which(!root %in%  c("Valemount",
 utils::View(root)
 
 
-purrr::walk("Vanderhoof Courthouse",#root[109],#:length(root)],
+purrr::walk("Valemount",#root[109],#:length(root)],
   
             function(r){
               

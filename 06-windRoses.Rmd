@@ -33,8 +33,10 @@ windData <- data %>% # data from importData chunk in index.Rmd
   # # # # # # # # # # # # # # # # 
   
   # # # VALEMOUNT (root[104])
-  #
-
+  # duplicates throughout 2021, keep instrument==unspecified
+  dplyr::filter(!(STATION_NAME=="Valemount" &
+                    INSTRUMENT=="UNSPECIFIED" &
+                    lubridate::year(DATE_PST)==2021)) %>%
   
   # # # 
   # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
@@ -384,7 +386,9 @@ duplicates %>%
       dplyr::slice(seq(1,nrow(.),2)) %>% utils::View()
 
 # preview windData
-windData
+windData %>%
+  dplyr::filter(INSTRUMENT=="UNSPECIFIED" &
+                  lubridate::year(DATE_PST)==2021) %>% utils::View()
  
  # # # END DUPLICATES
   
