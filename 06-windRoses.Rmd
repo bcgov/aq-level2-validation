@@ -36,11 +36,6 @@ windData <- data %>% # data from importData chunk in index.Rmd
   #
 
   
-  # # # VANDERHOOF COURTHOUSE (root[108])
-  # duplicates in wspd_sclr,wdir_vect 2021-01-01 01:00:00 until 2021-12-31 23:00:00
-  
-  
-  
   # # # 
   # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
   # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
@@ -205,7 +200,7 @@ if(
     #isolate odd rows to remove
     windData %>%
       dplyr::filter(
-        STATION_NAME == "Colwood City Hall",
+        STATION_NAME == "Colwood City Hall" &
         PARAMETER %in% c("WSPD_SCLR",
                        "WDIR_VECT") &
           DATE_PST %in% seq(
@@ -239,7 +234,7 @@ if(
     #isolate odd rows to remove
     windData %>%
       dplyr::filter(
-        STATION_NAME == "Prince George Exploration Place",
+        STATION_NAME == "Prince George Exploration Place" &
         PARAMETER %in% c("WSPD_SCLR",
                        "WDIR_VECT") &
           DATE_PST %in% seq(
@@ -254,8 +249,90 @@ if(
       dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
       )}
 
+ # # # VANDERHOOF COURTHOUSE (root[108])
+# couldn't figure out how to add this to the pipe above (ideal option)
+  # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
+  # super nuanced due to the fact that two hours don't have duplicates: 2021-03-21 10:00:00 and 2021-06-23 11:00:00
 
+  # for PARAMETER %in% c("WSPD_SCLR","WDIR_VECT")
+  # need to remove odd rows (NA's) - from 2021-01-01 01:00:00 to 2021-03-16 10:00:00
+  # remove even rows from 2021-03-16 11:00:00 to 2021-05-21 13:00:00
 
+if(
+
+  stringr::str_detect(params$preppedData,
+                      "Vanderhoof Courthouse")
+){windData<-
+
+  dplyr::anti_join(
+    
+    windData,
+    
+    #isolate rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Vanderhoof Courthouse" &
+        PARAMETER %in% c("WSPD_SCLR",
+                         "WDIR_VECT") &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2021-01-01 01:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2021-03-16 09:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>% #utils::View()
+      # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
+    
+      dplyr::bind_rows(.,
+      
+    # THERE IS NO DUPLICATE FOR 2021-03-21 10:00:00
+    
+    #isolate rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Vanderhoof Courthouse" &
+        PARAMETER %in% c("WSPD_SCLR",
+                         "WDIR_VECT") & #,
+                       # "WDIR_VECT") &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2021-03-16 11:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2021-06-23 10:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>% #utils::View()
+      # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
+    
+    # THERE IS NO DUPLICATE FOR 2021-06-23 11:00:00
+      
+      
+    dplyr::bind_rows(.,
+    
+    
+    #isolate rows to remove
+    windData %>%
+      dplyr::filter(
+        STATION_NAME == "Vanderhoof Courthouse" &
+        PARAMETER %in% c("WSPD_SCLR",
+                       "WDIR_VECT") &
+          DATE_PST %in% seq(
+            lubridate::ymd_hms("2021-06-23 12:00:00",
+                               tz = "Etc/GMT+8"),
+            lubridate::ymd_hms("2021-12-31 23:00:00",
+                               tz = "Etc/GMT+8"),
+            by = "hour"
+          )
+      ) %>% #utils::View()
+      # odd rows - shoudl be all NA's
+      dplyr::slice(seq(2,nrow(.),2)) #%>% utils::View()
+    
+      )  )  #%>% utils::View()# end bind_rows
+    
+      )}
 
 ```
 
@@ -298,6 +375,13 @@ duplicates %>%
 # to look at the whole data set (sorted by PARAMETER and DATE_PST)
 duplicates %>%
   dplyr::arrange(PARAMETER,DATE_PST) %>% utils::View()
+
+
+ 
+duplicates %>%
+  dplyr::filter(PARAMETER=="WDIR_VECT") %>% utils::View()
+ # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) %>% utils::View()
 
 # preview windData
 windData
