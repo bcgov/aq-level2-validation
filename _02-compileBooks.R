@@ -1,36 +1,14 @@
 # compile annual data validation reports for each file in preppedDAta:
 
 root<-stringr::str_remove(dir("./preppedData"),
-                          ".rds") 
+                        ".rds") 
 
 utils::View(root)
 
 
 yearToValidate<-2021
 
-# # # ISSUES WITH THESE STATIONS IN ROOT # # # 
-
-# duplicates identified at: (these stations are outstanding - need to compile reports)
-# 17 colwood city hall (wspd_sclr, wdir_vect)
-# 76 prince george exploration place (humidity, wdir_vect, wspd_sclr)
-# 108 vanderhoof courthouse (wdir_vect, wspd_sclr)
-
-#21 crofton elementary - report compiles but lacking northerly winds
-#22 crofton substation - no wind speed data
-#23 duncan college street - duplicates in STATION_NAME, PARAMETER, DATE_PST (Duncan college street_60 has instrument=UNSPECIFIED and all the data is "")
-#83 prince rupert roosevelt park school - compiled but no wdir_vect
-
-#104 valemount - issue with wind data metadata
-
-
-# new root with flagged stations removed
-root<-root[which(!root %in%  c("Valemount",
-                 "Vanderhoof Courthouse"))]
-
-utils::View(root)
-
-
-purrr::walk("Valemount",#root[109],#:length(root)],
+purrr::walk(root[1:length(root)],
   
             function(r){
               
@@ -41,7 +19,8 @@ purrr::walk("Valemount",#root[109],#:length(root)],
               # End testing
               
              
-             bookdown::render_book(".", # this will compile all the rmd files listed in _bookdown.yml
+             bookdown::render_book("01-dataSummary.Rmd",
+               # ".", # this will compile all the rmd files listed in _bookdown.yml
                                     "bookdown::gitbook",
                                     output_dir = stringr::str_c("_",r,sep = ""),
                                     params = list(
@@ -59,7 +38,38 @@ purrr::walk("Valemount",#root[109],#:length(root)],
             
             )
 
+# copy updated files to shared drive
+filesToCopy<-list.files(path = ".",
+           pattern="daily-data-completeness.html",
+           recursive=TRUE,
+           full.name=TRUE)
+
+(filesToCopy<-filesToCopy[which(!(filesToCopy %in% c("./daily-data-completeness.html",
+                                                     "./_book-output/daily-data-completeness.html")
+                                  )
+                                )
+                          ]
+  )
+
+utils::View(filesToCopy)
+
+(destinations<-file.path(
+  "R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\AnnualDataValidation",
+  stringr::str_remove(filesToCopy,"./")))
+
+file.copy(filesToCopy[1],
+          destinations[1],
+          overwrite = TRUE)
 
 
+purrr::map(1:length(filesToCopy),
+  
+           function(index){
+                      
+           file.copy(filesToCopy[index],
+                     destinations[index],
+                     overwrite = TRUE)
+           
+           })
 
 

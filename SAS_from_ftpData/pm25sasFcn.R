@@ -14,8 +14,8 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
   # dateColumn<-"DATE_PST"
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% "PM25" &
-  #                   STATION_NAME=="REVELSTOKE_TRAILER" &
-  #                   INSTRUMENT=="PM25_T640")
+  #                   STATION_NAME=="Castlegar Zinio Park" &
+  #                   INSTRUMENT=="PM25 SHARP5030")
   # END TESTING
   
   #default arguments

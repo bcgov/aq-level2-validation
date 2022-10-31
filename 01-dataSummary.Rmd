@@ -22,9 +22,13 @@ ggplot2::ggplot(
     
     dplyr::mutate(`Validity` = dplyr::if_else(is.na(RAW_VALUE),
                                               "Invalid Days",
-                                              "Valid Days")),
+                                              "Valid Days"),
+                  ID=stringr::str_c(PARAMETER,
+                                       INSTRUMENT,
+                                       sep=" - ")
+                  ),
   aes(x = DATE_PST,
-      y = PARAMETER,
+      y = ID,
       fill = Validity)
 ) +
   

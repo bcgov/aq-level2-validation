@@ -10,17 +10,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(magrittr)
 
+# import rawData - only works for Donna
 rawData<-feather::read_feather("C:\\HagaR\\AnnualDataValidation/unverifieddata_unpadded.feather")
 ```
 
-## Birchbank Golf Course
 
+## 2020 Wind Data in Teck Metals network 
 
-### 2020 data
+WSPD_SCLR and WDIR_VECT is missing for all 4 stations (Birchbank Golf Course, Trail Butler Park, Trail Columbia Gardens Airport, and Warfield Elementary) in Teck Metals netowrk on the ftp:
+`ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020/`
 
-WSPD_SCLR and WDIR_VECT DATA is missing from ftp://ftp.env.gov.bc.ca/pub/outgoing/AIR/AnnualSummary/2020.
+Note that Warfield Elementary wind data from 2014-09-01 to present has been invalidated, so all data populated in this folder shoudl be NA's.
 
-```{r birchbank}
+```{r teckMetals2020wind}
 
 data <- tibble::as_tibble(
   
@@ -47,11 +49,9 @@ data <- tibble::as_tibble(
     
   )
 
-data %>%
-  dplyr::mutate(DATE_PST=lubridate::ymd_hm(DATE_PST,tz="Etc/GMT+8")) %>%
-  dplyr::filter(STATION_NAME=="Birchbank Golf Course" & 
-                  PARAMETER %in% c("WSPD_SCLR",
-                                   "WDIR_VECT") )
-
+DT::datatable(data %>% 
+                dplyr::distinct(STATION_NAME,PARAMETER) %>%
+                dplyr::arrange(STATION_NAME),
+              caption="Summary of wind data in 2020.",
+              rownames=FALSE)
 ```
-

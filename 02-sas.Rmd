@@ -79,9 +79,9 @@ dplyr::slice(-1) %>%
 # 
 # tibble::tibble(names(pm25sasECMS),
 #                names(pm25sas)) %>% utils::View(.)
-
-pm25sasECMS %<>%
-  dplyr::select(1:31,33,34,32,everything())
+# 
+# pm25sasECMS %<>%
+#   dplyr::select(1:31,33,34,32,everything())
 
 names(pm25sasECMS) <- names(pm25sas)
 
@@ -202,12 +202,13 @@ dplyr::slice(-1) %>%
 
 # utils::View(names(pm10sasECMS))
 # utils::View(names(pm10sas))
+# utils::View(pm10sasECMS)
 # 
-# tibble::tibble(names(pm10sasECMS),
+# tibble::tibble(names(pm10sasECMS)[c(1:32,34,35,33,37:47,49:52)],
 #                names(pm10sas)) %>% utils::View(.)
 
 pm10sasECMS %<>%
-  dplyr::select(1:31,33,34,32,everything())
+  dplyr::select(1:32,34,35,33,everything())
 
 names(pm10sasECMS) <- names(pm10sas)
 
