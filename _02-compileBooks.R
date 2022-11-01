@@ -8,7 +8,8 @@ utils::View(root)
 
 yearToValidate<-2021
 
-purrr::walk(root[1:length(root)],
+purrr::walk(
+  root[1:length(root)],
   
             function(r){
               
@@ -19,8 +20,7 @@ purrr::walk(root[1:length(root)],
               # End testing
               
              
-             bookdown::render_book("01-dataSummary.Rmd",
-               # ".", # this will compile all the rmd files listed in _bookdown.yml
+             bookdown::render_book(".",# this will compile all the rmd files listed in _bookdown.yml
                                     "bookdown::gitbook",
                                     output_dir = stringr::str_c("_",r,sep = ""),
                                     params = list(
@@ -40,12 +40,12 @@ purrr::walk(root[1:length(root)],
 
 # copy updated files to shared drive
 filesToCopy<-list.files(path = ".",
-           pattern="daily-data-completeness.html",
+           pattern="sas-statistics.html",
            recursive=TRUE,
            full.name=TRUE)
 
-(filesToCopy<-filesToCopy[which(!(filesToCopy %in% c("./daily-data-completeness.html",
-                                                     "./_book-output/daily-data-completeness.html")
+(filesToCopy<-filesToCopy[which(!(filesToCopy %in% c("./sas-statistics.html",
+                                                     "./_book-output/sas-statistics.html")
                                   )
                                 )
                           ]

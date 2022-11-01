@@ -109,7 +109,7 @@ o3SASFcn<-function(data,o3column,dateColumn){
     )
   
   #count exceedances of max daily 8 hr. roll ave >63 ppb:
-  d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=65))
+  d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=63))
   
   #calculate 4th highest max daily 8 hr. roll ave
   d8hmRank4<-round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2)
