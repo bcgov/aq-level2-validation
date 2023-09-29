@@ -9,7 +9,7 @@ utils::View(root)
 yearToValidate<-2021
 
 purrr::walk(
-  root[1:length(root)],
+  root[56:length(root)],
   
             function(r){
               
