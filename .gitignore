@@ -4,6 +4,9 @@
 .Ruserdata
 *.Rproj
 *.html
+*.rds
+*.csv
+preppedData/*.rds
 SAS_reports/
 _Abbotsford A Columbia Street/
 _Abbotsford Central/

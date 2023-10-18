@@ -26,315 +26,315 @@ windData <- data %>% # data from importData chunk in index.Rmd
   
   # contains X previous years as per _01.importData.html 
   dplyr::bind_rows(.,
-                   prevYrWind) %>%
-  
-  # # # # # # # # # # # # # # # # 
-  # # # #  2021 VALIDATION BUGS
-  # # # # # # # # # # # # # # # # 
-  
-  # # # VALEMOUNT (root[104])
-  # duplicates throughout 2021, keep instrument==unspecified
-  dplyr::filter(!(STATION_NAME=="Valemount" &
-                    INSTRUMENT=="UNSPECIFIED" &
-                    lubridate::year(DATE_PST)==2021)) %>%
-  
-  # # # 
-  # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
-  # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
-  # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data). Filter out this data.
-  # communicated to ecms
-  
-  dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED")) %>%
-  
-  # # # 
-  # burns lake sheraton east - duplicates in wind data (one is prob from _60 but should still get cleaned up). 
-  # NOT communicated to ecms
-  
-  dplyr::filter(!(STATION_NAME=="Burns Lake Sheraton East" & 
-                    INSTRUMENT == "WIND DIR VECTOR" &
-                    lubridate::year(DATE_PST)==2016)) %>%
+                   prevYrWind) #%>%
 
-  # # # 
-  # courtenay elementary school - duplicates from 2017-01-01 until 2019-12-31 where instrument=WIND DIR VECTOR are all NA's and INSTRUMENT=WIND DIR have values
-
-
-  # remove wind direction duplicates (all NA values)
-  dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
-                  INSTRUMENT=="WIND DIR VECTOR" &
-                  lubridate::year(DATE_PST) %in% 2017:2019))  %>%
-
-  # # # FRASER LAKE ENDAKO MINES
-  dplyr::filter(!(STATION_NAME=="Fraser Lake Endako Mines" &
-                  INSTRUMENT=="UNSPECIFIED" &
-                  lubridate::year(DATE_PST)==2016)) %>%
-
-  # # # TAYLOR SOUTH HILL
-  # nuanced duplicates in wspd_sclr and wdir_vect for all of 2020.
-  # For jan 1, 2020 00:00:00 INSTRUMENT %in% c("WIND DIR VECTOR", "WIND SPEED") need to removed
-  # for the rest of the year INSTRUMENT == "UNSPECIFIED" needs to be removed
-  dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
-                  INSTRUMENT %in% c("WIND DIR VECTOR",
-                                    "WIND SPEED") &
-                  DATE_PST==lubridate::ymd_hms("2020-01-01 00:00::00",
-                                               tz="Etc/GMT+8"))) %>%
-
-  dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
-                  INSTRUMENT == "UNSPECIFIED" &
-                  DATE_PST %in% seq(lubridate::ymd_hms("2020-01-01 01:00::00",
-                                               tz="Etc/GMT+8"),
-                                    lubridate::ymd_hms("2020-12-31 23:00::00",
-                                               tz="Etc/GMT+8"),
-                                    by="hour"
-                                    ))) %>%
-
-  # # # TELKWA
-  # nuanced duplicates in WDIR_VECT. 
-  # 2015-10-01 00:00:00 - 2016-06-24 00:00:00 duplicates with NA for INSTRUMENT = WIND DIR or WIND SPEED and a value for INSTRUMENT = UNSPECIFIED
-  
-  dplyr::filter(!(STATION_NAME == "Telkwa" &
-                 DATE_PST %in%  seq(lubridate::ymd_hms("2015-01-01 00:00::00",
-                                               tz="Etc/GMT+8"),
-                                    lubridate::ymd_hms("2015-06-24 00:00::00",
-                                               tz="Etc/GMT+8"),
-                                    by="hour"
-                                    ) &
-                 INSTRUMENT %in% c("WIND DIR",
-                                   "WIND SPEED"))
-                 ) %>%
-  
-  
-  # 2015-06-24 01:00:00 - 2015-06-24 13:00:00 duplicate hours with two different values (for both WSPD_SCLR and WDIR_VECT)
-  # because we don't know which of the two values are correct we need to make them all NA. Still need an entry for every hour 
-  # so I'll remove instrument = unspecified but make instrument = wind dir or wind speed = NA
-  
-  dplyr::filter(!(
-    STATION_NAME == "Telkwa" &
-      DATE_PST %in%  seq(
-        lubridate::ymd_hms("2015-06-24 01:00::00",
-                           tz = "Etc/GMT+8"),
-        lubridate::ymd_hms("2015-06-24 13:00::00",
-                           tz = "Etc/GMT+8"),
-        by = "hour"
-      ) &
-      INSTRUMENT %in% c("UNSPECIFIED")
-  )) %>% 
-  
-  dplyr::mutate(
-    RAW_VALUE = dplyr::case_when(
-      STATION_NAME == "Telkwa" &
-        DATE_PST %in%  seq(
-          lubridate::ymd_hms("2015-06-24 01:00::00",
-                             tz = "Etc/GMT+8"),
-          lubridate::ymd_hms("2015-06-24 13:00::00",
-                             tz = "Etc/GMT+8"),
-          by = "hour"
-        ) &
-        INSTRUMENT %in% c("WIND DIR",
-                          "WIND SPEED") ~ NA_real_,
-      
-      TRUE ~ RAW_VALUE
-    )
-  ) %>%
-
-  # 2015-06-24 14:00:00 - 2015-12-31 23:00:00 duplicates with value for INSTRUMENT = WIND DIR or WIND SPEED and NA for INSTRUMENT = UNSPECIFIED
-
-  dplyr::filter(
-   !(
-    STATION_NAME == "Telkwa" &
-      DATE_PST %in%  seq(
-        lubridate::ymd_hms("2015-06-24 14:00::00",
-                           tz = "Etc/GMT+8"),
-        lubridate::ymd_hms("2015-12-31 23:00::00",
-                           tz = "Etc/GMT+8"),
-        by = "hour"
-      ) &
-      INSTRUMENT %in% c("UNSPECIFIED")
-  )
-  )
-
-
- 
-# # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
-# couldn't figure out how to add this to the pipe above (ideal option)
-  # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value) between 2017-05-29 20:00:00 and 2017-06-01 00:00:00 (inclusive) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
-
-if(
-
-  stringr::str_detect(params$preppedData,
-                      "Courtenay Elementary School")
-){windData<-
-
-  dplyr::anti_join(
-    windData,
-    #isolate even rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Courtenay Elementary School",
-        PARAMETER == "WSPD_SCLR" &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2017-05-29 20:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2017-06-01 00:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>%
-      # even rows - shoudl be all zeros
-      dplyr::slice(seq(2,nrow(.),2))
-      )}
-
-
-# # # COLWOOD CITY HALL (root[17])
-# couldn't figure out how to add this to the pipe above (ideal option)
-  # duplicates in wspd_sclr,wdir_vect from 2020-01-01 03:00:00 to 2020-09-01 13:00:00 (one NA, one value)
-  # need to remove odd rows - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
-
-if(
-
-  stringr::str_detect(params$preppedData,
-                      "Colwood City Hall")
-){windData<-
-
-  dplyr::anti_join(
-    
-    windData,
-    
-    #isolate odd rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Colwood City Hall" &
-        PARAMETER %in% c("WSPD_SCLR",
-                       "WDIR_VECT") &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2020-01-01 03:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2020-09-01 13:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>%
-      # odd rows - shoudl be all NA's
-      dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
-  )}
-
-# # # PRINCE GEORGE EXPLORATION PLACE (root[76])
-  # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
-# couldn't figure out how to add this to the pipe above (ideal option)
-  # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
-  # need to remove odd rows (NA's) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
-
-if(
-
-  stringr::str_detect(params$preppedData,
-                      "Prince George Exploration Place")
-){windData<-
-
-  dplyr::anti_join(
-    
-    windData,
-    
-    #isolate odd rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Prince George Exploration Place" &
-        PARAMETER %in% c("WSPD_SCLR",
-                       "WDIR_VECT") &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2021-01-01 01:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2021-12-31 23:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>%
-      # odd rows - shoudl be all NA's
-      dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
-      )}
-
- # # # VANDERHOOF COURTHOUSE (root[108])
-# couldn't figure out how to add this to the pipe above (ideal option)
-  # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
-  # super nuanced due to the fact that two hours don't have duplicates: 2021-03-21 10:00:00 and 2021-06-23 11:00:00
-
-  # for PARAMETER %in% c("WSPD_SCLR","WDIR_VECT")
-  # need to remove odd rows (NA's) - from 2021-01-01 01:00:00 to 2021-03-16 10:00:00
-  # remove even rows from 2021-03-16 11:00:00 to 2021-05-21 13:00:00
-
-if(
-
-  stringr::str_detect(params$preppedData,
-                      "Vanderhoof Courthouse")
-){windData<-
-
-  dplyr::anti_join(
-    
-    windData,
-    
-    #isolate rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Vanderhoof Courthouse" &
-        PARAMETER %in% c("WSPD_SCLR",
-                         "WDIR_VECT") &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2021-01-01 01:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2021-03-16 09:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>% #utils::View()
-      # odd rows - shoudl be all NA's
-      dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
-    
-      dplyr::bind_rows(.,
-      
-    # THERE IS NO DUPLICATE FOR 2021-03-21 10:00:00
-    
-    #isolate rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Vanderhoof Courthouse" &
-        PARAMETER %in% c("WSPD_SCLR",
-                         "WDIR_VECT") & #,
-                       # "WDIR_VECT") &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2021-03-16 11:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2021-06-23 10:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>% #utils::View()
-      # odd rows - shoudl be all NA's
-      dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
-    
-    # THERE IS NO DUPLICATE FOR 2021-06-23 11:00:00
-      
-      
-    dplyr::bind_rows(.,
-    
-    
-    #isolate rows to remove
-    windData %>%
-      dplyr::filter(
-        STATION_NAME == "Vanderhoof Courthouse" &
-        PARAMETER %in% c("WSPD_SCLR",
-                       "WDIR_VECT") &
-          DATE_PST %in% seq(
-            lubridate::ymd_hms("2021-06-23 12:00:00",
-                               tz = "Etc/GMT+8"),
-            lubridate::ymd_hms("2021-12-31 23:00:00",
-                               tz = "Etc/GMT+8"),
-            by = "hour"
-          )
-      ) %>% #utils::View()
-      # odd rows - shoudl be all NA's
-      dplyr::slice(seq(2,nrow(.),2)) #%>% utils::View()
-    
-      )  )  #%>% utils::View()# end bind_rows
-    
-      )}
+#   # # # # # # # # # # # # # # # # 
+#   # # # #  2021 VALIDATION BUGS
+#   # # # # # # # # # # # # # # # # 
+#   
+#   # # # VALEMOUNT (root[104])
+#   # duplicates throughout 2021, keep instrument==unspecified
+#   dplyr::filter(!(STATION_NAME=="Valemount" &
+#                     INSTRUMENT=="UNSPECIFIED" &
+#                     lubridate::year(DATE_PST)==2021)) %>%
+#   
+#   # # # 
+#   # duncan college street has duplicates for unique DATE_PST,STATION_NAME,PARAMETER
+#   # (no duplicates when grouped by STATION_NAME and STATION_NAME_FULL because _60 has
+#   # the duplicates i.e. UNSPECIFIED for instrument and "" for all the data). Filter out this data.
+#   # communicated to ecms
+#   
+#   dplyr::filter(!(STATION_NAME=="Duncan College Street" & INSTRUMENT == "UNSPECIFIED")) %>%
+#   
+#   # # # 
+#   # burns lake sheraton east - duplicates in wind data (one is prob from _60 but should still get cleaned up). 
+#   # NOT communicated to ecms
+#   
+#   dplyr::filter(!(STATION_NAME=="Burns Lake Sheraton East" & 
+#                     INSTRUMENT == "WIND DIR VECTOR" &
+#                     lubridate::year(DATE_PST)==2016)) %>%
+# 
+#   # # # 
+#   # courtenay elementary school - duplicates from 2017-01-01 until 2019-12-31 where instrument=WIND DIR VECTOR are all NA's and INSTRUMENT=WIND DIR have values
+# 
+# 
+#   # remove wind direction duplicates (all NA values)
+#   dplyr::filter(!(STATION_NAME=="Courtenay Elementary School" &
+#                   INSTRUMENT=="WIND DIR VECTOR" &
+#                   lubridate::year(DATE_PST) %in% 2017:2019))  %>%
+# 
+#   # # # FRASER LAKE ENDAKO MINES
+#   dplyr::filter(!(STATION_NAME=="Fraser Lake Endako Mines" &
+#                   INSTRUMENT=="UNSPECIFIED" &
+#                   lubridate::year(DATE_PST)==2016)) %>%
+# 
+#   # # # TAYLOR SOUTH HILL
+#   # nuanced duplicates in wspd_sclr and wdir_vect for all of 2020.
+#   # For jan 1, 2020 00:00:00 INSTRUMENT %in% c("WIND DIR VECTOR", "WIND SPEED") need to removed
+#   # for the rest of the year INSTRUMENT == "UNSPECIFIED" needs to be removed
+#   dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
+#                   INSTRUMENT %in% c("WIND DIR VECTOR",
+#                                     "WIND SPEED") &
+#                   DATE_PST==lubridate::ymd_hms("2020-01-01 00:00::00",
+#                                                tz="Etc/GMT+8"))) %>%
+# 
+#   dplyr::filter(!(STATION_NAME=="Taylor South Hill" &
+#                   INSTRUMENT == "UNSPECIFIED" &
+#                   DATE_PST %in% seq(lubridate::ymd_hms("2020-01-01 01:00::00",
+#                                                tz="Etc/GMT+8"),
+#                                     lubridate::ymd_hms("2020-12-31 23:00::00",
+#                                                tz="Etc/GMT+8"),
+#                                     by="hour"
+#                                     ))) %>%
+# 
+#   # # # TELKWA
+#   # nuanced duplicates in WDIR_VECT. 
+#   # 2015-10-01 00:00:00 - 2016-06-24 00:00:00 duplicates with NA for INSTRUMENT = WIND DIR or WIND SPEED and a value for INSTRUMENT = UNSPECIFIED
+#   
+#   dplyr::filter(!(STATION_NAME == "Telkwa" &
+#                  DATE_PST %in%  seq(lubridate::ymd_hms("2015-01-01 00:00::00",
+#                                                tz="Etc/GMT+8"),
+#                                     lubridate::ymd_hms("2015-06-24 00:00::00",
+#                                                tz="Etc/GMT+8"),
+#                                     by="hour"
+#                                     ) &
+#                  INSTRUMENT %in% c("WIND DIR",
+#                                    "WIND SPEED"))
+#                  ) %>%
+#   
+#   
+#   # 2015-06-24 01:00:00 - 2015-06-24 13:00:00 duplicate hours with two different values (for both WSPD_SCLR and WDIR_VECT)
+#   # because we don't know which of the two values are correct we need to make them all NA. Still need an entry for every hour 
+#   # so I'll remove instrument = unspecified but make instrument = wind dir or wind speed = NA
+#   
+#   dplyr::filter(!(
+#     STATION_NAME == "Telkwa" &
+#       DATE_PST %in%  seq(
+#         lubridate::ymd_hms("2015-06-24 01:00::00",
+#                            tz = "Etc/GMT+8"),
+#         lubridate::ymd_hms("2015-06-24 13:00::00",
+#                            tz = "Etc/GMT+8"),
+#         by = "hour"
+#       ) &
+#       INSTRUMENT %in% c("UNSPECIFIED")
+#   )) %>% 
+#   
+#   dplyr::mutate(
+#     RAW_VALUE = dplyr::case_when(
+#       STATION_NAME == "Telkwa" &
+#         DATE_PST %in%  seq(
+#           lubridate::ymd_hms("2015-06-24 01:00::00",
+#                              tz = "Etc/GMT+8"),
+#           lubridate::ymd_hms("2015-06-24 13:00::00",
+#                              tz = "Etc/GMT+8"),
+#           by = "hour"
+#         ) &
+#         INSTRUMENT %in% c("WIND DIR",
+#                           "WIND SPEED") ~ NA_real_,
+#       
+#       TRUE ~ RAW_VALUE
+#     )
+#   ) %>%
+# 
+#   # 2015-06-24 14:00:00 - 2015-12-31 23:00:00 duplicates with value for INSTRUMENT = WIND DIR or WIND SPEED and NA for INSTRUMENT = UNSPECIFIED
+# 
+#   dplyr::filter(
+#    !(
+#     STATION_NAME == "Telkwa" &
+#       DATE_PST %in%  seq(
+#         lubridate::ymd_hms("2015-06-24 14:00::00",
+#                            tz = "Etc/GMT+8"),
+#         lubridate::ymd_hms("2015-12-31 23:00::00",
+#                            tz = "Etc/GMT+8"),
+#         by = "hour"
+#       ) &
+#       INSTRUMENT %in% c("UNSPECIFIED")
+#   )
+#   )
+# 
+# 
+#  
+# # # # COURTENAY ELEMENTARY SCHOOL WIND SPEED
+# # couldn't figure out how to add this to the pipe above (ideal option)
+#   # wind speed has duplicates with double hours with two numeric values (one is zero and on is the real value) between 2017-05-29 20:00:00 and 2017-06-01 00:00:00 (inclusive) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
+# 
+# if(
+# 
+#   stringr::str_detect(params$preppedData,
+#                       "Courtenay Elementary School")
+# ){windData<-
+# 
+#   dplyr::anti_join(
+#     windData,
+#     #isolate even rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Courtenay Elementary School",
+#         PARAMETER == "WSPD_SCLR" &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2017-05-29 20:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2017-06-01 00:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>%
+#       # even rows - shoudl be all zeros
+#       dplyr::slice(seq(2,nrow(.),2))
+#       )}
+# 
+# 
+# # # # COLWOOD CITY HALL (root[17])
+# # couldn't figure out how to add this to the pipe above (ideal option)
+#   # duplicates in wspd_sclr,wdir_vect from 2020-01-01 03:00:00 to 2020-09-01 13:00:00 (one NA, one value)
+#   # need to remove odd rows - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
+# 
+# if(
+# 
+#   stringr::str_detect(params$preppedData,
+#                       "Colwood City Hall")
+# ){windData<-
+# 
+#   dplyr::anti_join(
+#     
+#     windData,
+#     
+#     #isolate odd rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Colwood City Hall" &
+#         PARAMETER %in% c("WSPD_SCLR",
+#                        "WDIR_VECT") &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2020-01-01 03:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2020-09-01 13:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>%
+#       # odd rows - shoudl be all NA's
+#       dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
+#   )}
+# 
+# # # # PRINCE GEORGE EXPLORATION PLACE (root[76])
+#   # duplicates in wspd_sclr,wdir_vect and humidity from 2021-01-01 01:00:00 until 2021-12-31 23:00:00
+# # couldn't figure out how to add this to the pipe above (ideal option)
+#   # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
+#   # need to remove odd rows (NA's) - THIS WILL NEED TO BE REMOVED ONCE FIXED ON THE FTP OTHERWISE IT'S GOING TO DELETE REAL DATA
+# 
+# if(
+# 
+#   stringr::str_detect(params$preppedData,
+#                       "Prince George Exploration Place")
+# ){windData<-
+# 
+#   dplyr::anti_join(
+#     
+#     windData,
+#     
+#     #isolate odd rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Prince George Exploration Place" &
+#         PARAMETER %in% c("WSPD_SCLR",
+#                        "WDIR_VECT") &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2021-01-01 01:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2021-12-31 23:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>%
+#       # odd rows - shoudl be all NA's
+#       dplyr::slice(seq(1,nrow(.),2)) #%>% utils::View()
+#       )}
+# 
+#  # # # VANDERHOOF COURTHOUSE (root[108])
+# # couldn't figure out how to add this to the pipe above (ideal option)
+#   # duplicates in wspd_sclr,wdir_vect from 2021-01-01 01:00:00 to 2021-12-31 23:00:00 (one NA, one value)
+#   # super nuanced due to the fact that two hours don't have duplicates: 2021-03-21 10:00:00 and 2021-06-23 11:00:00
+# 
+#   # for PARAMETER %in% c("WSPD_SCLR","WDIR_VECT")
+#   # need to remove odd rows (NA's) - from 2021-01-01 01:00:00 to 2021-03-16 10:00:00
+#   # remove even rows from 2021-03-16 11:00:00 to 2021-05-21 13:00:00
+# 
+# if(
+# 
+#   stringr::str_detect(params$preppedData,
+#                       "Vanderhoof Courthouse")
+# ){windData<-
+# 
+#   dplyr::anti_join(
+#     
+#     windData,
+#     
+#     #isolate rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Vanderhoof Courthouse" &
+#         PARAMETER %in% c("WSPD_SCLR",
+#                          "WDIR_VECT") &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2021-01-01 01:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2021-03-16 09:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>% #utils::View()
+#       # odd rows - shoudl be all NA's
+#       dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
+#     
+#       dplyr::bind_rows(.,
+#       
+#     # THERE IS NO DUPLICATE FOR 2021-03-21 10:00:00
+#     
+#     #isolate rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Vanderhoof Courthouse" &
+#         PARAMETER %in% c("WSPD_SCLR",
+#                          "WDIR_VECT") & #,
+#                        # "WDIR_VECT") &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2021-03-16 11:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2021-06-23 10:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>% #utils::View()
+#       # odd rows - shoudl be all NA's
+#       dplyr::slice(seq(1,nrow(.),2)) %>% #utils::View()
+#     
+#     # THERE IS NO DUPLICATE FOR 2021-06-23 11:00:00
+#       
+#       
+#     dplyr::bind_rows(.,
+#     
+#     
+#     #isolate rows to remove
+#     windData %>%
+#       dplyr::filter(
+#         STATION_NAME == "Vanderhoof Courthouse" &
+#         PARAMETER %in% c("WSPD_SCLR",
+#                        "WDIR_VECT") &
+#           DATE_PST %in% seq(
+#             lubridate::ymd_hms("2021-06-23 12:00:00",
+#                                tz = "Etc/GMT+8"),
+#             lubridate::ymd_hms("2021-12-31 23:00:00",
+#                                tz = "Etc/GMT+8"),
+#             by = "hour"
+#           )
+#       ) %>% #utils::View()
+#       # odd rows - shoudl be all NA's
+#       dplyr::slice(seq(2,nrow(.),2)) #%>% utils::View()
+#     
+#       )  )  #%>% utils::View()# end bind_rows
+#     
+#       )}
 
 ```
 
