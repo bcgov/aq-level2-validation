@@ -7,4 +7,5 @@
 *.rds
 *.csv
 testing.R
-SAS_reports/*
+preppedData/*
+_Cranbook Muriel Baxter/

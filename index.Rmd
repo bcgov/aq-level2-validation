@@ -37,18 +37,18 @@ library(readxl)
 library(gdata)
 
 # functions to calculate SAS stats from hourly data
-source("./SAS_from_ftpData/pm25sasFcn.R")
-source("./SAS_from_ftpData/pm10sasFcn.R")
-source("./SAS_from_ftpData/no2sasFcn.R")
-source("./SAS_from_ftpData/nosasFcn.R")
-source("./SAS_from_ftpData/so2sasFcn.R")
-source("./SAS_from_ftpData/o3sasFcn.R")
-source("./SAS_from_ftpData/h2ssasFcn.R")
-source("./SAS_from_ftpData/trssasFcn.R")
-source("./SAS_from_ftpData/cosasFcn.R")
+source("./statSummaryFcns/pm25StatsFcn.R")
+source("./statSummaryFcns/pm10StatsFcn.R")
+source("./statSummaryFcns/no2StatsFcn.R")
+source("./statSummaryFcns/noStatsFcn.R")
+source("./statSummaryFcns/so2StatsFcn.R")
+source("./statSummaryFcns/o3StatsFcn.R")
+source("./statSummaryFcns/h2sStatsFcn.R")
+source("./statSummaryFcns/trsStatsFcn.R")
+source("./statSummaryFcns/coStatsFcn.R")
 
 # path to ecms sas reports saved locally:
-sasReports<-"C:/HagaR/AnnualDataValidation/SAS_reports"
+sasReports<-"C:/HagaR/AnnualDataValidation/statSummaries"
 
 source("plotlyFcn.R")
 source("emptyPlot.R")
@@ -58,7 +58,7 @@ source("emptyPlot.R")
 ```{r importData}
 data<-readRDS(params$preppedData)
 
-# data<-readRDS("./preppedData/Grand Forks City Hall.rds")
+# data<-readRDS("./preppedData/Victoria Topaz.rds")
 
 prevYrWind<-data %>%
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &

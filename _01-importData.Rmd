@@ -92,7 +92,7 @@ duplicates<-data %>%
 
 
 
-readr::write_rds(data,"2022data.rds")
+readr::write_rds(data,"unverified_data.rds")
 
 ```
 
@@ -322,14 +322,13 @@ readr::write_rds(prevYrWind,
 ```
 
 ```{r saveExternally}
+
+# data <- readr::read_rds("2022data.rds")
+
 # bind the two data sets together, call it data
-data<-dplyr::bind_rows(readr::read_rds("2022data.rds"),
+data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
                        readr::read_rds("prevYrWind.rds")
 )
-
-# save imported and formatted data to 
-readr::write_rds(data,
-                       "unverified_data.rds")
 
 # save list of stations:
 
@@ -347,14 +346,15 @@ readr::write_csv(data %>%
                    dplyr::arrange(STATION_NAME),
                  "allStations.csv")
 
-# Save each station to preppedData foler 
+# Save each station to preppedData folder 
 purrr::walk(readr::read_rds("allStations.rds")$STATION_NAME,
             function(x) {
               stnData <- data %>%
-                                     dplyr::filter(STATION_NAME == x)
+                dplyr::filter(STATION_NAME == x)
               saveRDS(stnData,
                       file.path("./preppedData",
                                 stringr::str_c(x, ".rds", collapse = "")))
               
             })
 ```
+
