@@ -47,9 +47,6 @@ source("./statSummaryFcns/h2sStatsFcn.R")
 source("./statSummaryFcns/trsStatsFcn.R")
 source("./statSummaryFcns/coStatsFcn.R")
 
-# path to ecms sas reports saved locally:
-sasReports<-"C:/HagaR/AnnualDataValidation/statSummaries"
-
 source("plotlyFcn.R")
 source("emptyPlot.R")
 
@@ -58,7 +55,7 @@ source("emptyPlot.R")
 ```{r importData}
 data<-readRDS(params$preppedData)
 
-# data<-readRDS("./preppedData/Victoria Topaz.rds")
+# data<-readRDS("./preppedData/Pine River Gas Plant.rds")
 
 prevYrWind<-data %>%
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &

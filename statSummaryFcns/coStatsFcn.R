@@ -32,12 +32,14 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-co}
   
-  cosub <- data %>%
+  sub <- data %>%
     dplyr::select(date=!!dateColumn,
                    value=!!cocolumn)
-
+  
+  # # # VALID DATA (DAYS AND HR.) # # # 
+  
   #calculate daily averages time series with data completeness of 75%
-  dt<-openair::timeAverage(cosub,
+  dt<-openair::timeAverage(sub,
                            avg.time="day",
                            data.thresh=75)
   
@@ -49,7 +51,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   
   
   #Count the number of hours with valid data:
-  nh<-cosub %>%
+  nh<-sub %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
@@ -57,7 +59,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   # # # HR. PERCENTILE & EXCEEDANCES  # # #
   
   #Calculate hourly percentiles over the year: 
-  hp<-cosub %>%
+  hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
                                         probs=0,
@@ -124,9 +126,9 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
                                     na.rm = TRUE))
   
  
-  #count hourly exceedances of 13 ppm.
-  hoursAbove13 <- cosub %>%
-    dplyr::filter(value>=13) %>%
+  #count hourly exceedances of 13 ppb.
+  hoursAbove13 <- sub %>%
+    dplyr::filter(value>13) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
@@ -202,7 +204,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   # # # 8hr AVE. PERC. & EXCEEDANCES # # #
   
   #calculate 8 hr. rolling average. 
-  roll8hr<-openair::rollingMean(cosub,
+  roll8hr<-openair::rollingMean(sub,
                     pollutant="value",
                     width=8,             #8 hour rolling mean
                     new.name="co.8hr", #column heading
@@ -213,7 +215,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
  
   #count rolling ave. exceedances of 5 ppm:
   roll8hrAbove5 <- roll8hr %>%
-    dplyr::filter(co.8hr >= 5) %>%
+    dplyr::filter(co.8hr > 5) %>%
     dplyr::summarise(n = dplyr::n()) %>%
     dplyr::pull(n)
   
@@ -230,7 +232,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
                   statistic="frequency")
   
   #calculate total no. days each quarter (no data completeness)
-  alld<-openair::timeAverage(cosub,avg.time="day")
+  alld<-openair::timeAverage(sub,avg.time="day")
   allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
           sum(Hmisc::monthDays(dm$date)[4:6]),
           sum(Hmisc::monthDays(dm$date)[7:9]),
@@ -264,7 +266,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
   
   (
-    sas <- tibble::tibble(
+    stats <- tibble::tibble(
       
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
@@ -276,7 +278,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
       
       `VALID HOURS`=nh,
       
-      `ANNUAL 1-HR AVG`=round(mean(cosub$value,na.rm=T),2),
+      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       
     ) %>%
       

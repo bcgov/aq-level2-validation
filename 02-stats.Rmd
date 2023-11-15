@@ -53,7 +53,7 @@ if(length(pm25Stns!=0)){
 
 # import ecms sas from excel
 pm25sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "PM2.5_UNSUPPRESSED.xlsx")) %>%
 
 # remove secondary header row
@@ -179,7 +179,7 @@ if(length(pm10Stns!=0)){
 
 # import ecms sas from excel
 pm10sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "PM10_UNSUPPRESSED.xlsx")) %>%
 
 # remove secondary header row
@@ -306,7 +306,7 @@ if(length(no2Stns)!=0){
 
 # import ecms sas from excel
 no2sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "NO2_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded column
@@ -424,7 +424,7 @@ if(length(noStns)!=0){
 
 # import ecms sas from excel
 nosasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "NO_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
@@ -543,7 +543,7 @@ if(length(so2Stns)!=0){
 
 # import ecms sas from excel
 so2sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "SO2_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
@@ -662,7 +662,7 @@ if(length(o3Stns!=0)){
 
 # import ecms sas from excel
 o3sasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "OZONE_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
@@ -780,7 +780,7 @@ h2sStns<-data %>%
 if(length(h2sStns)!=0){
 # import ecms sas from excel
 h2ssasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "H2S_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
@@ -805,11 +805,10 @@ dplyr::slice(-1) %>%
 
 # utils::View(names(h2ssasECMS))
 
-# got to here
 names(h2ssasECMS) <- names(h2ssas)
 
 } 
- 
+
 ```
 
 ```{r h2ssasDT}
@@ -901,7 +900,7 @@ if(length(trsStns!=0)){
 
 # import ecms sas from excel
 trssasECMS <- readxl::read_excel(
-  file.path(sasReports,                                            
+  file.path(statReports,                                            
             "TRS_UNSUPPRESSED.xlsx")) %>%
   
   # remove unneeded columna
