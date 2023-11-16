@@ -1,16 +1,16 @@
-# Script: h2sStatsFcn.R
-# Description: h2s sas script for ftp data
-# NOTE: EXACT SAME STATS AS TRS
+#Script: no2StatsFcn.R
+#Description: calculates no2 stats on ftp data
+# # # 
 
-# FOR TESTING
-# subset for a single station and param for testing the function
+# # subset for a single station and param for testing the function
 # data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Pine River Gas Plant" &
-#            PARAMETER=="H2S") %>% distinct()
+#   dplyr::filter(STATION_NAME=="Cranbrook Muriel Baxter" &
+#            PARAMETER=="NO2") %>%
+#   distinct()
 # 
-# h2sSASFcn(data)
+# no2StatsFcn(data)
 
-h2sStatsFcn<-function(data,h2scolumn,dateColumn){
+no2StatsFcn<-function(data,no2column,dateColumn){
   
   library(openair) 
   library(Hmisc)
@@ -19,28 +19,25 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
   library(rcaaqs)
   
   #for testing
-  # h2scolumn<-"RAW_VALUE"
+  # no2column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% toupper("h2s") &
-                    # STATION_NAME=="BESSBOROUGH 237 ROAD")
+  #   dplyr::filter(PARAMETER %in% toupper("no2"))
   # END TESTING
   
   #default arguments
-  if(missing(h2scolumn)){h2scolumn<-"RAW_VALUE"}
+  if(missing(no2column)){no2column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-h2s}
+  if(missing(data)){data<-no2}
   
   sub <- data %>%
     dplyr::select(date=!!dateColumn,
-                   value=!!h2scolumn)
+                  value=!!no2column)
   
-  # # # VALID DATA (DAYS AND HR.) # # # 
-  
-  #calculate daily averages time series, data completeness = 75%
-  dt <- openair::timeAverage(sub, 
-                             avg.time = "day", 
-                             data.thresh = 75)
+  #calculate daily averages time series with data completeness of 75%
+  dt<-openair::timeAverage(sub,
+                           avg.time="day",
+                           data.thresh=75)
   
   #Count the number of days with valid data:
   nd<-dt %>%
@@ -54,8 +51,26 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  ############### HR. PERC. & EXCEEDANCES ###############  
   
+  #AQO: 98th percentile of the maximum hourly concentration during the day:
+  
+  #calculate daily 1-hr max:
+  d1hm <- openair::timeAverage(
+    mydata = sub,
+    pollutant = "value",
+    avg.time = "day",
+    #averaging period
+    statistic = "max"
+  )
+  
+   #calculate the annual 98th percentile
+  d1hm_p98 <- d1hm %>%
+    dplyr::summarise(p98=rcaaqs:::quantile2(value,
+                                           probs=0.98,
+                                           na.rm=TRUE,
+                                           type="caaqs")) %>%
+    dplyr::select(p98)
+    
   #Calculate hourly percentiles over the year: 
   hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
@@ -122,102 +137,95 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     # ),
     `100%(hr)`=max(value,
                    na.rm = TRUE))
-    
-  #count hourly exceedances of 5 ppb.
-  hoursAbove5 <- sub %>%
-    dplyr::filter(value>5) %>%
+  
+  #count hourly exceedances of 100 ppb:
+  hoursAbove100 <- sub %>%
+    dplyr::filter(value>100) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  
-  ############### DAILY PERC. & EXCEEDANCES ############### 
-  
-  #calculate daily percentiles over the year:
-  dp<-dt %>%
+  #calculate d1hm percentiles over the year:
+  d1hmp <- d1hm %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
-    dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
-                                                  probs=0,
-                                                  na.rm=TRUE,
-                                                  type="caaqs"
+    dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
+                                                 probs=0,
+                                                 na.rm=TRUE,
+                                                 type="caaqs"
     ),
-    `10%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.1,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `10%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.1,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `25%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.25,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `25%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.25,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `50%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.5,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `50%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.5,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `75%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.75,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `75%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.75,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `90%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.9,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `90%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.9,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `95%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.95,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `95%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.95,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `98%(day)`=rcaaqs:::quantile2(value,
-                                  probs=.98,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `98%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=.98,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `99%(day)`=rcaaqs:::quantile2(value,
-                                  probs=0.99,
-                                  na.rm=TRUE,
-                                  type="caaqs"
+    `99%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.99,
+                                 na.rm=TRUE,
+                                 type="caaqs"
     ),
-    `99.5%(day)`=rcaaqs:::quantile2(value,
-                                    probs=0.995,
-                                    na.rm=TRUE,
-                                    type="caaqs"
+    `99.5%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.995,
+                                   na.rm=TRUE,
+                                   type="caaqs"
     ),
-    `99.9%(day)`=rcaaqs:::quantile2(value,
-                                    probs=0.999,
-                                    na.rm=TRUE,
-                                    type="caaqs"
+    `99.9%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.999,
+                                   na.rm=TRUE,
+                                   type="caaqs"
     ),
     # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
-    # `100%(day)`=rcaaqs:::quantile2(value,
+    # `100%(hr)`=rcaaqs:::quantile2(value,
     #                             probs=1,
     #                             na.rm=TRUE,
     #                             type="caaqs"
     # ),
-    `100%(day)`=max(value,
-                    na.rm = TRUE))
+    `100%(hr)`=max(value,
+                   na.rm = TRUE))
   
-  #count daily exceedances of 2 ppb.
-  daysAbove2 <- dt %>%
-    dplyr::filter(value>2) %>%
+  #count d1hm exceedances of 100ppb:
+  d1hmAbove100 <- d1hm %>%
+    dplyr::filter(value>100) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  ############### DATA CAPTURE (d/MO, QUARTERLY) ############### 
-  
-  # # # MONITORING DAYS/MO & /Q # # #
-  
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
-                  avg.time="month",
-                  statistic="frequency")
+                           avg.time="month",
+                           statistic="frequency")
   
   #calculate number of monitoring days each quarter
   dq<-openair::timeAverage(dt,
-                  avg.time="3 month",
-                  statistic="frequency")
+                           avg.time="3 month",
+                           statistic="frequency")
   
   #calculate total no. days each quarter
   alld<-openair::timeAverage(sub,
@@ -226,13 +234,13 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
           sum(Hmisc::monthDays(dm$date)[4:6]),
           sum(Hmisc::monthDays(dm$date)[7:9]),
           sum(Hmisc::monthDays(dm$date)[10:12]))
-  
+
   #calculate quarterly data capture (%)
   q<-as_tibble(round((dq[,2]/allq)*100,0))
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-  # variables for making summary (sas) below
+  # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
     tidyr::spread(key=date,value=value)
@@ -251,9 +259,7 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
                                          " (%days)")) %>%
     tidyr::spread(QUARTER,value) 
   
-  
-  # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
-  
+  #Create and print summary table
   (
     stats <- tibble::tibble(
       
@@ -269,31 +275,41 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
       
       `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       
+      # `ANNUAL DAILY AVG`=round(mean(dt$value, na.rm = T), 2)
     ) %>%
       
       dplyr::bind_cols(
         
         # Hourly Percentiles
         round(hp %>% dplyr::select(-date),
+                             2),
+        
+        # Hourly Exceedances of 100 ppb
+        tibble::tibble(`HOURLY EXCEEDANCES > 100 ppb`=
+                         hoursAbove100),
+        
+        # D1hm Percentiles
+        round(d1hmp %>% dplyr::select(-date),
               2),
         
-        # Hourly Exceedances of 5 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 5 ppb`=
-                         hoursAbove5),
+        # Exceedances of D1HM >100 PPB
+        tibble::tibble(`EXCEEDANCES OF D1HM > 100 ppb`=d1hmAbove100),
         
-        # Daily Percentiles
-        round(dp %>% dplyr::select(-date),
-              2),
+        # Annual 98P of D1HM
+        d1hm_p98 %>% 
+          dplyr::mutate(p98=round(p98,2)) %>%
+          dplyr::rename(`ANNUAL 98P D1HM`=p98),
         
-        # Exceedances of daily > 2 ppb
-        tibble::tibble(`EXCEEDANCES OF DAILY AVG > 2 ppb`=daysAbove2),
+        # Annual 98P of D1HM 3-yr ave
+        tibble::tibble(`98P_DAILY,3-YR AVG`=NA_real_),
         
         # days of monitoring/month
         dm,
         
         # percent of monitoring/quarter
         q
-      ) 
-    
-  ) # end sas
+        ) 
+
+  ) # end stats
+  
 }
