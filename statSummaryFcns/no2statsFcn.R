@@ -147,57 +147,57 @@ no2StatsFcn<-function(data,no2column,dateColumn){
   #calculate d1hm percentiles over the year:
   d1hmp <- d1hm %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
-    dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
+    dplyr::summarise(`0%(d1hm)`=rcaaqs:::quantile2(value,
                                                  probs=0,
                                                  na.rm=TRUE,
                                                  type="caaqs"
     ),
-    `10%(hr)`=rcaaqs:::quantile2(value,
+    `10%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.1,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `25%(hr)`=rcaaqs:::quantile2(value,
+    `25%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.25,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `50%(hr)`=rcaaqs:::quantile2(value,
+    `50%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.5,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `75%(hr)`=rcaaqs:::quantile2(value,
+    `75%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.75,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `90%(hr)`=rcaaqs:::quantile2(value,
+    `90%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.9,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `95%(hr)`=rcaaqs:::quantile2(value,
+    `95%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.95,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `98%(hr)`=rcaaqs:::quantile2(value,
+    `98%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=.98,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `99%(hr)`=rcaaqs:::quantile2(value,
+    `99%(d1hm)`=rcaaqs:::quantile2(value,
                                  probs=0.99,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
-    `99.5%(hr)`=rcaaqs:::quantile2(value,
+    `99.5%(d1hm)`=rcaaqs:::quantile2(value,
                                    probs=0.995,
                                    na.rm=TRUE,
                                    type="caaqs"
     ),
-    `99.9%(hr)`=rcaaqs:::quantile2(value,
+    `99.9%(d1hm)`=rcaaqs:::quantile2(value,
                                    probs=0.999,
                                    na.rm=TRUE,
                                    type="caaqs"
@@ -208,7 +208,7 @@ no2StatsFcn<-function(data,no2column,dateColumn){
     #                             na.rm=TRUE,
     #                             type="caaqs"
     # ),
-    `100%(hr)`=max(value,
+    `100%(d1hm)`=max(value,
                    na.rm = TRUE))
   
   #count d1hm exceedances of 100ppb:
