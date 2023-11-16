@@ -1,5 +1,5 @@
-# Script: nosasFcn.R
-# Description: no sas script for ftp data
+# Script: noStatsFcn.R
+# Description: no Stats script for ftp data
 
 # FOR TESTING
 # subset for a single station and param for testing the function
@@ -7,9 +7,9 @@
 #   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
 #            PARAMETER=="NO") %>% distinct()
 # 
-# noSASFcn(data)
+# noStatsFcn(data) 
 
-noSASFcn<-function(data,nocolumn,dateColumn){
+noStatsFcn<-function(data,nocolumn,dateColumn){
   
   library(openair) 
   library(Hmisc)
@@ -81,7 +81,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-  # variables for making summary (sas) below
+  # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
     tidyr::spread(key=date,value=NO)
@@ -102,7 +102,7 @@ noSASFcn<-function(data,nocolumn,dateColumn){
   
   #Create and print summary table
   (
-    sas <- tibble::tibble(
+    Stats <- tibble::tibble(
       
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
@@ -131,5 +131,5 @@ noSASFcn<-function(data,nocolumn,dateColumn){
         q
       ) 
     
-  ) # end sas
+  ) # end Stats
 }
