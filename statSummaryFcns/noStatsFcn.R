@@ -3,7 +3,7 @@
 
 # FOR TESTING
 # subset for a single station and param for testing the function
-# data<-feather::read_feather("unverifiedData.feather") %>%
+# data<-readr::read_rds("unverified_data.rds") %>%
 #   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
 #            PARAMETER=="NO") %>% distinct()
 # 
@@ -15,6 +15,7 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
   library(Hmisc)
   library(tidyverse)
   library(rlang)
+  library(rcaaqs)
   
   #for testing
   # nocolumn<-"RAW_VALUE"
@@ -31,39 +32,92 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
   
   nosub <- data %>%
     dplyr::select(date=!!dateColumn,
-                   NO=!!nocolumn)
+                   value=!!nocolumn)
   
   #calculate daily averages time series with data completeness of 75%
-  dt<-timeAverage(nosub,avg.time="day",data.thresh=75)
+  dt<-openair::timeAverage(nosub,
+                           avg.time="day",
+                           data.thresh=75)
   
   #Count the number of days with valid data:
-  nd<-nrow(dt[!is.na(dt[,2]),])
+  nd<-dt %>%
+    dplyr::filter(!is.na(value)) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
   
   #Count the number of hours with valid data:
-  nh<-nosub %>% filter(!is.na(NO)) %>% nrow(.)
+  nh<-nosub %>%
+    dplyr::filter(!is.na(value)) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
   
   #Calculate hourly percentiles over the year: 
-  hp <- calcPercentile(
-    nosub,
-    pollutant = "NO",
-    avg.time = "year",
-    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
-  ) %>%
-    
-    dplyr::rename(
-      `0%(hr)` = percentile.0,
-      `10%(hr)` = percentile.10,
-      `25%(hr)` = percentile.25,
-      `50%(hr)` = percentile.50,
-      `75%(hr)` = percentile.75,
-      `90%(hr)` = percentile.90,
-      `95%(hr)` = percentile.95,
-      `98%(hr)` = percentile.98,
-      `99%(hr)` = percentile.99,
-      `99.5%(hr)` = percentile.99.5,
-      `99.9%(hr)` = percentile.99.9,
-      `100%(hr)` = percentile.100
-    )
+  hp<-nosub %>%
+    dplyr::group_by(date=lubridate::year(date)) %>%
+    dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
+                                               probs=0,
+                                               na.rm=TRUE,
+                                               type="caaqs"
+                                               ),
+                     `10%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.1,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `25%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.25,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `50%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.5,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `75%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.75,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `90%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.9,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `95%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.95,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `98%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.98,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `99%(hr)`=rcaaqs:::quantile2(value,
+                                                  probs=0.99,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+                                                  ),
+                     `99.5%(hr)`=rcaaqs:::quantile2(value,
+                                                    probs=0.995,
+                                                    na.rm=TRUE,
+                                                    type="caaqs"
+                                                    ),
+                     `99.9%(hr)`=rcaaqs:::quantile2(value,
+                                                    probs=0.999,
+                                                    na.rm=TRUE,
+                                                    type="caaqs"
+                                                    ),
+
+                    # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
+                    # `100%(hr)`=rcaaqs:::quantile2(value,
+                    #                             probs=1,
+                    #                             na.rm=TRUE,
+                    #                             type="caaqs"
+                    # ),
+                    `100%(hr)`=max(value,
+                                   na.rm = TRUE))
   
   #calculate number of monitoring days each month
   dm<-timeAverage(dt,avg.time="month",statistic="frequency")
