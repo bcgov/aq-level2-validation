@@ -120,15 +120,21 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
                                    na.rm = TRUE))
   
   #calculate number of monitoring days each month
-  dm<-timeAverage(dt,avg.time="month",statistic="frequency")
+  dm<-openair::timeAverage(dt,
+                           avg.time="month",
+                           statistic="frequency")
   
   #calculate number of monitoring days each quarter
-  dq<-timeAverage(dt,avg.time="3 month",statistic="frequency")
+  dq<-openair::timeAverage(dt,
+                           avg.time="3 month",
+                           statistic="frequency")
   
-  #calculate total no. days each quarter
-  alld<-timeAverage(nosub,avg.time="day")
-  allq<-c(sum(monthDays(dm$date)[1:3]),sum(monthDays(dm$date)[4:6]),
-          sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
+  #calculate total no. days each quarter (no data completeness)
+  alld<-openair::timeAverage(nosub,avg.time="day")
+  allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
+          sum(Hmisc::monthDays(dm$date)[4:6]),
+          sum(Hmisc::monthDays(dm$date)[7:9]),
+          sum(Hmisc::monthDays(dm$date)[10:12]))
   
   #calculate quarterly data capture (%)
   q<-as_tibble(round((dq[,2]/allq)*100,0))
@@ -138,7 +144,7 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
   # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
-    tidyr::spread(key=date,value=NO)
+    tidyr::spread(key=date,value=value)
   
   #
   names(dm) <- stringr::str_c(
@@ -152,7 +158,7 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
     dplyr::mutate(QUARTER=stringr::str_c("Q",
                                          1:4,
                                          " (%days)")) %>%
-    tidyr::spread(QUARTER,NO) 
+    tidyr::spread(QUARTER,value) 
   
   #Create and print summary table
   (
@@ -162,13 +168,13 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
         dplyr::pull(STATION_NAME) %>%
         unique,
       
-      YEAR = as.numeric(format(hp$date, "%Y")),
+      YEAR = hp$date,
       
       `VALID DAYS`= nd,
       
       `VALID HOURS`=nh,
       
-      `ANNUAL 1-HR AVG`=round(mean(nosub$NO,na.rm=T),2),
+      `ANNUAL 1-HR AVG`=round(mean(nosub$value,na.rm=T),2),
       
     ) %>%
       
@@ -186,4 +192,6 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
       ) 
     
   ) # end Stats
+  
+  # utils::View(sas)
 }
