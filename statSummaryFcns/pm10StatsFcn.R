@@ -33,11 +33,11 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm10}
   
-  pm10sub <- data %>%
+  sub <- data %>%
     dplyr::select(date=!!dateColumn,
                   value=!!pm10column)
   
-  dt<-openair::timeAverage(pm10sub,
+  dt<-openair::timeAverage(sub,
                   pollutant="PM10",
                   avg.time="day",
                   data.thresh=75)
@@ -48,13 +48,13 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     dplyr::pull(n)
   
   #Count the number of hours with valid data:
-  nh<-pm10sub %>%
+  nh<-sub %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
   #Calculate hourly percentiles over the year:
-  hp<-pm10sub %>%
+  hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
                                                  probs=0,
@@ -249,7 +249,7 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
         unique,
       YEAR = hp$date,
       `VALID HOURS`=nh,
-      `ANNUAL 1-HR AVG`=round(mean(pm10sub$value,na.rm=T),2),
+      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       `VALID DAYS`= nd,
       `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
       `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
