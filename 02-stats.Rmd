@@ -382,9 +382,13 @@ if(length(no2Stns)==0) {
 
 ## NO
 
-```{r nosas}
+```{r noStats}
 
-nosas<-purrr::map_dfr((data %>%
+# data<-readr::read_rds("unverified_data.rds") %>%
+#   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
+#            PARAMETER=="NO") %>% distinct()
+
+noStats<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("no")) %>%
                 dplyr::distinct(STATION_NAME) %>%
                 arrange(STATION_NAME))$STATION_NAME,
@@ -402,14 +406,14 @@ nosas<-purrr::map_dfr((data %>%
                    instrument<-station %>%
                      dplyr::filter(INSTRUMENT %in% instrument)
 
-                   noSASFcn(data=instrument)
+                   noStatsFcn(data=instrument)
 
                  }) #INSTRUMENT LOOP
 
              }) #STATION LOOP
 
   # add column origin for where calculations originate from
-nosas %<>% dplyr::mutate(ORIGIN="AQS")
+noStats %<>% dplyr::mutate(ORIGIN="AQS")
 
 ```
 
@@ -620,9 +624,13 @@ if(length(so2Stns)==0) {
 
 Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQS calculations, these 7 hours were not included which leads to small differences with the ECMS calculations.
 
-```{r o3sas}
+```{r o3Stats}
 
-o3sas<-purrr::map_dfr((data %>%
+ data<-readr::read_rds("unverified_data.rds") %>%
+   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
+            PARAMETER=="O3") %>% distinct()
+
+o3Stats<-purrr::map_dfr((data %>%
                 dplyr::filter(PARAMETER %in% toupper("o3")) %>%
                 dplyr::distinct(STATION_NAME) %>%
                 arrange(STATION_NAME))$STATION_NAME,
@@ -640,14 +648,14 @@ o3sas<-purrr::map_dfr((data %>%
                    instrument<-station %>%
                      dplyr::filter(INSTRUMENT %in% instrument)
 
-                   o3SASFcn(data=instrument)
+                   o3StatsFcn(data=instrument)
 
                  }) #INSTRUMENT LOOP
 
              }) #STATION LOOP
 
  # add column origin for where calculations originate from
-o3sas %<>% dplyr::mutate(ORIGIN="AQS")
+o3Stats %<>% dplyr::mutate(ORIGIN="AQS")
 
 ```
 
