@@ -1,117 +1,236 @@
-#Script: pm25sasFcn.R
-#Description: calculates pm25 sas stats on ftp data
+#Script: pm25StatsFcn.R
+#Description: calculates pm25 Stats stats on ftp data
 # # # 
 
-pm25SASFcn<-function(data,pm25column,dateColumn){ 
+#FOR TESTING
+# pm25column<-"RAW_VALUE"
+# dateColumn<-"DATE_PST"
+# data<-readr::read_rds("unverified_data.rds") %>%
+#   dplyr::filter(PARAMETER %in% "PM25" &
+#                   STATION_NAME=="Burns Lake Fire Centre" &
+#                   INSTRUMENT=="PM25 SHARP5030")
+# END TESTING
+
+pm25StatsFcn<-function(data,pm25column,dateColumn){ 
   
   library(openair)
   library(Hmisc)
   library(tidyverse)
   library(rlang)
-  
-  #FOR TESTING
-  # pm25column<-"RAW_VALUE"
-  # dateColumn<-"DATE_PST"
-  # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% "PM25" &
-  #                   STATION_NAME=="Castlegar Zinio Park" &
-  #                   INSTRUMENT=="PM25 SHARP5030")
-  # END TESTING
+  library(rcaaqs)
+
   
   #default arguments
   if(missing(pm25column)){pm25column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-pm25}
   
-  pm25sub <- data %>%
+  sub <- data %>%
     dplyr::select(date=!!dateColumn,
-            PM25=!!pm25column)
+            value=!!pm25column)
 
-  dt<-openair::timeAverage(pm25sub,
+  dt<-openair::timeAverage(sub,
                   pollutant="PM25",
                   avg.time="day",
                   data.thresh=75)
 
-  nd<-nrow(dt[!is.na(dt[,2]),])
+  nd<-dt %>%
+    dplyr::filter(!is.na(value)) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
 
   #Count the number of hours with valid data:
-  nh<-nrow(pm25sub[!is.na(pm25sub[,2]),])
+  nh<-sub %>%
+    dplyr::filter(!is.na(value)) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+  
+  #Is annual average greater than 8 ug/m3?
+  AAG8 <- if(mean(sub$value,na.rm=T)>8){
+    "Yes"
+  } else {
+    "No"
+  }
 
   #Calculate hourly percentiles over the year:
-  hp <- calcPercentile(
-    pm25sub,
-    pollutant = "PM25",
-    avg.time = "year",
-    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
-  ) %>%
-    
-    dplyr::rename(
-      `0%(hr)`=percentile.0,
-      `10%(hr)`=percentile.10,
-      `25%(hr)`=percentile.25,
-      `50%(hr)`=percentile.50,
-      `75%(hr)`=percentile.75,
-      `90%(hr)`=percentile.90,
-      `95%(hr)`=percentile.95,
-      `98%(hr)`=percentile.98,
-      `99%(hr)`=percentile.99,
-      `99.5%(hr)`=percentile.99.5,
-      `99.9%(hr)`=percentile.99.9,
-      `100%(hr)`=percentile.100)
+  hp<-sub %>%
+    dplyr::group_by(date=lubridate::year(date)) %>%
+    dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
+                                                 probs=0,
+                                                 na.rm=TRUE,
+                                                 type="caaqs"
+    ),
+    `10%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.1,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `25%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.25,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `50%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.5,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `75%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.75,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `90%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.9,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `95%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.95,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `98%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=.98,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `99%(hr)`=rcaaqs:::quantile2(value,
+                                 probs=0.99,
+                                 na.rm=TRUE,
+                                 type="caaqs"
+    ),
+    `99.5%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.995,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+    ),
+    `99.9%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.999,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+    ),
+    # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
+    # `100%(hr)`=rcaaqs:::quantile2(value,
+    #                             probs=1,
+    #                             na.rm=TRUE,
+    #                             type="caaqs"
+    # ),
+    `100%(hr)`=max(value,
+                   na.rm = TRUE))
+  
     
   #calculate daily percentiles over the year:
-  dp <- calcPercentile(
-    dt,
-    pollutant = "PM25",
-    avg.time = "year",
-    percentile = c(0, 10, 25, 50, 75, 90, 95, 98, 99, 99.5, 99.9, 100)
-) %>%
-    
-    dplyr::rename(
-      `0%(day)` = percentile.0,
-      `10%(day)` = percentile.10,
-      `25%(day)` = percentile.25,
-      `50%(day)` = percentile.50,
-      `75%(day)` = percentile.75,
-      `90%(day)` = percentile.90,
-      `95%(day)` = percentile.95,
-      `98%(day)` = percentile.98,
-      `99%(day)` = percentile.99,
-      `99.5%(day)` = percentile.99.5,
-      `99.9%(day)` = percentile.99.9,
-      `100%(day)` = percentile.100
-    )
-
+  dp<-dt %>%
+    dplyr::group_by(date=lubridate::year(date)) %>%
+    dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
+                                                  probs=0,
+                                                  na.rm=TRUE,
+                                                  type="caaqs"
+    ),
+    `10%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.1,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `25%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.25,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `50%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.5,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `75%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.75,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `90%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.9,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `95%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.95,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `98%(day)`=rcaaqs:::quantile2(value,
+                                  probs=.98,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `99%(day)`=rcaaqs:::quantile2(value,
+                                  probs=0.99,
+                                  na.rm=TRUE,
+                                  type="caaqs"
+    ),
+    `99.5%(day)`=rcaaqs:::quantile2(value,
+                                    probs=0.995,
+                                    na.rm=TRUE,
+                                    type="caaqs"
+    ),
+    `99.9%(day)`=rcaaqs:::quantile2(value,
+                                    probs=0.999,
+                                    na.rm=TRUE,
+                                    type="caaqs"
+    ),
+    # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
+    # `100%(day)`=rcaaqs:::quantile2(value,
+    #                             probs=1,
+    #                             na.rm=TRUE,
+    #                             type="caaqs"
+    # ),
+    `100%(day)`=max(value,
+                    na.rm = TRUE))
+  
+  
   #count daily exceedances of 25 ug/m3:
-  daysAbove25<-nrow(subset(dt,dt[,2]>=25+0.5))
+  daysAbove25<-dt %>%
+    dplyr::filter(value>25) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+  
+  ##Annual 98P daily average > 25
+  Annual98P <- dp %>% dplyr::pull(`98%(day)`)
+  AnnualAQO <- if(Annual98P>25){
+    "Yes"
+  } else {
+    "No"
+  }
 
-  #calculate daily % of exceedances
-  pdaysAbove25<-round((daysAbove25/nd)*100,2)
+  #calculate daily % of exceedances - removed in 2022 stat summary
+  #pdaysAbove25<-round((daysAbove25/nd)*100,2)
 
   #calculate number of monitoring days each month
-  dm<-timeAverage(dt,
+  dm<-openair::timeAverage(dt,
                   avg.time="month",
                   statistic="frequency")
 
   #calculate number of monitoring days each quarter
-  dq<-timeAverage(dt,
+  dq<-openair::timeAverage(dt,
                   avg.time="3 month",
                   statistic="frequency")
 
   #calculate total no. days each quarter
-  alld<-timeAverage(pm25sub,avg.time="day")
-  allq<-c(sum(monthDays(dm$date)[1:3]),sum(monthDays(dm$date)[4:6]),
-          sum(monthDays(dm$date)[7:9]),sum(monthDays(dm$date)[10:12]))
+  alld<-openair::timeAverage(sub,avg.time="day")
+  allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
+          sum(Hmisc::monthDays(dm$date)[4:6]),
+          sum(Hmisc::monthDays(dm$date)[7:9]),
+          sum(Hmisc::monthDays(dm$date)[10:12]))
 
   #calculate quarterly data capture (%)
   q<-as_tibble(round((dq[,2]/allq)*100,0))
 
 
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-  # variables for making summary (sas) below
+  # variables for making summary (Stats) below
   dm<-dm %>% 
     dplyr::mutate(date=format(date,"%m")) %>%
-    tidyr::spread(key=date,value=PM25)
+    tidyr::spread(key=date,value=value)
   
   #
   names(dm) <- stringr::str_c(
@@ -125,23 +244,26 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
     dplyr::mutate(QUARTER=stringr::str_c("Q",
                                          1:4,
                                          " (%days)")) %>%
-    tidyr::spread(QUARTER,PM25) 
+    tidyr::spread(QUARTER,value) 
   
   #Create and print summary table
   (
-    sas <- tibble::tibble(
+    Stats <- tibble::tibble(
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
         unique,
       INSTRUMENT = data %>%
         dplyr::pull(INSTRUMENT) %>%
         unique,
-      YEAR = as.numeric(format(hp$date, "%Y")),
+      YEAR = hp$date,
       `VALID HOURS`=nh,
-      `ANNUAL 1-HR AVG`=round(mean(pm25sub$PM25,na.rm=T),2),
       `VALID DAYS`= nd,
-      `ANNUAL DAILY AVG`=round(mean(dt$PM25,na.rm=T),2),
-      `DAILY AVG, 3-YR AVG` = NA_real_ # added to sas summary in 2021, i don't calculate it
+      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
+     # removed in 2022 stat summary
+     # `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
+      `DAILY AVG, 3-YR AVG` = NA_real_, # added to Stats summary in 2021, i don't calculate it
+      `ANNUAL AVG > 8?` = AAG8, #added in Stats summary in 2022
+      `ANNUAL AVG, 3-YR AVG > 8.8?` = NA_real_, #added in Stats summary in 2022
     ) %>%
       dplyr::bind_cols(round(hp %>% dplyr::select(-date),
                              2)) %>%
@@ -149,15 +271,16 @@ pm25SASFcn<-function(data,pm25column,dateColumn){
                              2)) %>%
       dplyr::bind_cols(
         tibble::tibble(
-          `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
-                                   2),
+          `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),2),
           `98P_DAILY,3-YR AVG`=NA_real_,
-          `EXCEEDANCES OF DAILY AVG > 25ug/m3`=daysAbove25
+          `ANNUAL 98P_DAILY > 25?`=AnnualAQO,
+          `98P_DAILY,3-YR AVG > 27?`=NA_real_
+          #`EXCEEDANCES OF DAILY AVG > 25ug/m3`=daysAbove25 #Removed in 2022 stat summary
         )) %>%
       dplyr::bind_cols(dm,q)
-    )
     
-
+    
+  )
 }
 
 
