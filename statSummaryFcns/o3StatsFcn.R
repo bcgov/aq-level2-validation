@@ -216,13 +216,13 @@ o3StatsFcn<-function(data,o3column,dateColumn){
   
   
   
-  #count exceedances of max daily 8 hr. roll ave >63 ppb:
-  d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=63))
+  #count exceedances of max daily 8 hr. roll ave >63 ppb; commented out since this column doesn't exist in AQS file for 2022.
+  # d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=63))
   
-  d8hmAbove63<-d8hm %>%
-    dplyr::filter(roll.o3 >=63) %>%
-    dplyr::summarise(n = dplyr::n()) %>%
-    dplyr::pull(n)
+  # d8hmAbove63<-d8hm %>%
+  # dplyr::filter(roll.o3 >=63) %>%
+  # dplyr::summarise(n = dplyr::n()) %>%
+  # dplyr::pull(n)
   
   #calculate 4th highest max daily 8 hr. roll ave
   d8hmRank4<-as_tibble(round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2))
@@ -290,6 +290,9 @@ o3StatsFcn<-function(data,o3column,dateColumn){
         # D8hm Percentiles
         round(d8hmp %>% dplyr::select(-date),
               2),
+        
+        # Exceedances of D8HM >63 PPB
+        # tibble::tibble(`EXCEEDANCES OF D8HM > 63 ppb`=d8hmAbove63),
         
         # Annual 4TH rANK D8HM
         tibble::tibble(`ANNUAL 4TH RANK D8HM`=round(d8hmRank4$value,2)),
