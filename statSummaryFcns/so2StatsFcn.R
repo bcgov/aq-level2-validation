@@ -3,9 +3,9 @@
 
 # FOR TESTING
 # # subset for a single station and param for testing the function
- data<-readr::read_rds("unverified_data.rds") %>%
-   dplyr::filter(STATION_NAME=="Trail Butler Park" &
-            PARAMETER=="SO2") %>% distinct()
+# data<-readr::read_rds("unverified_data.rds") %>%
+#   dplyr::filter(STATION_NAME=="Trail Butler Park" &
+#            PARAMETER=="SO2") %>% distinct()
 # 
 # so2StatsFcn(data)
 
@@ -133,17 +133,23 @@ so2StatsFcn<-function(data,so2column,dateColumn){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
+  #Annal 1-hr average > 5ppb.
   
+  AAG5 <- if(mean(sub$value,na.rm=T)>5){
+    "Yes"
+  } else {
+    "No"
+  }
   
-  #count hourly exceedances of 70 and 75 ppb.
-  hoursAbove70<-sub %>%
-    dplyr::filter(value>=70) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
-  hoursAbove75<-sub %>%
-    dplyr::filter(value>=75) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
+  #count hourly exceedances of 70 and 75 ppb - removed in the 2022 Stat summaries
+  # hoursAbove70<-sub %>%
+  #   dplyr::filter(value>=70) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+  # hoursAbove75<-sub %>%
+  #   dplyr::filter(value>=75) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
 
   #calculate d1hm percentiles over the year:
   d1hmp <- d1hm %>%
@@ -288,31 +294,37 @@ so2StatsFcn<-function(data,so2column,dateColumn){
         round(hp %>% dplyr::select(-date),
               2),
         
-        # Hourly Exceedances of 70 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
-                         hoursAbove70),
+        #Annual 1-hr average>5
+        `ANNUAL 1-HR AVG > 5?` = AAG5,
         
-        # Hourly Exceedances of 75 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
-                         hoursAbove75),
+        # Hourly Exceedances of 70 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
+        #                 hoursAbove70),
+        
+        # Hourly Exceedances of 75 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
+        #                 hoursAbove75),
         
         # D1hm Percentiles
         round(d1hmp %>% dplyr::select(-date),
               2),
         
-        # Exceedances of D1HM >70 PPB
-        tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
+        # Exceedances of D1HM >70 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
         
-        # Exceedances of D1HM >75 PPB
-        tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
+        # Exceedances of D1HM >75 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
         
         # Annual 99P of D1HM
         d1hm_p99 %>% 
-          dplyr::mutate(SO2=round(value,2)) %>%
-          dplyr::rename(`ANNUAL 99P D1HM`=SO2),
+          dplyr::mutate(value=round(value,2)) %>%
+          dplyr::rename(`ANNUAL 99P D1HM`=value),
         
         # Annual 99P of D1HM 3-yr ave
         tibble::tibble(`99P_DAILY,3-YR AVG`=NA_real_),
+        
+        # Annual 99P of D1HM 3-yr ave > 70 ppb
+        tibble::tibble(`99P_DAILY,3-YR AVG > 70 PPB`=NA_real_),
         
         # days of monitoring/month
         dm,
