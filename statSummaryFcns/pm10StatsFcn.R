@@ -252,7 +252,7 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
       `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       `VALID DAYS`= nd,
       `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
-      `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
+     # `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
     ) %>%
       dplyr::bind_cols(round(hp %>% dplyr::select(-date),
                              2)) %>%
@@ -260,9 +260,9 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
                              2)) %>%
       dplyr::bind_cols(
         tibble::tibble(
-          `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
-                                   2),
-          `98P_DAILY,3-YR AVG`=NA_real_,
+        #  `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
+        #                         2),
+        # `98P_DAILY,3-YR AVG`=NA_real_,
           `EXCEEDANCES OF DAILY AVG > 50ug/m3`=daysAbove50
         )) %>%
       dplyr::bind_cols(dm,q)
