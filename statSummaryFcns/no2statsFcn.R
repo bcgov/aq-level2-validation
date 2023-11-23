@@ -138,11 +138,8 @@ no2StatsFcn<-function(data,no2column,dateColumn){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
-  #count hourly exceedances of 100 ppb:
-  hoursAbove100 <- sub %>%
-    dplyr::filter(value>100) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
+  #annual 1-hour avg:
+  hourlyAvg<-round(mean(sub$value,na.rm=T),1)
   
   #calculate d1hm percentiles over the year:
   d1hmp <- d1hm %>%
@@ -211,12 +208,6 @@ no2StatsFcn<-function(data,no2column,dateColumn){
     `100%(d1hm)`=max(value,
                    na.rm = TRUE))
   
-  #count d1hm exceedances of 100ppb:
-  d1hmAbove100 <- d1hm %>%
-    dplyr::filter(value>100) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
-  
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
                            avg.time="month",
@@ -236,7 +227,7 @@ no2StatsFcn<-function(data,no2column,dateColumn){
           sum(Hmisc::monthDays(dm$date)[10:12]))
 
   #calculate quarterly data capture (%)
-  q<-as_tibble(round((dq[,2]/allq)*100,0))
+  q<-tibble::as_tibble(round((dq[,2]/allq)*100,0))
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
@@ -273,27 +264,25 @@ no2StatsFcn<-function(data,no2column,dateColumn){
       
       `VALID HOURS`=nh,
       
-      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
+      `ANNUAL 1-HR AVG`=hourlyAvg,
       
-      # `ANNUAL DAILY AVG`=round(mean(dt$value, na.rm = T), 2)
     ) %>%
       
       dplyr::bind_cols(
         
         # Hourly Percentiles
         round(hp %>% dplyr::select(-date),
-                             2),
+                             1),
         
-        # Hourly Exceedances of 100 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 100 ppb`=
-                         hoursAbove100),
+        # is the annual 1-hr avg > 17 ppb
+        tibble::tibble(`ANNUAL 1-HR AVG > 17 ppb`=
+                         dplyr::if_else(hourlyAvg>17,
+                                        "Yes",
+                                        "No")),
         
         # D1hm Percentiles
         round(d1hmp %>% dplyr::select(-date),
-              2),
-        
-        # Exceedances of D1HM >100 PPB
-        tibble::tibble(`EXCEEDANCES OF D1HM > 100 ppb`=d1hmAbove100),
+              1),
         
         # Annual 98P of D1HM
         d1hm_p98 %>% 
@@ -302,6 +291,9 @@ no2StatsFcn<-function(data,no2column,dateColumn){
         
         # Annual 98P of D1HM 3-yr ave
         tibble::tibble(`98P_DAILY,3-YR AVG`=NA_real_),
+        
+        # Annual 98P of D1HM 3-yr ave>60ppb?
+        tibble::tibble(`98P_DAILY,3-YR AVG > 60 ppb?`=NA_character_),
         
         # days of monitoring/month
         dm,
