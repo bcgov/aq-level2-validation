@@ -6,7 +6,7 @@ knitr::opts_chunk$set(cache = FALSE)
 statReports<-"./statSummaries"
 ```
 
-Note: all of the summaries below will have one fewer hour for the AQS sourced analysis. This is a bug, will try to resolve for next year.
+Note: all of the summaries below will have one fewer hour for the AQS-sourced analysis. 
 
 ## PM~2.5~
 
@@ -342,13 +342,13 @@ if(length(no2Stns)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
-no2StatsDT <- bind_rows(
+no2StatsDT <- dplyr::bind_rows(
   no2StatsECMS %>%
     dplyr::mutate_all(as.character) %>%
     dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
 
   no2Stats %>%
-    mutate_all(as.character)
+    dplyr::mutate_all(as.character)
 
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%

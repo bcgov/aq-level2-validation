@@ -1,53 +1,47 @@
+# Script: so2StatsFcn.R
+# Description: so2 Stats script for ftp data
 
-#Script: pm10StatsFcn.R
-#Description: calculates pm10 Stats stats on ftp data
-
-# NOTE: SAME AS PM25 EXCEPT FOR OBJECTIVE
-# # # 
-
-# # subset for a single station and instrument for testing the function
-
+# FOR TESTING
+# # subset for a single station and param for testing the function
 # data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Golden Helipad" &
-#            PARAMETER=="PM10") %>% distinct()
+#   dplyr::filter(STATION_NAME=="Trail Butler Park" &
+#            PARAMETER=="SO2") %>% distinct()
 # 
-# pm10Stats<-pm10StatsFcn(data)
+# so2StatsFcn(data)
 
-
-pm10StatsFcn<-function(data,pm10column,dateColumn){ 
-
+so2StatsFcn<-function(data,so2column,dateColumn){ 
   
-  library(openair)
+  
+  library(openair) 
   library(Hmisc)
   library(tidyverse)
   library(rlang)
   library(rcaaqs)
   
-  #FOR TESTING
-  # pm10column<-"RAW_VALUE"
+  #for testing
+  # so2column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% "PM10" &
-  #                   STATION_NAME=="REVELSTOKE_TRAILER" &
-  #                   INSTRUMENT=="PM10_T640")
+  #   dplyr::filter(PARAMETER %in% toupper("so2") &
+  #                   STATION_NAME=="BIRCHBANK GOLF COURSE")
   # END TESTING
   
   #default arguments
-  if(missing(pm10column)){pm10column<-"RAW_VALUE"}
+  if(missing(so2column)){so2column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-pm10}
+  if(missing(data)){data<-so2}
   
-
   sub <- data %>%
-    dplyr::select(date=!!dateColumn,
-                  value=!!pm10column)
+    dplyr::select(date=dateColumn,
+                   value=so2column)
   
+  
+  #calculate daily averages time series with data completeness of 75%
   dt<-openair::timeAverage(sub,
-                  pollutant="PM10",
-                  avg.time="day",
-                  data.thresh=75)
+                           avg.time="day",
+                           data.thresh=75)
   
-
+  #Count the number of days with valid data:
   nd<-dt %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
@@ -59,7 +53,20 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  #Calculate hourly percentiles over the year:
+  #AQO: 99th percentile of the d1hm:
+  #calculate daily 1-hr max:
+  d1hm<-openair::timeAverage(mydata=sub,
+                     avg.time="day",         #averaging period
+                     statistic="max")
+  
+  #calculate the annual 99th percentile of d1hm
+  d1hm_p99<-openair::timeAverage(d1hm,
+                   avg.time="year",
+                   statistic="percentile",
+                   percentile=99) %>%
+    select(value)
+  
+  #Calculate hourly percentiles over the year: 
   hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
@@ -126,8 +133,26 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
-  #calculate daily percentiles over the year:
-  dp<-dt %>%
+  #Annal 1-hr average > 5ppb.
+  
+  AAG5 <- if(mean(sub$value,na.rm=T)>5){
+    "Yes"
+  } else {
+    "No"
+  }
+  
+  #count hourly exceedances of 70 and 75 ppb - removed in the 2022 Stat summaries
+  # hoursAbove70<-sub %>%
+  #   dplyr::filter(value>=70) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+  # hoursAbove75<-sub %>%
+  #   dplyr::filter(value>=75) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+
+  #calculate d1hm percentiles over the year:
+  d1hmp <- d1hm %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
                                                   probs=0,
@@ -193,20 +218,21 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     `100%(day)`=max(value,
                     na.rm = TRUE))
   
-  #count daily exceedances of 50 ug/m3:
   
-  daysAbove50 <- dt %>%
-    dplyr::filter(value>=50+0.5) %>%
+  #count d1hm exceedances of 70 and 75 ppb.
+  d1hmAbove70<-d1hm %>%
+    dplyr::filter(value>=70) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
-  
-  #calculate daily % of exceedances
-  pdaysAbove50<-as_tibble(round((daysAbove50/nd)*100,2))
-  
+  d1hmAbove75<-d1hm %>%
+    dplyr::filter(value>=75) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
-                  avg.time="month",
-                  statistic="frequency")
+                           avg.time="month",
+                           statistic="frequency")
   
   #calculate number of monitoring days each quarter
   dq<-openair::timeAverage(dt,
@@ -214,7 +240,6 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
                   statistic="frequency")
   
   #calculate total no. days each quarter
-
   alld<-openair::timeAverage(sub,avg.time="day")
   allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
           sum(Hmisc::monthDays(dm$date)[4:6]),
@@ -226,7 +251,6 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-
   # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
@@ -249,34 +273,66 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
   #Create and print summary table
   (
     Stats <- tibble::tibble(
-
+      
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
         unique,
-      INSTRUMENT = data %>%
-        dplyr::pull(INSTRUMENT) %>%
-        unique,
+      
       YEAR = hp$date,
-      `VALID HOURS`=nh,
-      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
+      
       `VALID DAYS`= nd,
-      `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
-     # `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
+      
+      `VALID HOURS`=nh,
+      
+      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
+      
     ) %>%
-      dplyr::bind_cols(round(hp %>% dplyr::select(-date),
-                             2)) %>%
-      dplyr::bind_cols(round(dp %>% dplyr::select(-date),
-                             2)) %>%
+      
       dplyr::bind_cols(
-        tibble::tibble(
-        #  `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
-        #                         2),
-        # `98P_DAILY,3-YR AVG`=NA_real_,
-          `EXCEEDANCES OF DAILY AVG > 50ug/m3`=daysAbove50
-        )) %>%
-      dplyr::bind_cols(dm,q)
-  )
-  
+        
+        # Hourly Percentiles
+        round(hp %>% dplyr::select(-date),
+              2),
+        
+        #Annual 1-hr average>5
+        `ANNUAL 1-HR AVG > 5?` = AAG5,
+        
+        # Hourly Exceedances of 70 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
+        #                 hoursAbove70),
+        
+        # Hourly Exceedances of 75 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
+        #                 hoursAbove75),
+        
+        # D1hm Percentiles
+        round(d1hmp %>% dplyr::select(-date),
+              2),
+        
+        # Exceedances of D1HM >70 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
+        
+        # Exceedances of D1HM >75 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
+        
+        # Annual 99P of D1HM
+        d1hm_p99 %>% 
+          dplyr::mutate(value=round(value,2)) %>%
+          dplyr::rename(`ANNUAL 99P D1HM`=value),
+        
+        # Annual 99P of D1HM 3-yr ave
+        tibble::tibble(`99P_DAILY,3-YR AVG`=NA_real_),
+        
+        # Annual 99P of D1HM 3-yr ave > 70 ppb
+        tibble::tibble(`99P_DAILY,3-YR AVG > 70 PPB`=NA_real_),
+        
+        # days of monitoring/month
+        dm,
+        
+        # percent of monitoring/quarter
+        q
+      ) 
+    
+  ) # end Stats
   
 }
-
