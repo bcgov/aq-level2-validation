@@ -51,7 +51,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   
   
   #Count the number of hours with valid data:
-  nh<-cosub %>%
+  nh<-sub %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)

@@ -6,10 +6,10 @@ root<-stringr::str_remove(dir("./preppedData"),
 utils::View(root)
 
 
-yearToValidate<-2021
+yearToValidate<-2022
 
 purrr::walk(
-  root[56:length(root)],
+  root[1:length(root)],
   
             function(r){
               
