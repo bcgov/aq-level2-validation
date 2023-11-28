@@ -1,16 +1,16 @@
-# Script: h2sStatsFcn.R
-# Description: h2s sas script for ftp data
-# NOTE: EXACT SAME STATS AS TRS
+# Script: so2StatsFcn.R
+# Description: so2 Stats script for ftp data
 
 # FOR TESTING
-# subset for a single station and param for testing the function
+# # subset for a single station and param for testing the function
 # data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Pine River Gas Plant" &
-#            PARAMETER=="H2S") %>% distinct()
+#   dplyr::filter(STATION_NAME=="Trail Butler Park" &
+#            PARAMETER=="SO2") %>% distinct()
 # 
-# h2sSASFcn(data)
+# so2StatsFcn(data)
 
-h2sStatsFcn<-function(data,h2scolumn,dateColumn){
+so2StatsFcn<-function(data,so2column,dateColumn){ 
+  
   
   library(openair) 
   library(Hmisc)
@@ -19,28 +19,27 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
   library(rcaaqs)
   
   #for testing
-  # h2scolumn<-"RAW_VALUE"
+  # so2column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% toupper("h2s") &
-                    # STATION_NAME=="BESSBOROUGH 237 ROAD")
+  #   dplyr::filter(PARAMETER %in% toupper("so2") &
+  #                   STATION_NAME=="BIRCHBANK GOLF COURSE")
   # END TESTING
   
   #default arguments
-  if(missing(h2scolumn)){h2scolumn<-"RAW_VALUE"}
+  if(missing(so2column)){so2column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-h2s}
+  if(missing(data)){data<-so2}
   
   sub <- data %>%
-    dplyr::select(date=!!dateColumn,
-                   value=!!h2scolumn)
+    dplyr::select(date=dateColumn,
+                   value=so2column)
   
-  # # # VALID DATA (DAYS AND HR.) # # # 
   
-  #calculate daily averages time series, data completeness = 75%
-  dt <- openair::timeAverage(sub, 
-                             avg.time = "day", 
-                             data.thresh = 75)
+  #calculate daily averages time series with data completeness of 75%
+  dt<-openair::timeAverage(sub,
+                           avg.time="day",
+                           data.thresh=75)
   
   #Count the number of days with valid data:
   nd<-dt %>%
@@ -54,7 +53,18 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  ############### HR. PERC. & EXCEEDANCES ###############  
+  #AQO: 99th percentile of the d1hm:
+  #calculate daily 1-hr max:
+  d1hm<-openair::timeAverage(mydata=sub,
+                     avg.time="day",         #averaging period
+                     statistic="max")
+  
+  #calculate the annual 99th percentile of d1hm
+  d1hm_p99<-openair::timeAverage(d1hm,
+                   avg.time="year",
+                   statistic="percentile",
+                   percentile=99) %>%
+    select(value)
   
   #Calculate hourly percentiles over the year: 
   hp<-sub %>%
@@ -122,18 +132,27 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     # ),
     `100%(hr)`=max(value,
                    na.rm = TRUE))
-    
-  #count hourly exceedances of 5 ppb.
-  hoursAbove5 <- sub %>%
-    dplyr::filter(value>5) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
   
+  #Annal 1-hr average > 5ppb.
   
-  ############### DAILY PERC. & EXCEEDANCES ############### 
+  AAG5 <- if(mean(sub$value,na.rm=T)>5){
+    "Yes"
+  } else {
+    "No"
+  }
   
-  #calculate daily percentiles over the year:
-  dp<-dt %>%
+  #count hourly exceedances of 70 and 75 ppb - removed in the 2022 Stat summaries
+  # hoursAbove70<-sub %>%
+  #   dplyr::filter(value>=70) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+  # hoursAbove75<-sub %>%
+  #   dplyr::filter(value>=75) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+
+  #calculate d1hm percentiles over the year:
+  d1hmp <- d1hm %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
                                                   probs=0,
@@ -199,20 +218,21 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     `100%(day)`=max(value,
                     na.rm = TRUE))
   
-  #count daily exceedances of 2 ppb.
-  daysAbove2 <- dt %>%
-    dplyr::filter(value>2) %>%
+  
+  #count d1hm exceedances of 70 and 75 ppb.
+  d1hmAbove70<-d1hm %>%
+    dplyr::filter(value>=70) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
-  
-  ############### DATA CAPTURE (d/MO, QUARTERLY) ############### 
-  
-  # # # MONITORING DAYS/MO & /Q # # #
-  
+  d1hmAbove75<-d1hm %>%
+    dplyr::filter(value>=75) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
-                  avg.time="month",
-                  statistic="frequency")
+                           avg.time="month",
+                           statistic="frequency")
   
   #calculate number of monitoring days each quarter
   dq<-openair::timeAverage(dt,
@@ -220,8 +240,7 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
                   statistic="frequency")
   
   #calculate total no. days each quarter
-  alld<-openair::timeAverage(sub,
-                             avg.time="day")
+  alld<-openair::timeAverage(sub,avg.time="day")
   allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
           sum(Hmisc::monthDays(dm$date)[4:6]),
           sum(Hmisc::monthDays(dm$date)[7:9]),
@@ -232,7 +251,7 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-  # variables for making summary (sas) below
+  # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
     tidyr::spread(key=date,value=value)
@@ -251,11 +270,9 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
                                          " (%days)")) %>%
     tidyr::spread(QUARTER,value) 
   
-  
-  # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
-  
+  #Create and print summary table
   (
-    stats <- tibble::tibble(
+    Stats <- tibble::tibble(
       
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
@@ -277,16 +294,37 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
         round(hp %>% dplyr::select(-date),
               2),
         
-        # Hourly Exceedances of 5 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 5 ppb`=
-                         hoursAbove5),
+        #Annual 1-hr average>5
+        `ANNUAL 1-HR AVG > 5?` = AAG5,
         
-        # Daily Percentiles
-        round(dp %>% dplyr::select(-date),
+        # Hourly Exceedances of 70 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
+        #                 hoursAbove70),
+        
+        # Hourly Exceedances of 75 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
+        #                 hoursAbove75),
+        
+        # D1hm Percentiles
+        round(d1hmp %>% dplyr::select(-date),
               2),
         
-        # Exceedances of daily > 2 ppb
-        tibble::tibble(`EXCEEDANCES OF DAILY AVG > 2 ppb`=daysAbove2),
+        # Exceedances of D1HM >70 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
+        
+        # Exceedances of D1HM >75 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
+        
+        # Annual 99P of D1HM
+        d1hm_p99 %>% 
+          dplyr::mutate(value=round(value,2)) %>%
+          dplyr::rename(`ANNUAL 99P D1HM`=value),
+        
+        # Annual 99P of D1HM 3-yr ave
+        tibble::tibble(`99P_DAILY,3-YR AVG`=NA_real_),
+        
+        # Annual 99P of D1HM 3-yr ave > 70 ppb
+        tibble::tibble(`99P_DAILY,3-YR AVG > 70 PPB`=NA_real_),
         
         # days of monitoring/month
         dm,
@@ -295,5 +333,6 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
         q
       ) 
     
-  ) # end sas
+  ) # end Stats
+  
 }

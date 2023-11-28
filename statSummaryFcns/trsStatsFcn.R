@@ -1,16 +1,16 @@
-# Script: h2sStatsFcn.R
-# Description: h2s sas script for ftp data
+# Script: trsStatsFcn.R
+# Description: trs Stats script for ftp data
 # NOTE: EXACT SAME STATS AS TRS
 
 # FOR TESTING
 # subset for a single station and param for testing the function
 # data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Pine River Gas Plant" &
-#            PARAMETER=="H2S") %>% distinct()
+#   dplyr::filter(STATION_NAME=="Langdale Elementary" &
+#            PARAMETER=="TRS") %>% distinct()
 # 
-# h2sSASFcn(data)
+# trsStatsFcn(data)
 
-h2sStatsFcn<-function(data,h2scolumn,dateColumn){
+trsStatsFcn<-function(data,trscolumn,dateColumn){
   
   library(openair) 
   library(Hmisc)
@@ -19,34 +19,33 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
   library(rcaaqs)
   
   #for testing
-  # h2scolumn<-"RAW_VALUE"
+  # trscolumn<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% toupper("h2s") &
-                    # STATION_NAME=="BESSBOROUGH 237 ROAD")
+  #   dplyr::filter(PARAMETER %in% toupper("trs") &
+  # STATION_NAME=="BESSBOROUGH 237 ROAD")
   # END TESTING
   
   #default arguments
-  if(missing(h2scolumn)){h2scolumn<-"RAW_VALUE"}
+  if(missing(trscolumn)){trscolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-h2s}
+  if(missing(data)){data<-trs}
   
   sub <- data %>%
     dplyr::select(date=!!dateColumn,
-                   value=!!h2scolumn)
+                  value=!!trscolumn)
   
   # # # VALID DATA (DAYS AND HR.) # # # 
   
   #calculate daily averages time series, data completeness = 75%
-  dt <- openair::timeAverage(sub, 
-                             avg.time = "day", 
-                             data.thresh = 75)
+  dt<-openair::timeAverage(sub,avg.time="day",data.thresh=75)
   
   #Count the number of days with valid data:
   nd<-dt %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
+  
   
   #Count the number of hours with valid data:
   nh<-sub %>%
@@ -122,13 +121,13 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     # ),
     `100%(hr)`=max(value,
                    na.rm = TRUE))
-    
+  
+  
   #count hourly exceedances of 5 ppb.
-  hoursAbove5 <- sub %>%
-    dplyr::filter(value>5) %>%
+  hoursAbove5<-sub %>%
+    dplyr::filter(value>=5) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
-  
   
   ############### DAILY PERC. & EXCEEDANCES ############### 
   
@@ -200,8 +199,8 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
                     na.rm = TRUE))
   
   #count daily exceedances of 2 ppb.
-  daysAbove2 <- dt %>%
-    dplyr::filter(value>2) %>%
+  daysAbove2<-dt %>%
+    dplyr::filter(value>=2) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
@@ -220,8 +219,7 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
                   statistic="frequency")
   
   #calculate total no. days each quarter
-  alld<-openair::timeAverage(sub,
-                             avg.time="day")
+  alld<-openair::timeAverage(sub,avg.time="day")
   allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
           sum(Hmisc::monthDays(dm$date)[4:6]),
           sum(Hmisc::monthDays(dm$date)[7:9]),
@@ -232,7 +230,7 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
   
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
-  # variables for making summary (sas) below
+  # variables for making summary (Stats) below
   dm %<>% 
     dplyr::mutate(date=format(date,"%m")) %>%
     tidyr::spread(key=date,value=value)
@@ -252,10 +250,10 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
     tidyr::spread(QUARTER,value) 
   
   
-  # # # CREATE SUMMARY TABLE (SAME AS SAS)  # # #
+  # # # CREATE SUMMARY TABLE (SAME AS Stats)  # # #
   
   (
-    stats <- tibble::tibble(
+    Stats <- tibble::tibble(
       
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
@@ -295,5 +293,5 @@ h2sStatsFcn<-function(data,h2scolumn,dateColumn){
         q
       ) 
     
-  ) # end sas
+  ) # end Stats
 }

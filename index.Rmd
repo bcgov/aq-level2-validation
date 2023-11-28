@@ -53,9 +53,11 @@ source("emptyPlot.R")
 ```
 
 ```{r importData}
+#use the line below for automated report generation
 data<-readRDS(params$preppedData)
 
-# data<-readRDS("./preppedData/Pine River Gas Plant.rds")
+#use the line below for testing - comment it out and pick a station with the parameter(s) of interest
+# data<-readRDS("./preppedData/Cranbrook Muriel Baxter.rds")
 
 prevYrWind<-data %>%
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &
@@ -110,11 +112,9 @@ allData<-data %>%
   dplyr::bind_rows(.,
                    `24hr` %>%
                      dplyr::mutate(TIME_AVG = "24-HR Running Ave"))
-
-
 ```
 
 
 # Preamble {-}
 
-**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`**. 
+**This report is for `r data %>% dplyr::pull(STATION_NAME) %>% unique %>% sort`**.
