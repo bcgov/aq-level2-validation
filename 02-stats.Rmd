@@ -54,7 +54,7 @@ if(length(pm25Stns!=0)){
 # import ecms Stats from excel
 pm25StatsECMS <- readxl::read_excel(
   file.path(statReports,                                            
-            "PM2.5_UNSUPPRESSED.xlsx")) %>%
+            "PM25_UNSUPPRESSED.xlsx")) %>%
 
 # remove secondary header row
 dplyr::slice(-1) %>%
