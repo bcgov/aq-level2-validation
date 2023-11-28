@@ -1,64 +1,57 @@
-
-#Script: pm10StatsFcn.R
-#Description: calculates pm10 Stats stats on ftp data
-
-# NOTE: SAME AS PM25 EXCEPT FOR OBJECTIVE
+#Script: pm25StatsFcn.R
+#Description: calculates pm25 Stats stats on ftp data
 # # # 
 
-# # subset for a single station and instrument for testing the function
-
+#FOR TESTING
+# pm25column<-"RAW_VALUE"
+# dateColumn<-"DATE_PST"
 # data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Golden Helipad" &
-#            PARAMETER=="PM10") %>% distinct()
-# 
-# pm10Stats<-pm10StatsFcn(data)
+#   dplyr::filter(PARAMETER %in% "PM25" &
+#                   STATION_NAME=="Burns Lake Fire Centre" &
+#                   INSTRUMENT=="PM25 SHARP5030")
+# END TESTING
 
-
-pm10StatsFcn<-function(data,pm10column,dateColumn){ 
-
+pm25StatsFcn<-function(data,pm25column,dateColumn){ 
   
   library(openair)
   library(Hmisc)
   library(tidyverse)
   library(rlang)
   library(rcaaqs)
-  
-  #FOR TESTING
-  # pm10column<-"RAW_VALUE"
-  # dateColumn<-"DATE_PST"
-  # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% "PM10" &
-  #                   STATION_NAME=="REVELSTOKE_TRAILER" &
-  #                   INSTRUMENT=="PM10_T640")
-  # END TESTING
+
   
   #default arguments
-  if(missing(pm10column)){pm10column<-"RAW_VALUE"}
+  if(missing(pm25column)){pm25column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-pm10}
+  if(missing(data)){data<-pm25}
   
-
   sub <- data %>%
     dplyr::select(date=!!dateColumn,
-                  value=!!pm10column)
-  
+            value=!!pm25column)
+
   dt<-openair::timeAverage(sub,
-                  pollutant="PM10",
+                  pollutant="PM25",
                   avg.time="day",
                   data.thresh=75)
-  
 
   nd<-dt %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
-  
+
   #Count the number of hours with valid data:
   nh<-sub %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
+  #Is annual average greater than 8 ug/m3?
+  AAG8 <- if(mean(sub$value,na.rm=T)>8){
+    "Yes"
+  } else {
+    "No"
+  }
+
   #Calculate hourly percentiles over the year:
   hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
@@ -126,6 +119,7 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
+    
   #calculate daily percentiles over the year:
   dp<-dt %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
@@ -193,42 +187,48 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     `100%(day)`=max(value,
                     na.rm = TRUE))
   
-  #count daily exceedances of 50 ug/m3:
   
-  daysAbove50 <- dt %>%
-    dplyr::filter(value>=50+0.5) %>%
+  #count daily exceedances of 25 ug/m3:
+  daysAbove25<-dt %>%
+    dplyr::filter(value>25) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
-  #calculate daily % of exceedances
-  pdaysAbove50<-as_tibble(round((daysAbove50/nd)*100,2))
-  
+  ##Annual 98P daily average > 25
+  Annual98P <- dp %>% dplyr::pull(`98%(day)`)
+  AnnualAQO <- if(Annual98P>25){
+    "Yes"
+  } else {
+    "No"
+  }
+
+  #calculate daily % of exceedances - removed in 2022 stat summary
+  #pdaysAbove25<-round((daysAbove25/nd)*100,2)
+
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
                   avg.time="month",
                   statistic="frequency")
-  
+
   #calculate number of monitoring days each quarter
   dq<-openair::timeAverage(dt,
                   avg.time="3 month",
                   statistic="frequency")
-  
-  #calculate total no. days each quarter
 
+  #calculate total no. days each quarter
   alld<-openair::timeAverage(sub,avg.time="day")
   allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
           sum(Hmisc::monthDays(dm$date)[4:6]),
           sum(Hmisc::monthDays(dm$date)[7:9]),
           sum(Hmisc::monthDays(dm$date)[10:12]))
-  
+
   #calculate quarterly data capture (%)
   q<-as_tibble(round((dq[,2]/allq)*100,0))
-  
-  
-  #Change dm from 12 observations of 2 variables to 1 observation of 12
 
+
+  #Change dm from 12 observations of 2 variables to 1 observation of 12
   # variables for making summary (Stats) below
-  dm %<>% 
+  dm<-dm %>% 
     dplyr::mutate(date=format(date,"%m")) %>%
     tidyr::spread(key=date,value=value)
   
@@ -249,7 +249,6 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
   #Create and print summary table
   (
     Stats <- tibble::tibble(
-
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
         unique,
@@ -258,10 +257,13 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
         unique,
       YEAR = hp$date,
       `VALID HOURS`=nh,
-      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       `VALID DAYS`= nd,
-      `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
-     # `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
+      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
+     # removed in 2022 stat summary
+     # `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
+      `DAILY AVG, 3-YR AVG` = NA_real_, # added to Stats summary in 2021, i don't calculate it
+      `ANNUAL AVG > 8?` = AAG8, #added in Stats summary in 2022
+      `ANNUAL AVG, 3-YR AVG > 8.8?` = NA_real_, #added in Stats summary in 2022
     ) %>%
       dplyr::bind_cols(round(hp %>% dplyr::select(-date),
                              2)) %>%
@@ -269,14 +271,18 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
                              2)) %>%
       dplyr::bind_cols(
         tibble::tibble(
-        #  `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),
-        #                         2),
-        # `98P_DAILY,3-YR AVG`=NA_real_,
-          `EXCEEDANCES OF DAILY AVG > 50ug/m3`=daysAbove50
+          `ANNUAL 98P_DAILY`=round(dp %>% dplyr::pull(`98%(day)`),2),
+          `98P_DAILY,3-YR AVG`=NA_real_,
+          `ANNUAL 98P_DAILY > 25?`=AnnualAQO,
+          `98P_DAILY,3-YR AVG > 27?`=NA_real_
+          #`EXCEEDANCES OF DAILY AVG > 25ug/m3`=daysAbove25 #Removed in 2022 stat summary
         )) %>%
       dplyr::bind_cols(dm,q)
+    
+    
   )
-  
-  
 }
+
+
+
 
