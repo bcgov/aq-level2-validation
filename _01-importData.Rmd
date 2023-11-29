@@ -330,10 +330,26 @@ data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
                        readr::read_rds("prevYrWind.rds")
 )
 
-# save list of stations:
+# save list of stations in yearToValidate:
+allStations<-data %>%
+                   dplyr::filter(lubridate::year(DATE_PST)==yearToValidate) %>%
+                   dplyr::select(STATION_NAME) %>%
+                   dplyr::distinct(.) %>%
+                   dplyr::arrange(STATION_NAME)
 
-# save allStsations as rds
+# do an anti-join with list of stations from all of data to see which stations need to be removed
+# i.e. need to remove stations that don't have data in yearToValidate (these would include
+# stations that have been decomissioned in prevYrWind.rds)
+  dplyr::anti_join(data %>%
+                   dplyr::select(STATION_NAME) %>%
+                   dplyr::distinct(.) %>%
+                   dplyr::arrange(STATION_NAME),
+                   allStations) %>% utils::View(.) # delete these stations from the preppedData folder and re-run
+  # 02-compileBooks.R
+  
+# save allStations as rds
 readr::write_rds(data %>%
+                   dplyr::filter(lubridate::year(DATE_PST)==yearToValidate) %>%
                    dplyr::select(STATION_NAME) %>%
                    dplyr::distinct(.) %>%
                    dplyr::arrange(STATION_NAME),
