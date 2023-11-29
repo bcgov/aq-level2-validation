@@ -330,20 +330,19 @@ data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
                        readr::read_rds("prevYrWind.rds")
 )
 
-# save list of stations:
-
-# save allStsations as rds
-readr::write_rds(data %>%
+# save list of stations in yearToValidate:
+allStations<-data %>%
+                   dplyr::filter(lubridate::year(DATE_PST)==yearToValidate) %>%
                    dplyr::select(STATION_NAME) %>%
                    dplyr::distinct(.) %>%
-                   dplyr::arrange(STATION_NAME),
+                   dplyr::arrange(STATION_NAME)
+
+# save allStations as rds
+readr::write_rds(allStations,
         "allStations.rds")
 
 # save allStations as csv
-readr::write_csv(data %>%
-                   dplyr::select(STATION_NAME) %>%
-                   dplyr::distinct(.) %>%
-                   dplyr::arrange(STATION_NAME),
+readr::write_csv(allStations,
                  "allStations.csv")
 
 # Save each station to preppedData folder 

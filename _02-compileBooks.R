@@ -5,11 +5,13 @@ root<-stringr::str_remove(dir("./preppedData"),
 
 utils::View(root)
 
-
 yearToValidate<-2022
 
+#indices in roots that won't compile: 
+bugs<-c(6)
+
 purrr::walk(
-  root[1:length(root)],
+  root[7:length(root)],
   
             function(r){
               
