@@ -8,10 +8,21 @@ utils::View(root)
 yearToValidate<-2022
 
 #indices in roots that won't compile: 
-bugs<-c(6)
+bugs<-c(54,#Langdale Elementary
+        57, #Merritt Nicola Ave MAML
+        73, #Port Edward Sunset Drive
+        90, # Quesnel Kinchant St MAML
+        111, # Vancouver International Airport #2
+        113, # Vanderhoof Courthouse
+        117, # Warfield Haley Park
+        119, # Williams Lake Colunmeetza School
+        120, # Willow Creek Mine
+        121 # Willow Creek Compressor Station 2
+        )
 
 purrr::walk(
-  root[7:length(root)],
+  #compile reports for stations without bugs
+  root[!(1:length(root) %in% bugs)] %>% utils::View(.),
   
             function(r){
               
@@ -40,7 +51,7 @@ purrr::walk(
             
             )
 
-# copy updated files to shared drive
+# copy compiled reports to shared drive
 filesToCopy<-list.files(path = ".",
            pattern="sas-statistics.html",
            recursive=TRUE,
