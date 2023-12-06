@@ -8,7 +8,8 @@ utils::View(root)
 yearToValidate<-2022
 
 #indices in roots that won't compile: 
-bugs<-c(54,#Langdale Elementary
+bugs<-c(16, #Chetwynd 51 Street
+        54,#Langdale Elementary
         57, #Merritt Nicola Ave MAML
         73, #Port Edward Sunset Drive
         90, # Quesnel Kinchant St MAML
@@ -20,9 +21,11 @@ bugs<-c(54,#Langdale Elementary
         121 # Willow Creek Compressor Station 2
         )
 
+rootNoBugs<-root[!(1:length(root) %in% bugs)]
+
 purrr::walk(
   #compile reports for stations without bugs
-  root[!(1:length(root) %in% bugs)] %>% utils::View(.),
+  rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
   
             function(r){
               
@@ -51,38 +54,28 @@ purrr::walk(
             
             )
 
-# copy compiled reports to shared drive
-filesToCopy<-list.files(path = ".",
-           pattern="sas-statistics.html",
-           recursive=TRUE,
-           full.name=TRUE)
+# need to delete all files 404.html - don't know why these are being generated
+filesToDelete<-list.files(path = ".",
+           pattern = "404",
+           recursive = TRUE,
+           full.names = TRUE)
 
-(filesToCopy<-filesToCopy[which(!(filesToCopy %in% c("./sas-statistics.html",
-                                                     "./_book-output/sas-statistics.html")
-                                  )
-                                )
-                          ]
-  )
+file.remove(filesToDelete)
 
-utils::View(filesToCopy)
+# list files in the reports
+filesToCopy <- dir(
+  file.path(".",
+            stringr::str_c("_",
+                           rootNoBugs)),
+  all.files = TRUE,
+  full.names = TRUE,
+  recursive = TRUE
+)
 
-(destinations<-file.path(
-  "R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\AnnualDataValidation",
-  stringr::str_remove(filesToCopy,"./")))
+#copy files to shared drive
+destination<-"R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\aq-level2-validation"
 
-file.copy(filesToCopy[1],
-          destinations[1],
-          overwrite = TRUE)
-
-
-purrr::map(1:length(filesToCopy),
-  
-           function(index){
-                      
-           file.copy(filesToCopy[index],
-                     destinations[index],
-                     overwrite = TRUE)
-           
-           })
-
-
+file.copy(from = filesToCopy,
+          to=destination,
+          overwrite = TRUE,
+          recursive = TRUE)
