@@ -11,7 +11,7 @@ library(envair)
 
 ```{r declareParameters}
 
-# FILTER FOR YEAR TO VALIDATE:
+# YEAR TO VALIDATE:
 yearToValidate<-2022
 
 parameters <- tolower(
@@ -310,6 +310,8 @@ prevYrWind<-summary_stnNameFull %>%
 readr::write_rds(prevYrWind,
                  "prevYrWind.rds")
 
+
+
 # # # # # FIND DUPLICATES
  windDuplicates<-prevYrWind %>%
     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
@@ -322,35 +324,48 @@ readr::write_rds(prevYrWind,
 ```
 
 ```{r saveExternally}
-
-# data <- readr::read_rds("2022data.rds")
-
 # bind the two data sets together, call it data
 data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
                        readr::read_rds("prevYrWind.rds")
 )
 
-# save list of stations in yearToValidate:
+# save list of stations in yearToValidate with data:
 allStations<-data %>%
-                   dplyr::filter(lubridate::year(DATE_PST)==yearToValidate) %>%
-                   dplyr::select(STATION_NAME) %>%
-                   dplyr::distinct(.) %>%
-                   dplyr::arrange(STATION_NAME)
+  dplyr::filter(lubridate::year(DATE_PST) == yearToValidate) %>%
+  dplyr::group_by(STATION_NAME) %>%
+  dplyr::filter(!is.na(RAW_VALUE)) %>%
+  dplyr::distinct(STATION_NAME) %>%
+  dplyr::arrange(STATION_NAME)
 
 # save allStations as rds
 readr::write_rds(allStations,
         "allStations.rds")
 
+# read in allStations
+# allStations<-readr::read_rds(file="allStations.rds")
+
 # save allStations as csv
 readr::write_csv(allStations,
                  "allStations.csv")
 
+# create preppedData folder if it doesn't already exist
+ifelse(dir.exists(file.path("./preppedData")),
+       "preppedData folder already exists",
+       dir.create(file.path("./preppedData"
+       )))
+
 # Save each station to preppedData folder 
 purrr::walk(readr::read_rds("allStations.rds")$STATION_NAME,
+            
             function(x) {
-              stnData <- data %>%
+                # test
+                # x<-"Abbotsford A Columbia Street"
+                # end test
+              
+                stnData <- data %>%
                 dplyr::filter(STATION_NAME == x)
-              saveRDS(stnData,
+             
+                 readr::write_rds(stnData,
                       file.path("./preppedData",
                                 stringr::str_c(x, ".rds", collapse = "")))
               
