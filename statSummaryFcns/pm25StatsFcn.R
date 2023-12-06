@@ -5,10 +5,11 @@
 #FOR TESTING
 # pm25column<-"RAW_VALUE"
 # dateColumn<-"DATE_PST"
-# data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(PARAMETER %in% "PM25" &
-#                   STATION_NAME=="Burns Lake Fire Centre" &
-#                   INSTRUMENT=="PM25 SHARP5030")
+# data<-readr::read_rds("./preppedData/Langdale Elementary.rds") %>%
+#   dplyr::filter(PARAMETER %in% "PM25" & INSTRUMENT %in% "BAM1020")
+# 
+# pm25StatsFcn(data)
+
 # END TESTING
 
 pm25StatsFcn<-function(data,pm25column,dateColumn){ 
@@ -46,81 +47,125 @@ pm25StatsFcn<-function(data,pm25column,dateColumn){
     dplyr::pull(n)
   
   #Is annual average greater than 8 ug/m3?
-  AAG8 <- if(mean(sub$value,na.rm=T)>8){
-    "Yes"
-  } else {
-    "No"
-  }
-
+  AAG8 <- dplyr::case_when(
+    
+    mean(sub$value,na.rm=T)>8 ~ "Yes",
+    mean(sub$value,na.rm=T)<=8 ~ "No",
+    sum(is.na(sub$value))==length(sub$value) ~ NA_character_
+    
+  )
+  
   #Calculate hourly percentiles over the year:
+  
+  if(sum(is.na(sub$value))==length(sub$value)){
+  
   hp<-sub %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
-    dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
-                                                 probs=0,
-                                                 na.rm=TRUE,
-                                                 type="caaqs"
-    ),
-    `10%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.1,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `25%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.25,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `50%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.5,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `75%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.75,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `90%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.9,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `95%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.95,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `98%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=.98,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `99%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.99,
-                                 na.rm=TRUE,
-                                 type="caaqs"
-    ),
-    `99.5%(hr)`=rcaaqs:::quantile2(value,
-                                   probs=0.995,
+    dplyr::summarise(`0%(hr)`=NA_real_,
+    `10%(hr)`=NA_real_,
+    `25%(hr)`=NA_real_,
+    `50%(hr)`=NA_real_,
+    `75%(hr)`=NA_real_,
+    `90%(hr)`=NA_real_,
+    `95%(hr)`=NA_real_,
+    `98%(hr)`=NA_real_,
+    `99%(hr)`=NA_real_,
+    `99.5%(hr)`=NA_real_,
+    `99.9%(hr)`=NA_real_,
+    `100%(hr)`=NA_real_)
+  } else{
+    
+    hp<-sub %>%
+      dplyr::group_by(date=lubridate::year(date)) %>%
+      dplyr::summarise(`0%(hr)`=rcaaqs:::quantile2(value,
+                                                   probs=0,
+                                                   na.rm=TRUE,
+                                                   type="caaqs"
+      ),
+      `10%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.1,
                                    na.rm=TRUE,
                                    type="caaqs"
-    ),
-    `99.9%(hr)`=rcaaqs:::quantile2(value,
-                                   probs=0.999,
+      ),
+      `25%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.25,
                                    na.rm=TRUE,
                                    type="caaqs"
-    ),
-    # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
-    # `100%(hr)`=rcaaqs:::quantile2(value,
-    #                             probs=1,
-    #                             na.rm=TRUE,
-    #                             type="caaqs"
-    # ),
-    `100%(hr)`=max(value,
-                   na.rm = TRUE))
+      ),
+      `50%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.5,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `75%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.75,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `90%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.9,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `95%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.95,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `98%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=.98,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `99%(hr)`=rcaaqs:::quantile2(value,
+                                   probs=0.99,
+                                   na.rm=TRUE,
+                                   type="caaqs"
+      ),
+      `99.5%(hr)`=rcaaqs:::quantile2(value,
+                                     probs=0.995,
+                                     na.rm=TRUE,
+                                     type="caaqs"
+      ),
+      `99.9%(hr)`=rcaaqs:::quantile2(value,
+                                     probs=0.999,
+                                     na.rm=TRUE,
+                                     type="caaqs"
+      ),
+      # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
+      # `100%(hr)`=rcaaqs:::quantile2(value,
+      #                             probs=1,
+      #                             na.rm=TRUE,
+      #                             type="caaqs"
+      # ),
+      `100%(hr)`=max(value,
+                     na.rm = TRUE))
+    
+  }
   
     
   #calculate daily percentiles over the year:
+
+  if(sum(is.na(dt$value))==nrow(dt)){
+    
+    dp<-dt %>%
+      dplyr::group_by(date=lubridate::year(date)) %>%
+      dplyr::summarise(`0%(day)`=NA_real_,
+      `10%(day)`=NA_real_,
+      `25%(day)`=NA_real_,
+      `50%(day)`=NA_real_,
+      `75%(day)`=NA_real_,
+      `90%(day)`=NA_real_,
+      `95%(day)`=NA_real_,
+      `98%(day)`=NA_real_,
+      `99%(day)`=NA_real_,
+      `99.5%(day)`=NA_real_,
+      `99.9%(day)`=NA_real_,
+      `100%(day)`=NA_real_,)
+    
+  } else{
+  
+  
   dp<-dt %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
@@ -186,7 +231,7 @@ pm25StatsFcn<-function(data,pm25column,dateColumn){
     # ),
     `100%(day)`=max(value,
                     na.rm = TRUE))
-  
+  }
   
   #count daily exceedances of 25 ug/m3:
   daysAbove25<-dt %>%
@@ -196,15 +241,14 @@ pm25StatsFcn<-function(data,pm25column,dateColumn){
   
   ##Annual 98P daily average > 25
   Annual98P <- dp %>% dplyr::pull(`98%(day)`)
-  AnnualAQO <- if(Annual98P>25){
-    "Yes"
-  } else {
-    "No"
-  }
-
-  #calculate daily % of exceedances - removed in 2022 stat summary
-  #pdaysAbove25<-round((daysAbove25/nd)*100,2)
-
+  
+  AnnualAQO <- dplyr::case_when(
+    
+    Annual98P>25 ~ "Yes",
+    Annual98P<=25 ~ "No",
+    is.na(Annual98P) ~ NA_character_
+    )
+    
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
                   avg.time="month",
