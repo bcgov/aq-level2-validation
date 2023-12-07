@@ -8,25 +8,18 @@ utils::View(root)
 yearToValidate<-2022
 
 #indices in roots that won't compile: 
-bugs<-c(16, #Chetwynd 51 Street
-        54,#Langdale Elementary
-        57, #Merritt Nicola Ave MAML
-        73, #Port Edward Sunset Drive
-        90, # Quesnel Kinchant St MAML
-        111, # Vancouver International Airport #2
-        113, # Vanderhoof Courthouse
-        117, # Warfield Haley Park
-        119, # Williams Lake Colunmeetza School
-        120, # Willow Creek Mine
-        121 # Willow Creek Compressor Station 2
+bugs<-c(110, # Vanderhoof Courthouse
+        114, # Warfield Haley Park
+        117, # Willow Creek Mine
+        118 # Willow Creek Compressor Station 2
         )
 
 rootNoBugs<-root[!(1:length(root) %in% bugs)]
 
 purrr::walk(
   #compile reports for stations without bugs
-  # rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
-  root[116],
+  rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
+  # root[116],
             function(r){
               
               # testing
