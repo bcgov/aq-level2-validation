@@ -1,41 +1,27 @@
-# from index
+test<-readr::read_rds("./preppedData/Port Edward Sunset Drive.rds")
 
+min(test$DATE_PST)
 
-```{r dailyData}
-(day<-data %>%
-    # rename to date for openair
-    dplyr::rename(date=DATE_PST) %>%
-    dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
-    dplyr::group_modify(~ openair::timeAverage(.x,
-                                               pollutant="PARAMETER",
-                                               avg.time = "day",
-                                               data.thresh = 75)
-    ) %>%
-    ungroup %>%
-    dplyr::rename(DATE_PST=date))
+head(test)
 
-```
+test %>% 
+  dplyr::filter(PARAMETER=="PM25") %>%
+  dplyr::arrange(DATE_PST) %>%
+  dplyr::slice(1:24)
 
+test %>%
+  dplyr::group_by(PARAMETER,INSTRUMENT) %>%
+  dplyr::summarise(sum(!is.na(RAW_VALUE)),
+                   sum(is.na(RAW_VALUE)),
+                   n())
+# BUNCH OF INSTRUMENT=NA'S
 
-```{r hourlyAndDaily}
+portEd<-envair::importBC_data(parameter_or_station = "Port Edward Sunset Drive",
+                              years=2022,
+                              use_openairformat = FALSE)
 
-# combine hourly and day data sets in one tidy tibble
-allData<-data %>%
-  dplyr::select(names(day)) %>%
-  dplyr::mutate(TIME_AVG = "Hourly") %>%
-  dplyr::bind_rows(.,
-                   day %>%
-                     dplyr::mutate(TIME_AVG = "Daily"))
-
-# allData %>%
-#   dplyr::filter(TIME_AVG=="Hourly")
-# 
-# allData %>%
-#   dplyr::filter(TIME_AVG=="Daily")
-```
-
-# hourly plots
-
-plotlyFcn(data,
-          allData,
-          parameter=toupper("pm25"))
+portEd %>%
+  dplyr::group_by(PARAMETER,INSTRUMENT) %>%
+  dplyr::summarise(sum(!is.na(RAW_VALUE)),
+                   sum(is.na(RAW_VALUE)),
+                   n())

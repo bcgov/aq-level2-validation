@@ -36,7 +36,10 @@ parameters <- tolower(
 
 ```
 
-```{r importYearToValidate}
+```{r importUnverifiedData}
+
+data<-readr::read_rds("unverified_data.rds")
+
 system.time({
 data<-envair::importBC_data(
   parameter_or_station = parameters,
@@ -90,7 +93,32 @@ duplicates<-data %>%
                 RAW_VALUE,
                 everything())
 
+# Merritt Nicola Ave MAML has been updated (data was not padding and first started in feb), 
+#so replace in data:
+merrittMAML<-envair::importBC_data(parameter_or_station="Merritt Nicola Ave MAML",
+                                   year=2022,
+                                   use_openairformat = FALSE)
 
+merrittMAML %<>% dplyr::filter(lubridate::year(DATE_PST)==2022)
+
+merrittMAML %>%
+  dplyr::filter(is.na(INSTRUMENT))
+
+data %<>% 
+  # remove previously imported merritt maml data for 2022
+  dplyr::filter(!(STATION_NAME %in% "Merritt Nicola Ave MAML" & 
+                    lubridate::year(DATE_PST)==2022)) %>%
+  # bind updated merrit maml data
+  dplyr::bind_rows(.,
+                   merrittMAML)
+
+# port edward sunset drive has some instrument == NA's (with all NA data)
+#remove it
+
+data %<>%
+  dplyr::filter(!(STATION_NAME %in% "Port Edward Sunset Drive" & 
+                    is.na(INSTRUMENT) &
+                    lubridate::year(DATE_PST)==yearToValidate))
 
 readr::write_rds(data,"unverified_data.rds")
 
@@ -310,8 +338,6 @@ prevYrWind<-summary_stnNameFull %>%
 readr::write_rds(prevYrWind,
                  "prevYrWind.rds")
 
-
-
 # # # # # FIND DUPLICATES
  windDuplicates<-prevYrWind %>%
     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
@@ -323,12 +349,15 @@ readr::write_rds(prevYrWind,
 
 ```
 
-```{r saveExternally}
+```{r data}
 # bind the two data sets together, call it data
 data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
                        readr::read_rds("prevYrWind.rds")
-)
+) %>% 
+  dplyr::distinct(.)
+```
 
+```{r saveExternally}
 # save list of stations in yearToValidate with data:
 allStations<-data %>%
   dplyr::filter(lubridate::year(DATE_PST) == yearToValidate) %>%
