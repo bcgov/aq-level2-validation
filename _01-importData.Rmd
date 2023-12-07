@@ -93,7 +93,8 @@ duplicates<-data %>%
                 RAW_VALUE,
                 everything())
 
-# Merritt Nicola Ave MAML has been updated, so replace in data:
+# Merritt Nicola Ave MAML has been updated (data was not padding and first started in feb), 
+#so replace in data:
 merrittMAML<-envair::importBC_data(parameter_or_station="Merritt Nicola Ave MAML",
                                    year=2022,
                                    use_openairformat = FALSE)
@@ -110,6 +111,14 @@ data %<>%
   # bind updated merrit maml data
   dplyr::bind_rows(.,
                    merrittMAML)
+
+# port edward sunset drive has some instrument == NA's (with all NA data)
+#remove it
+
+data %<>%
+  dplyr::filter(!(STATION_NAME %in% "Port Edward Sunset Drive" & 
+                    is.na(INSTRUMENT) &
+                    lubridate::year(DATE_PST)==yearToValidate))
 
 readr::write_rds(data,"unverified_data.rds")
 

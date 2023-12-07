@@ -92,7 +92,7 @@ names(pm25StatsECMS) <- names(pm25Stats)
 ```{r pm25StatsDT}
 if(length(pm25Stns)!=0){
 
-  if(exists("pm25StatsECMS")){
+  if(exists("pm25StatsECMS") & nrow(pm25StatsECMS!=0)){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -219,9 +219,9 @@ names(pm10StatsECMS) <- names(pm10Stats)
 ```
 
 ```{r pm10StatsDT}
-if(length(pm10Stns)!=0){
+if(length(pm10Stns)!=0 ){
 
-  if(exists("pm10StatsECMS")){
+  if(exists("pm10StatsECMS") & nrow(pm10StatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -340,7 +340,7 @@ names(no2StatsECMS) <- names(no2Stats)
 ```{r no2StatsDT}
 if(length(no2Stns)!=0){
 
-  if(exists("no2StatsECMS")){
+  if(exists("no2StatsECMS")& nrow(no2StatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -458,7 +458,7 @@ names(noStatsECMS) <- names(noStats)
 ```{r noStatsDT}
 if(length(noStns)!=0){
 
-  if(exists("noStatsECMS")){
+  if(exists("noStatsECMS")& nrow(noStatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -576,7 +576,7 @@ names(so2StatsECMS) <- names(so2Stats)
 ```{r so2StatsDT}
 if(length(so2Stns)!=0){
 
-  if(exists("so2StatsECMS")){
+  if(exists("so2StatsECMS")& nrow(so2StatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -696,7 +696,7 @@ names(o3StatsECMS) <- names(o3Stats)
 ```{r o3StatsDT}
 if(length(o3Stns)!=0){
 
-  if(exists("o3StatsECMS")){
+  if(exists("o3StatsECMS")& nrow(o3StatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -816,7 +816,7 @@ names(h2sStatsECMS) <- names(h2sStats)
 ```{r h2sStatsDT}
 if(length(h2sStns)!=0){
 
-  if(exists("h2sStatsECMS")){
+  if(exists("h2sStatsECMS")& nrow(h2sStatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -934,7 +934,7 @@ names(trsStatsECMS) <- names(trsStats)
 ```{r trsStatsDT}
 if(length(trsStns)!=0){
 
-  if(exists("trsStatsECMS")){
+  if(exists("trsStatsECMS")& nrow(trsStatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
@@ -1059,7 +1059,7 @@ names(coStatsECMS) <- names(coStats)
 ```{r coStatsDT}
 if(length(coStns)!=0){
 
-  if(exists("coStatsECMS")){
+  if(exists("coStatsECMS")& nrow(coStatsECMS)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
