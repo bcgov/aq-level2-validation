@@ -96,13 +96,15 @@ if(length(pm25Stns)!=0){
    
     # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
 
+    # GOT TO HERE - MERRITT NICOLA AVE MAML MISMATCH IN COLUMNS ECMS
+    
 pm25StatsDT <- bind_rows(
   pm25StatsECMS %>%
     dplyr::mutate_all(as.character) %>%
-    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)), #%>% utils::View(.),
 
   pm25Stats %>%
-    mutate_all(as.character)
+    dplyr::mutate_all(as.character)
 
 ) %>%
   dplyr::arrange(`STATION NAME`) %>%
