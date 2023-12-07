@@ -127,6 +127,26 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
                    na.rm = TRUE))
   
   #calculate daily percentiles over the year:
+  
+  if(sum(is.na(dt$value))==nrow(dt)){
+    
+    dp<-dt %>%
+      dplyr::group_by(date=lubridate::year(date)) %>%
+      dplyr::summarise(`0%(day)`=NA_real_,
+                       `10%(day)`=NA_real_,
+                       `25%(day)`=NA_real_,
+                       `50%(day)`=NA_real_,
+                       `75%(day)`=NA_real_,
+                       `90%(day)`=NA_real_,
+                       `95%(day)`=NA_real_,
+                       `98%(day)`=NA_real_,
+                       `99%(day)`=NA_real_,
+                       `99.5%(day)`=NA_real_,
+                       `99.9%(day)`=NA_real_,
+                       `100%(day)`=NA_real_,)
+    
+  } else{
+    
   dp<-dt %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
@@ -192,6 +212,8 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
     # ),
     `100%(day)`=max(value,
                     na.rm = TRUE))
+  
+  }
   
   #count daily exceedances of 50 ug/m3:
   
