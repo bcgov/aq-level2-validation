@@ -7,9 +7,9 @@
 
 # # subset for a single station and instrument for testing the function
 
-# data<-readr::read_rds("unverified_data.rds") %>%
-#   dplyr::filter(STATION_NAME=="Golden Helipad" &
-#            PARAMETER=="PM10") %>% distinct()
+ data<-readr::read_rds("unverified_data.rds") %>%
+   dplyr::filter(STATION_NAME=="Golden Helipad" &
+            PARAMETER=="PM10") %>% distinct()
 # 
 # pm10Stats<-pm10StatsFcn(data)
 
@@ -280,8 +280,8 @@ pm10StatsFcn<-function(data,pm10column,dateColumn){
         unique,
       YEAR = hp$date,
       `VALID HOURS`=nh,
-      `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       `VALID DAYS`= nd,
+    #  `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2), #not in the 2022 Stats summary
       `ANNUAL DAILY AVG`=round(mean(dt$value,na.rm=T),2),
      # `DAILY AVG, 3-YR AVG` = NA_real_ # added to Stats summary in 2021, i don't calculate it
     ) %>%
