@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[72],collapse="")
+  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[114],collapse="")
   year: 2022
 site: bookdown::bookdown_site
 output: 
@@ -56,6 +56,17 @@ source("emptyPlot.R")
 #use the line below for automated report generation
 data<-readRDS(params$preppedData)
 
+#LOOK FOR DUPLICATES
+# duplicates<-data %>%
+#     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
+#     dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+#     dplyr::filter(n > 1L) %>%
+#    dplyr::left_join(.,
+#                     data,
+#                     by=c("DATE_PST","STATION_NAME","PARAMETER"))
+# 
+# utils::View(duplicates)
+
 #use the line below for testing - comment it out and pick a station with the parameter(s) of interest
 # data<-readRDS("./preppedData/Cranbrook Muriel Baxter.rds")
 
@@ -66,7 +77,8 @@ prevYrWind<-data %>%
 data %<>%
   dplyr::filter(lubridate::year(DATE_PST)==params$year) %>%
   dplyr::group_by(PARAMETER,INSTRUMENT) %>%
-  dplyr::filter(!all(is.na(RAW_VALUE))) %>% dplyr::ungroup(.)
+  dplyr::filter(!all(is.na(RAW_VALUE))) %>% 
+  dplyr::ungroup(.)
 ```
 
 

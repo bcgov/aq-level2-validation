@@ -1,27 +1,17 @@
-test<-readr::read_rds("./preppedData/Port Edward Sunset Drive.rds")
+test<-readr::read_rds("./preppedData/Warfield Haley Park.rds")
 
-min(test$DATE_PST)
+data<-test
 
-head(test)
+# rcaaqs issue to file
 
-test %>% 
-  dplyr::filter(PARAMETER=="PM25") %>%
-  dplyr::arrange(DATE_PST) %>%
-  dplyr::slice(1:24)
+library(tidyverse)
 
-test %>%
-  dplyr::group_by(PARAMETER,INSTRUMENT) %>%
-  dplyr::summarise(sum(!is.na(RAW_VALUE)),
-                   sum(is.na(RAW_VALUE)),
-                   n())
-# BUNCH OF INSTRUMENT=NA'S
+data<-rcaaqs::pm25_sample_data %>% 
+  dplyr::filter(lubridate::year(date_time)==2012)
 
-portEd<-envair::importBC_data(parameter_or_station = "Port Edward Sunset Drive",
-                              years=2022,
-                              use_openairformat = FALSE)
+data %>%
+  dplyr::summarise(p50 = rcaaqs:::quantile2(value,
+    probs = 0.5,
+    na.rm = TRUE,
+    type = "caaqs"))
 
-portEd %>%
-  dplyr::group_by(PARAMETER,INSTRUMENT) %>%
-  dplyr::summarise(sum(!is.na(RAW_VALUE)),
-                   sum(is.na(RAW_VALUE)),
-                   n())
