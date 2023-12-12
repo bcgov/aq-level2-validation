@@ -123,6 +123,15 @@ data %<>%
 # Warfield Haley Park became operational on October 27 1600 (SO2) and on
 # October 28 10:00 for all other parameters. Need to remove NA fields before (INSTRUMENT)
 # and pad with NA's
+warfieldHaley<-envair::importBC_data(parameter_or_station = "Warfield Haley Park",
+                                     year=2022,
+                                     use_openairformat = FALSE) 
+
+data %<>%
+  dplyr::filter(!(STATION_NAME=="Warfield Haley Park" & 
+                    lubridate::year(DATE_PST)==2022)) %>%
+  dplyr::bind_rows(.,
+                   warfieldHaley)
 
 readr::write_rds(data,"unverified_data.rds")
 
