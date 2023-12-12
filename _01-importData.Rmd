@@ -120,6 +120,10 @@ data %<>%
                     is.na(INSTRUMENT) &
                     lubridate::year(DATE_PST)==yearToValidate))
 
+# Warfield Haley Park became operational on October 27 1600 (SO2) and on
+# October 28 10:00 for all other parameters. Need to remove NA fields before (INSTRUMENT)
+# and pad with NA's
+
 readr::write_rds(data,"unverified_data.rds")
 
 ```

@@ -8,8 +8,7 @@ utils::View(root)
 yearToValidate<-2022
 
 #indices in roots that won't compile: 
-bugs<-c(110, # Vanderhoof Courthouse
-        114, # Warfield Haley Park
+bugs<-c(114, # Warfield Haley Park
         117, # Willow Creek Mine
         118 # Willow Creek Compressor Station 2
         )
