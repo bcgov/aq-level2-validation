@@ -5,7 +5,7 @@
 #FOR TESTING
 # pm25column<-"RAW_VALUE"
 # dateColumn<-"DATE_PST"
-# data<-readr::read_rds("./preppedData/Merritt Nicola Ave MAML.rds") %>%
+# data<-readr::read_rds("./preppedData/Willow Creek Mine.rds") %>%
 #   dplyr::filter(PARAMETER %in% "PM25")
 # 
 # data %>% distinct(INSTRUMENT)
@@ -14,6 +14,10 @@
 #   dplyr::filter(is.na(INSTRUMENT) & is.na(RAW_VALUE)) %>%
 #   readr::write_csv(.,
 #                    "merrittMAMLNAs.csv")
+# 
+# data %>%
+#   dplyr::filter(!is.na(INSTRUMENT)) %>%
+#   dplyr::summarise(min(DATE_PST))
 # 
 # pm25StatsFcn(data) %>% utils::View()
 

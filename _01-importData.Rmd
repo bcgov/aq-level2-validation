@@ -124,14 +124,27 @@ data %<>%
 # October 28 10:00 for all other parameters. Need to remove NA fields before (INSTRUMENT)
 # and pad with NA's
 warfieldHaley<-envair::importBC_data(parameter_or_station = "Warfield Haley Park",
-                                     year=2022,
-                                     use_openairformat = FALSE) 
+                                     year=yearToValidate,
+                                     use_openairformat = FALSE) %>%
+  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
 
 data %<>%
   dplyr::filter(!(STATION_NAME=="Warfield Haley Park" & 
-                    lubridate::year(DATE_PST)==2022)) %>%
+                    lubridate::year(DATE_PST)==yearToValidate)) %>%
   dplyr::bind_rows(.,
                    warfieldHaley)
+
+#willow creek mine has NA's in the INSTRUMENT field when imported by parameter using envair, but not when imported by station. so - replace data imported by parameter (above for whole province) with data imported by station
+willowCreekMine<-envair::importBC_data(parameter_or_station = "Willow Creek Mine",
+                                       use_openairformat = FALSE,
+                                       years = yearToValidate) %>%
+  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
+
+data %<>%
+  dplyr::filter(!(STATION_NAME=="Willow Creek Mine" & 
+                    lubridate::year(DATE_PST)==yearToValidate)) %>%
+  dplyr::bind_rows(.,
+                   willowCreekMine)
 
 readr::write_rds(data,"unverified_data.rds")
 
