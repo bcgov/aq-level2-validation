@@ -1,6 +1,7 @@
-test<-readr::read_rds("./preppedData/Willow Creek Mine.rds")
+data<-readr::read_rds("./preppedData/Willow Flats Compressor Station 2.rds")
 
-data<-test
+
+
 
 willowCreekMine<-envair::importBC_data(parameter_or_station = "Willow Creek Mine",
                                        use_openairformat = FALSE,
