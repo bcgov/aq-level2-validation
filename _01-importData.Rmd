@@ -146,6 +146,18 @@ data %<>%
   dplyr::bind_rows(.,
                    willowCreekMine)
 
+#willow flats compressor station 2 has NA's in the INSTRUMENT field when imported by parameter using envair, but not when imported by station. so - replace data imported by parameter (above for whole province) with data imported by station
+willowFlats<-envair::importBC_data(parameter_or_station = "Willow Flats Compressor Station 2",
+                                       use_openairformat = FALSE,
+                                       years = yearToValidate) %>%
+  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
+
+data %<>%
+  dplyr::filter(!(STATION_NAME=="Willow Flats Compressor Station 2" & 
+                    lubridate::year(DATE_PST)==yearToValidate)) %>%
+  dplyr::bind_rows(.,
+                   willowFlats)
+
 readr::write_rds(data,"unverified_data.rds")
 
 ```
