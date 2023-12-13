@@ -1,6 +1,15 @@
-test<-readr::read_rds("./preppedData/Warfield Haley Park.rds")
+test<-readr::read_rds("./preppedData/Willow Creek Mine.rds")
 
 data<-test
+
+willowCreekMine<-envair::importBC_data(parameter_or_station = "Willow Creek Mine",
+                                       use_openairformat = FALSE,
+                                       years = 2022)
+
+willowCreekMine %>%
+  dplyr::group_by(INSTRUMENT) %>%
+  dplyr::summarise(min=min(DATE_PST),
+                   max=max(DATE_PST))
 
 # rcaaqs issue to file
 

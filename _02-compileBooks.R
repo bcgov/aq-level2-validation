@@ -8,8 +8,7 @@ utils::View(root)
 yearToValidate<-2022
 
 #indices in roots that won't compile: 
-bugs<-c(114, # Warfield Haley Park
-        117, # Willow Creek Mine
+bugs<-c(117, # Willow Creek Mine
         118 # Willow Creek Compressor Station 2
         )
 
@@ -18,7 +17,7 @@ rootNoBugs<-root[!(1:length(root) %in% bugs)]
 purrr::walk(
   #compile reports for stations without bugs
   # rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
-  root[114],
+  root[117],
             function(r){
               
               # testing
