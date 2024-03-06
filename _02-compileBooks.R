@@ -1,5 +1,4 @@
 # compile annual data validation reports for each file in preppedDAta:
-
 root<-stringr::str_remove(dir("./preppedData"),
                         ".rds") 
 
@@ -7,16 +6,36 @@ utils::View(root)
 
 yearToValidate<-2022
 
-#indices in roots that won't compile: 
-bugs<-c(118 # Willow Creek Compressor Station 2
-        )
+# need a list of pm10 stations in 2022 (to know which reports to re-run)
+data<-envair::importBC_data(parameter_or_station = "pm10",
+                            years = 2022,
+                            use_openairformat = FALSE) %>%
+  dplyr::filter(lubridate::year(DATE_PST)==2022) %>%
+  tidyr::tibble(.)
 
-rootNoBugs<-root[!(1:length(root) %in% bugs)]
+stations<-data %>%
+  dplyr::distinct(STATION_NAME)
+
+stations %<>%
+  dplyr::slice(-18) %>%
+  dplyr::add_row(STATION_NAME="Kelowna KLO Road") %>%
+  dplyr::arrange(STATION_NAME)
+
+stations %<>%
+  dplyr::slice(-28) %>%
+  dplyr::add_row(STATION_NAME="Quesnel Johnston Avenue") %>%
+  dplyr::arrange(STATION_NAME)
+
+stations %<>%
+  dplyr::slice(-29) %>%
+  dplyr::add_row(STATION_NAME="Smithers Muheim Memorial") %>%
+  dplyr::arrange(STATION_NAME)
+
 
 purrr::walk(
   #compile reports for stations without bugs
-  # rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
-  root[118],
+  stations$STATION_NAME[32:length(stations$STATION_NAME)],
+  
             function(r){
               
               # testing
