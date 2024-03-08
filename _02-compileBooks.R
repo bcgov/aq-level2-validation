@@ -16,7 +16,10 @@ rootNoBugs<-root[!(1:length(root) %in% bugs)]
 purrr::walk(
   #compile reports for stations without bugs
   # rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
-  root[118],
+  
+  #compile reports for specific stations: butler park, columbia gardens airport, birchbank,
+  # warfield elementary and warfield haley park
+  root[c(5,103,104,113,114)],
             function(r){
               
               # testing
