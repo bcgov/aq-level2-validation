@@ -12,7 +12,7 @@ library(envair)
 ```{r declareParameters}
 
 # YEAR TO VALIDATE:
-yearToValidate<-2022
+yearToValidate<-2023
 
 parameters <- tolower(
   c(
@@ -43,25 +43,39 @@ data<-readr::read_rds("unverified_data.rds")
 system.time({
 data<-envair::importBC_data(
   parameter_or_station = parameters,
-  years=2022,
+  years=yearToValidate,
   use_openairformat = FALSE
 ) %>%
   dplyr::distinct(.) %>%
-  dplyr::filter(lubridate::year(DATE_PST) == 2022)
+  dplyr::filter(lubridate::year(DATE_PST) == yearToValidate)
 })
 
-# look for duplicates by validation status. data in yearToValidate should only have
-# validation status 0
+readr::write_rds(data,"unverified_data.rds")
+
+```
+
+```{r validStatus}
+
+# all data should have validation status 0. check this.
 data %>%
   dplyr::distinct(year=lubridate::year(DATE_PST),
                   STATION_NAME_FULL,
                   PARAMETER,
-                  VALIDATION_STATUS) %>% utils::View(.)
+                  VALIDATION_STATUS) %>% 
+  dplyr::filter(VALIDATION_STATUS!="Level 0")
+
+```
+
+```{r NAstations}
+#check if there are any stations with NA for STATION_NAME
+data %>% 
+  dplyr::filter(is.na(STATION_NAME))
 
 # remove STATION_NAME that are NA's:
-data %<>%
-  dplyr::filter(!is.na(STATION_NAME))
 
+```
+
+```{r duplicates}
 # look for duplicates
 duplicates<-data %>%
     dplyr::group_by(DATE_PST, 
@@ -93,6 +107,9 @@ duplicates<-data %>%
                 RAW_VALUE,
                 everything())
 
+```
+
+```{r oneoffs, eval=FALSE}
 # Merritt Nicola Ave MAML has been updated (data was not padding and first started in feb), 
 #so replace in data:
 merrittMAML<-envair::importBC_data(parameter_or_station="Merritt Nicola Ave MAML",
@@ -158,284 +175,6 @@ data %<>%
   dplyr::bind_rows(.,
                    willowFlats)
 
-readr::write_rds(data,"unverified_data.rds")
-
 ```
 
-```{r importPrevYrWind}
-
-# import previous x years wind data for comparison
-prevYrWind <- envair::importBC_data(
-  parameter_or_station = c("wdir_vect",
-                           "wspd_sclr"),
-  years = (yearToValidate - 6):(yearToValidate - 1),
-  use_openairformat = FALSE
-)
-
-#save prevYrWind
-readr::write_rds(prevYrWind,
-                 "prevYrWind_raw.rds")
-```
-
-```{r prevYrWindYears}
-prevYrWind<-readr::read_rds("prevYrWind_raw.rds")
-
-# check what years were imported
-prevYrWind %>%
-  dplyr::distinct(year=lubridate::year(DATE_PST)) %>%
-  dplyr::arrange(year)# imports data in years that were not requested
-  
-prevYrWind %<>%  # filter for last X years of data (double check):
-  dplyr::filter(lubridate::year(DATE_PST) %in% (yearToValidate - 6):(yearToValidate - 1)) %>%
-  dplyr::distinct(.)
-
-#save prevYrWind
-readr::write_rds(prevYrWind,
-                 "prevYrWind.rds")
-```
-
-```{r prevYrWindNAs}
-prevYrWind<-readr::read_rds("prevYrWind.rds")
-
-# there are NA's for STATION_NAME_FULL and for VALIDATION_STATUS
-prevYrWind %>%
-  dplyr::filter(is.na(STATION_NAME_FULL) & is.na(VALIDATION_STATUS)) #5,468,551 rows
-
-# if it's the same number as is.na(STATION_NAME_FULL) | is.na(VALIDATION_STATUS),
-# then it's always both of them that are NA
-prevYrWind %>%
-  dplyr::filter(is.na(STATION_NAME_FULL) | is.na(VALIDATION_STATUS)) #5,468,551 rows
-# the above shows that STATION_NAME_FULL is always NA when VALIDATION_STATUS is NA
-
-# summary of when these NA's occur:
-prevYrWind %>%
-  dplyr::filter(is.na(STATION_NAME_FULL) & is.na(VALIDATION_STATUS)) %>%
-  dplyr::group_by(year=lubridate::year(DATE_PST),
-                  STATION_NAME_FULL,
-                  STATION_NAME,
-                  PARAMETER) %>%
-  dplyr::summarise(`# NA's`=n()) # there are lots of them at different stations, 
-# in different years and for both WDIR_VECT and WSPD_SCLR
-
-# filter out these NA's
-prevYrWind %<>%
-  dplyr::filter(!(is.na(STATION_NAME_FULL) & is.na(VALIDATION_STATUS))) #reduces 
-# data set by ~5 million obs!
-
-#save prevYrWind
-readr::write_rds(prevYrWind,
-                 "prevYrWind.rds")
-```
-
-```{r prevYrWindValidationStatus}
-prevYrWind<-readr::read_rds("prevYrWind.rds")
-
-# look for duplicates by validation status. years 2016-2021 should only have 
-# validation status =  Level 2
-doubleValidationStatus<-prevYrWind %>%
-  dplyr::distinct(STATION_NAME_FULL,
-                  STATION_NAME,
-                  PARAMETER,
-                  year=lubridate::year(DATE_PST),
-                  VALIDATION_STATUS,
-                  INSTRUMENT) %>% 
-  dplyr::arrange(year,STATION_NAME_FULL,PARAMETER,INSTRUMENT) %>%
-  dplyr::group_by(STATION_NAME_FULL,
-                  STATION_NAME,
-                  PARAMETER,
-                  INSTRUMENT,
-                  year) %>%
-  dplyr::filter(n()>1)
-
-# which years does this happen for?
-doubleValidationStatus %>%
-  dplyr::ungroup() %>%
-  dplyr::distinct(year) # only 2021
-
-# look at the double validation status in the hourly data:
-duplicates <- prevYrWind %>%
-  dplyr::group_by(DATE_PST,
-                  STATION_NAME_FULL,
-                  STATION_NAME,
-                  PARAMETER,
-                  VALIDATION_STATUS,
-                  INSTRUMENT) %>% 
-  dplyr::summarise(n = dplyr::n(),
-                   .groups = "drop") %>%
-  dplyr::filter(n > 1L) %>%
-  dplyr::left_join(
-    .,
-    prevYrWind,
-    by = c(
-      "DATE_PST",
-      "STATION_NAME_FULL",
-      "STATION_NAME",
-      "PARAMETER",
-      "VALIDATION_STATUS",
-      "INSTRUMENT"
-    )
-  ) %>%
-  
-  dplyr::arrange(DATE_PST,
-                 STATION_NAME,
-                 STATION_NAME_FULL,
-                 PARAMETER) %>%
-  dplyr::select(
-    DATE_PST,
-    STATION_NAME,
-    STATION_NAME_FULL,
-    PARAMETER,
-    INSTRUMENT,
-    RAW_VALUE,
-    everything()
-  )
-# no duplicates!
-
-# look at an example to see if validation status changes part-way through the yr
-courtenay<-prevYrWind %>%
-                  dplyr::filter(STATION_NAME == "Courtenay Elementary School")
-
-ggplot2::ggplot(courtenay,
-                  aes(x=DATE_PST,
-                      y=RAW_VALUE,
-                      color=VALIDATION_STATUS)) +
-  ggplot2::geom_point() +
-  ggplot2::facet_wrap(~PARAMETER)
-
-courtenay %>%
-  dplyr::group_by(PARAMETER,
-                  VALIDATION_STATUS) %>%
-  dplyr::summarise(start=min(DATE_PST),
-                   end=max(DATE_PST))
-
-# all of the level 0 validation status in 2021 occurs jan 1 00:00, but not at all stations
-prevYrWind %>%
-  dplyr::filter(lubridate::year(DATE_PST)==2021) %>%
-  dplyr::group_by(STATION_NAME_FULL,
-                  STATION_NAME,
-                  PARAMETER,
-                  VALIDATION_STATUS) %>%
-  dplyr::summarise(start=min(DATE_PST),
-                   end=max(DATE_PST),
-                   .groups = "drop") %>%
-  dplyr::arrange(STATION_NAME,
-                 STATION_NAME_FULL,
-                 PARAMETER,
-                VALIDATION_STATUS) %>% #utils::View(.)
-  dplyr::ungroup() %>%
-  dplyr::filter(VALIDATION_STATUS=="Level 2") %>%
-  dplyr::distinct(STATION_NAME_FULL,start,end)
-
-# fix - make all data in 2021 have validation status = level 2
-prevYrWind %<>%
-  dplyr::mutate(VALIDATION_STATUS=dplyr::if_else(
-    lubridate::year(DATE_PST)==2021,
-    "Level 2",
-    VALIDATION_STATUS
-  ))
-
-#save prevYrWind
-readr::write_rds(prevYrWind,
-                 "prevYrWind.rds")
-```
-
-```{r prevYrWind_60issue}
-prevYrWind<-readr::read_rds("prevYrWind.rds")
-
-# have a closer look at station_name_full
-summary_stnNameFull<-prevYrWind %>%
-  dplyr::group_by(STATION_NAME,
-                  STATION_NAME_FULL,
-                  PARAMETER,INSTRUMENT) %>%
-  dplyr::summarise(start=min(DATE_PST),
-                   end=max(DATE_PST),
-                   n=n(),
-                   `values`=sum(!is.na(RAW_VALUE)),
-                   `NAs`=sum(is.na(RAW_VALUE)),
-                   `allNAs`=n()==sum(is.na(RAW_VALUE)))
-
-utils::View(summary_stnNameFull)
-
-# find combo's that are all NA's and remove them from prevYrWind:
-prevYrWind<-summary_stnNameFull %>%
-  dplyr::filter(allNAs==TRUE) %>% #utils::View(.)
-  dplyr::select(STATION_NAME,
-                STATION_NAME_FULL,
-                PARAMETER,
-                INSTRUMENT) %>%
-  dplyr::anti_join(
-    prevYrWind,
-    .,
-    by=c("STATION_NAME",
-         "STATION_NAME_FULL",
-         "PARAMETER",
-         "INSTRUMENT")
-  )
-
-#save prevYrWind
-readr::write_rds(prevYrWind,
-                 "prevYrWind.rds")
-
-# # # # # FIND DUPLICATES
- windDuplicates<-prevYrWind %>%
-    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
-    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
-    dplyr::filter(n > 1L) %>%
-   dplyr::left_join(.,
-                    prevYrWind,
-                    by=c("DATE_PST","STATION_NAME","PARAMETER")) # no duplicates!!!!
-
-```
-
-```{r data}
-# bind the two data sets together, call it data
-data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
-                       readr::read_rds("prevYrWind.rds")
-) %>% 
-  dplyr::distinct(.)
-```
-
-```{r saveExternally}
-# save list of stations in yearToValidate with data:
-allStations<-data %>%
-  dplyr::filter(lubridate::year(DATE_PST) == yearToValidate) %>%
-  dplyr::group_by(STATION_NAME) %>%
-  dplyr::filter(!is.na(RAW_VALUE)) %>%
-  dplyr::distinct(STATION_NAME) %>%
-  dplyr::arrange(STATION_NAME)
-
-# save allStations as rds
-readr::write_rds(allStations,
-        "allStations.rds")
-
-# read in allStations
-# allStations<-readr::read_rds(file="allStations.rds")
-
-# save allStations as csv
-readr::write_csv(allStations,
-                 "allStations.csv")
-
-# create preppedData folder if it doesn't already exist
-ifelse(dir.exists(file.path("./preppedData")),
-       "preppedData folder already exists",
-       dir.create(file.path("./preppedData"
-       )))
-
-# Save each station to preppedData folder 
-purrr::walk(readr::read_rds("allStations.rds")$STATION_NAME,
-            
-            function(x) {
-                # test
-                # x<-"Abbotsford A Columbia Street"
-                # end test
-              
-                stnData <- data %>%
-                dplyr::filter(STATION_NAME == x)
-             
-                 readr::write_rds(stnData,
-                      file.path("./preppedData",
-                                stringr::str_c(x, ".rds", collapse = "")))
-              
-            })
-```
 
