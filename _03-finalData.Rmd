@@ -6,11 +6,19 @@ output: html_notebook
 ```{r setup}
 library(tidyverse)
 library(magrittr)
+
+yearToValidate<-2023
 ```
 
 ```{r data}
 # bind the two data sets together, call it data
-data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
+data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds") %>%
+                         dplyr::select(DATE_PST,
+                                       STATION_NAME,
+                                       STATION_NAME_FULL,
+                                       PARAMETER,
+                                       INSTRUMENT,
+                                       RAW_VALUE),
                        readr::read_rds("prevYrWind.rds")
 ) %>% 
   dplyr::distinct(.)
