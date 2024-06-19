@@ -110,71 +110,37 @@ duplicates<-data %>%
 ```
 
 ```{r oneoffs, eval=FALSE}
-# Merritt Nicola Ave MAML has been updated (data was not padding and first started in feb), 
-#so replace in data:
-merrittMAML<-envair::importBC_data(parameter_or_station="Merritt Nicola Ave MAML",
-                                   year=2022,
-                                   use_openairformat = FALSE)
-
-merrittMAML %<>% dplyr::filter(lubridate::year(DATE_PST)==2022)
-
-merrittMAML %>%
-  dplyr::filter(is.na(INSTRUMENT))
-
-data %<>% 
-  # remove previously imported merritt maml data for 2022
-  dplyr::filter(!(STATION_NAME %in% "Merritt Nicola Ave MAML" & 
-                    lubridate::year(DATE_PST)==2022)) %>%
-  # bind updated merrit maml data
-  dplyr::bind_rows(.,
-                   merrittMAML)
-
-# port edward sunset drive has some instrument == NA's (with all NA data)
-#remove it
+data<-readr::read_rds("unverified_data.rds")
 
 data %<>%
-  dplyr::filter(!(STATION_NAME %in% "Port Edward Sunset Drive" & 
-                    is.na(INSTRUMENT) &
-                    lubridate::year(DATE_PST)==yearToValidate))
 
-# Warfield Haley Park became operational on October 27 1600 (SO2) and on
-# October 28 10:00 for all other parameters. Need to remove NA fields before (INSTRUMENT)
-# and pad with NA's
-warfieldHaley<-envair::importBC_data(parameter_or_station = "Warfield Haley Park",
-                                     year=yearToValidate,
-                                     use_openairformat = FALSE) %>%
-  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
+# issue: when datalogger is switched to campbell ""_60|_MET_60| MET_60" is appended to STATION_NAME_FULL. we want same id's for same station
+#fix: strip "_60|_MET_60| MET_60" from station names
+dplyr::mutate(STATION_NAME_FULL=stringr::str_remove(STATION_NAME_FULL,
+                                                       "_60|_MET_60| MET_60")) %>%
 
-data %<>%
-  dplyr::filter(!(STATION_NAME=="Warfield Haley Park" & 
-                    lubridate::year(DATE_PST)==yearToValidate)) %>%
-  dplyr::bind_rows(.,
-                   warfieldHaley)
+# duncan cairnsmore and duncan college street both have STATION_NAME = Duncan -> they need unique id's
+dplyr::mutate(STATION_NAME=dplyr::case_when(
+    stringr::str_detect(STATION_NAME_FULL,
+                        "DUNCAN CAIRNSMORE") ~ "Duncan Cairnsmore",
+    
+    stringr::str_detect(STATION_NAME_FULL,
+                        "DUNCAN COLLEGE STREET") ~ "Duncan College Street",
+    .default=STATION_NAME
+    
+  )) 
 
-#willow creek mine has NA's in the INSTRUMENT field when imported by parameter using envair, but not when imported by station. so - replace data imported by parameter (above for whole province) with data imported by station
-willowCreekMine<-envair::importBC_data(parameter_or_station = "Willow Creek Mine",
-                                       use_openairformat = FALSE,
-                                       years = yearToValidate) %>%
-  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
+# checks
+data %>%
+  dplyr::filter(stringr::str_detect(STATION_NAME,"Duncan")) %>%
+  dplyr::distinct(STATION_NAME,
+                  STATION_NAME_FULL)
 
-data %<>%
-  dplyr::filter(!(STATION_NAME=="Willow Creek Mine" & 
-                    lubridate::year(DATE_PST)==yearToValidate)) %>%
-  dplyr::bind_rows(.,
-                   willowCreekMine)
+data %>%
+  dplyr::filter(stringr::str_detect(STATION_NAME_FULL,"_60"))
 
-#willow flats compressor station 2 has NA's in the INSTRUMENT field when imported by parameter using envair, but not when imported by station. so - replace data imported by parameter (above for whole province) with data imported by station
-willowFlats<-envair::importBC_data(parameter_or_station = "Willow Flats Compressor Station 2",
-                                       use_openairformat = FALSE,
-                                       years = yearToValidate) %>%
-  dplyr::filter(lubridate::year(DATE_PST)==yearToValidate)
-
-data %<>%
-  dplyr::filter(!(STATION_NAME=="Willow Flats Compressor Station 2" & 
-                    lubridate::year(DATE_PST)==yearToValidate)) %>%
-  dplyr::bind_rows(.,
-                   willowFlats)
-
+# save unverified
+readr::write_rds(data,"unverified_data.rds")
 ```
 
 
