@@ -78,7 +78,7 @@ envair::list_parameters()
 data<-envair::importBC_data(parameter_or_station = c("wspd_sclr",
                                                      "wdir_vect"),
                             years=2016:2022,
-                            use_openairformat = FALSE) %>%
+                            use_openairformat = FALSE) |>
   
   dplyr::filter(STATION_NAME %in% c("Trail Butler Park",
                                     "Trail Columbia Gardens Airport",
@@ -88,7 +88,7 @@ data<-envair::importBC_data(parameter_or_station = c("wspd_sclr",
 # two different owner fields (INDUSTRY and NA)
 data %>%
   
-  dplyr::filter(STATION_NAME=="Trail Butler Park" & 
+  dplyr::filter(STATION_NAME=="Birchbank Golf Course" & 
                   OWNER=="INDUSTRY") %>%
   
   dplyr::group_by(STATION_NAME,
