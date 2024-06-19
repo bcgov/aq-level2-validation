@@ -1,0 +1,61 @@
+---
+title: "Import and Prep Data"
+output: html_notebook
+---
+
+```{r setup}
+library(tidyverse)
+library(magrittr)
+```
+
+```{r data}
+# bind the two data sets together, call it data
+data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
+                       readr::read_rds("prevYrWind.rds")
+) %>% 
+  dplyr::distinct(.)
+```
+
+```{r saveExternally}
+# save list of stations in yearToValidate with data:
+allStations<-data %>%
+  dplyr::filter(lubridate::year(DATE_PST) == yearToValidate) %>%
+  dplyr::group_by(STATION_NAME) %>%
+  dplyr::filter(!is.na(RAW_VALUE)) %>%
+  dplyr::distinct(STATION_NAME) %>%
+  dplyr::arrange(STATION_NAME)
+
+# save allStations as rds
+readr::write_rds(allStations,
+        "allStations.rds")
+
+# read in allStations
+# allStations<-readr::read_rds(file="allStations.rds")
+
+# save allStations as csv
+readr::write_csv(allStations,
+                 "allStations.csv")
+
+# create preppedData folder if it doesn't already exist
+ifelse(dir.exists(file.path("./preppedData")),
+       "preppedData folder already exists",
+       dir.create(file.path("./preppedData"
+       )))
+
+# Save each station to preppedData folder 
+purrr::walk(readr::read_rds("allStations.rds")$STATION_NAME,
+            
+            function(x) {
+                # test
+                # x<-"Abbotsford A Columbia Street"
+                # end test
+              
+                stnData <- data %>%
+                dplyr::filter(STATION_NAME == x)
+             
+                 readr::write_rds(stnData,
+                      file.path("./preppedData",
+                                stringr::str_c(x, ".rds", collapse = "")))
+              
+            })
+```

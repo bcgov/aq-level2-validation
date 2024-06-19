@@ -348,7 +348,6 @@ readr::write_rds(windDuplicates,
 #read windDuplicates
 windDuplicates<-readr::read_rds("windDuplicates.rds")
 
-
  #preview each case
  utils::View(windDuplicates %>%
                dplyr::group_by(STATION_NAME,
@@ -364,7 +363,6 @@ windDuplicates<-readr::read_rds("windDuplicates.rds")
                    INSTRUMENT,
                    result) %>% utils::View(.)
 ```
-
 
 ```{r windDuplicatesDuncanFix}
 # issue: Duncan Cairnsmore and Duncan College Street both have STATION_NAME = Duncan
@@ -386,77 +384,71 @@ prevYrWind %<>%
 #save prevYrWind
 readr::write_rds(prevYrWind,
                  "prevYrWind.rds")
+
+# -> go up, regenerate windDuplicates and check the Duncan ones are gone - complete
+
 ```
 
 ```{r windDuplicatesFixes}
-
+#read windDuplicates
+windDuplicates<-readr::read_rds("windDuplicates.rds")
 
 # fix duplicates
-#1. fix duplicates
+#1. fix duplicates (two cases: 1 value, 1 NA or 2 NAs)
 #2. replace data in prevYrWind with fixed data
 # Note: whatever is done for Duncan (Cairnsmore and College Street) will have to be repeated in data
  
- windDuplicates %>%
+ windFixes<- windDuplicates %>%
+  
+  # dplyr::slice(1:2) %>%
+    
    dplyr::group_by(DATE_PST,
                    STATION_NAME,
-                   PAREMETER,
-                   INSTRUMENT) %>%
-   dplyr::summarise(.)
+                   PARAMETER,
+                   INSTRUMENT,
+                   result) %>%
+  # this will pull desired value for both cases (the value when there is one, and an NA otherwise)
+   dplyr::arrange(RAW_VALUE) %>%
+  
+    dplyr::slice(1) %>%
    
-   
-   dplyr::filter(stringr::str_detect(STATION_NAME,"Duncan")) %>% utils::View(.)
+   dplyr::ungroup(.)
+                      
+ #save windDuplicates
+readr::write_rds(windFixes,
+                 "windFixes.rds")                     
+
+# GOT TO HERE - now need to replace data in prevYrWind with windFixes.
+# 1. filter out windDuplicates using antijoin
+# 2. bind_rows with windFixes
+
+prevYrWind<-dplyr::anti_join(prevYrWind,
+                 windDuplicates,
+                 by=c("DATE_PST",
+                      "STATION_NAME",
+                      "STATION_NAME_FULL",
+                      "PARAMETER",
+                      "INSTRUMENT",
+                      "RAW_VALUE")) %>%
+  
+  dplyr::select(DATE_PST,
+                STATION_NAME,
+                STATION_NAME_FULL,
+                PARAMETER,
+                INSTRUMENT,
+                RAW_VALUE) %>%
+  
+  dplyr::bind_rows(.,
+                   windFixes %>%
+                     dplyr::select(-result))
+
+#check whether there are any duplicates remaining in prevYrWind by rerunning code above that generates windDuplicates -> result was tibble with 0 rows i.e. no more duplicates!
+
+#save prevYrWind
+readr::write_rds(prevYrWind,
+                 "prevYrWind.rds")
 
 ```
 
-```{r data}
-# bind the two data sets together, call it data
-data<-dplyr::bind_rows(readr::read_rds("unverified_data.rds"),
-                       readr::read_rds("prevYrWind.rds")
-) %>% 
-  dplyr::distinct(.)
-```
 
-```{r saveExternally}
-# save list of stations in yearToValidate with data:
-allStations<-data %>%
-  dplyr::filter(lubridate::year(DATE_PST) == yearToValidate) %>%
-  dplyr::group_by(STATION_NAME) %>%
-  dplyr::filter(!is.na(RAW_VALUE)) %>%
-  dplyr::distinct(STATION_NAME) %>%
-  dplyr::arrange(STATION_NAME)
-
-# save allStations as rds
-readr::write_rds(allStations,
-        "allStations.rds")
-
-# read in allStations
-# allStations<-readr::read_rds(file="allStations.rds")
-
-# save allStations as csv
-readr::write_csv(allStations,
-                 "allStations.csv")
-
-# create preppedData folder if it doesn't already exist
-ifelse(dir.exists(file.path("./preppedData")),
-       "preppedData folder already exists",
-       dir.create(file.path("./preppedData"
-       )))
-
-# Save each station to preppedData folder 
-purrr::walk(readr::read_rds("allStations.rds")$STATION_NAME,
-            
-            function(x) {
-                # test
-                # x<-"Abbotsford A Columbia Street"
-                # end test
-              
-                stnData <- data %>%
-                dplyr::filter(STATION_NAME == x)
-             
-                 readr::write_rds(stnData,
-                      file.path("./preppedData",
-                                stringr::str_c(x, ".rds", collapse = "")))
-              
-            })
-```
 
