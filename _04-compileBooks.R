@@ -5,21 +5,26 @@ root<-stringr::str_remove(dir("./preppedData"),
 
 utils::View(root)
 
-yearToValidate<-2022
+yearToValidate<-2023
 
 #indices in roots that won't compile: 
-bugs<-c(118 # Willow Creek Compressor Station 2
+bugs<-c(19, # coquitlam douglas college -> issue with wind rose
+        20, # courtenay elementary school -> issue with wind rose
+        24, # duncan college street issue with wind rose
+        47 # kelowna -> issue with wind rose
         )
 
 rootNoBugs<-root[!(1:length(root) %in% bugs)]
 
-purrr::walk(
+utils::View(rootNoBugs)
+
+purrr::walk(#root[3:length(root)],
   #compile reports for stations without bugs
-  # rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
+  rootNoBugs[44:length(rootNoBugs)], #%>% utils::View(.),
   
   #compile reports for specific stations: butler park, columbia gardens airport, birchbank,
   # warfield elementary and warfield haley park
-  root[c(5,103,104,113,114)],
+  # root[c(5,103,104,113,114)],
             function(r){
               
               # testing
@@ -27,7 +32,9 @@ purrr::walk(
               # (r<-root[1])
               
               # End testing
-              
+              print(paste0("Compiling for ",
+                           r,
+                           " ..."))
              
              bookdown::render_book(".",# this will compile all the rmd files listed in _bookdown.yml
                                     "bookdown::gitbook",

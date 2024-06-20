@@ -4,7 +4,7 @@ author: "Air Quality Section | Regional Operations Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
   preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[118],collapse="")
-  year: 2022
+  year: 2023
 site: bookdown::bookdown_site
 output: 
   bookdown::gitbook:
@@ -68,7 +68,7 @@ data<-readRDS(params$preppedData)
 # utils::View(duplicates)
 
 #use the line below for testing - comment it out and pick a station with the parameter(s) of interest
-# data<-readRDS("./preppedData/Cranbrook Muriel Baxter.rds")
+# data<-readRDS("./preppedData/Coquitlam Douglas College.rds")
 
 prevYrWind<-data %>%
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &
