@@ -364,14 +364,13 @@ windDuplicates<-readr::read_rds("windDuplicates.rds")
                    result) %>% utils::View(.)
 ```
 
-```{r windDuplicatesDuncanFix}
-# issue: Duncan Cairnsmore and Duncan College Street both have STATION_NAME = Duncan
-# fix: change STATION name to unique identifier (i.e. Duncan College Street and Duncan Cairnsmore)
-
+```{r windDuncanKelownaFix}
 prevYrWind<-readr::read_rds("prevYrWind.rds")
 
 prevYrWind %<>%
-  dplyr::mutate(STATION_NAME=dplyr::case_when(
+  # issue: Duncan Cairnsmore and Duncan College Street both have STATION_NAME = Duncan
+# fix: change STATION name to unique identifier (i.e. Duncan College Street and Duncan Cairnsmore)
+    dplyr::mutate(STATION_NAME=dplyr::case_when(
     stringr::str_detect(STATION_NAME_FULL,
                         "DUNCAN CAIRNSMORE") ~ "Duncan Cairnsmore",
     
@@ -379,7 +378,18 @@ prevYrWind %<>%
                         "DUNCAN COLLEGE STREET") ~ "Duncan College Street",
     .default=STATION_NAME
     
-  )) 
+  )) %>%
+
+# KELOWNA KLO ROAD and KELOWNA COLLEGE both have STATION_NAME = Kelowna -> they need unique id's
+dplyr::mutate(STATION_NAME=dplyr::case_when(
+    stringr::str_detect(STATION_NAME_FULL,
+                        "KELOWNA KLO ROAD") ~ "Kelowna KLO Road",
+    
+    stringr::str_detect(STATION_NAME_FULL,
+                        "KELOWNA COLLEGE") ~ "Kelowna College",
+    .default=STATION_NAME
+    
+  ))
 
 #save prevYrWind
 readr::write_rds(prevYrWind,

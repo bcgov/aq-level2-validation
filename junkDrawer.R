@@ -14,5 +14,11 @@ data %>%
     na.rm = TRUE,
     type = "caaqs"))
 
+# # # Kelowna non-unique station_Name # # # 
 
+data %>%
+  dplyr::filter(STATION_NAME=="Kelowna") %>%
+  dplyr::distinct(year=lubridate::year(DATE_PST),
+                  STATION_NAME,
+                  STATION_NAME_FULL)
 
