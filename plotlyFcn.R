@@ -41,8 +41,8 @@ plotlyFcn<-function(data, # hourly data
                                    linetype=INSTRUMENT))+
                  geom_line(alpha=1.0) +
                  
-                 # geom_point(alpha=0.8,
-                 #            pch=21)+
+                 geom_point(alpha=0.8,
+                            pch=21)+
                  
                  labs(title=paste(station,
                                   "Hourly and Daily",
