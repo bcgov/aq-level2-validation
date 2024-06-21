@@ -128,11 +128,22 @@ dplyr::mutate(STATION_NAME=dplyr::case_when(
                         "DUNCAN COLLEGE STREET") ~ "Duncan College Street",
     .default=STATION_NAME
     
+  )) %>%
+
+# KELOWNA KLO ROAD and KELOWNA COLLEGE both have STATION_NAME = Kelowna -> they need unique id's
+dplyr::mutate(STATION_NAME=dplyr::case_when(
+    stringr::str_detect(STATION_NAME_FULL,
+                        "KELOWNA KLO ROAD") ~ "Kelowna KLO Road",
+    
+    stringr::str_detect(STATION_NAME_FULL,
+                        "KELOWNA COLLEGE") ~ "Kelowna College",
+    .default=STATION_NAME
+    
   )) 
 
 # checks
 data %>%
-  dplyr::filter(stringr::str_detect(STATION_NAME,"Duncan")) %>%
+  dplyr::filter(stringr::str_detect(STATION_NAME,"Duncan|Kelowna")) %>%
   dplyr::distinct(STATION_NAME,
                   STATION_NAME_FULL)
 

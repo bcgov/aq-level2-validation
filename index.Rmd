@@ -68,7 +68,7 @@ data<-readRDS(params$preppedData)
 # utils::View(duplicates)
 
 #use the line below for testing - comment it out and pick a station with the parameter(s) of interest
-# data<-readRDS("./preppedData/Coquitlam Douglas College.rds")
+# data<-readRDS("./preppedData/Kelowna.rds")
 
 prevYrWind<-data %>%
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &

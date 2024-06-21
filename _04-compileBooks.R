@@ -8,8 +8,7 @@ utils::View(root)
 yearToValidate<-2023
 
 #indices in roots that won't compile: 
-bugs<-c(19, # coquitlam douglas college -> issue with wind rose
-        20, # courtenay elementary school -> issue with wind rose
+bugs<-c(20, # courtenay elementary school -> issue with wind rose
         24, # duncan college street issue with wind rose
         47 # kelowna -> issue with wind rose
         )
@@ -20,11 +19,11 @@ utils::View(rootNoBugs)
 
 purrr::walk(#root[3:length(root)],
   #compile reports for stations without bugs
-  rootNoBugs[44:length(rootNoBugs)], #%>% utils::View(.),
+  # rootNoBugs[44:length(rootNoBugs)], #%>% utils::View(.),
   
   #compile reports for specific stations: butler park, columbia gardens airport, birchbank,
   # warfield elementary and warfield haley park
-  # root[c(5,103,104,113,114)],
+  root[47],
             function(r){
               
               # testing
