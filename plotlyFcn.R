@@ -77,7 +77,8 @@ plotlyFcn<-function(data, # hourly data
                    
                
                
-                 plotly::ggplotly(p)
+                 plotly::ggplotly(p) %>%
+                   layout(legend = list(orientation = 'h',y = -0.5))
                  
                
              }#STATION LOOP
