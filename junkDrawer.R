@@ -22,3 +22,19 @@ data %>%
                   STATION_NAME,
                   STATION_NAME_FULL)
 
+# # # haley park # # # 
+# so2: 365 valid days, 8390 valid hours
+
+data<-readr::read_rds("./preppedData/Warfield Haley Park.rds")
+
+so2 <- data %>% 
+  dplyr::filter(PARAMETER=="SO2")
+
+so2 %>%
+  dplyr::filter(lubridate::hour(DATE_PST)==5 & !is.na(RAW_VALUE))
+
+so2 %>% dplyr::filter(is.na(RAW_VALUE)) %>% dplyr::count(.)
+
+8759-369 # = 8390 (1 hour each day for span, plus 4 more)
+
+utils::View(so2)
