@@ -3,9 +3,9 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Environmental Monitoring and Analysis Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-prepped_data: !r stringr::str_c("./prepped-data/",dir('./prepped-data')[3],collapse="")
-year: 2024
-site: bookdown::bookdown_site
+  prepped_data: !r stringr::str_c("./prepped-data/",dir('./prepped-data')[52],collapse="")
+  year: 2024
+  site: bookdown::bookdown_site
 output: 
   bookdown::gitbook:
     config:
@@ -85,17 +85,11 @@ prev_yrs_wind<-data |>
                   PARAMETER %in% c("WSPD_SCLR","WDIR_VECT"))
 
 data %<>%
-<<<<<<< HEAD
   dplyr::filter(lubridate::year(DATE_PST)==params$year) |>
   dplyr::group_by(PARAMETER,INSTRUMENT) |>
   dplyr::filter(!all(is.na(RAW_VALUE))) |> 
   dplyr::ungroup(x=_)
-=======
-  dplyr::filter(lubridate::year(DATE_PST)==params$year) %>%
-  dplyr::group_by(PARAMETER,INSTRUMENT) %>%
-  dplyr::filter(!all(is.na(RAW_VALUE))) %>% 
-  dplyr::ungroup(.)
->>>>>>> 49183c6c57e520f93bec0620956181b1901e467b
+
 ```
 
 
