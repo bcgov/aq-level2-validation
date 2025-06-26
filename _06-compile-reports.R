@@ -23,7 +23,7 @@ purrr::walk(#root[1:length(root)],
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
   #compile reports for specific stations:
-  root[102],
+  root[52],
             function(r){
               
               # testing
