@@ -1,10 +1,10 @@
 ---
 title: "Annual Data Validation"
-author: "Air Quality Section | Regional Operations Branch"
+author: "Air Quality Section | Environmental Monitoring and Analysis Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  preppedData: !r stringr::str_c("./preppedData/",dir('./preppedData')[118],collapse="")
-  year: 2023
+prepped_data: !r stringr::str_c("./prepped-data/",dir('./prepped-data')[3],collapse="")
+year: 2024
 site: bookdown::bookdown_site
 output: 
   bookdown::gitbook:
@@ -37,24 +37,34 @@ library(readxl)
 library(gdata)
 
 # functions to calculate SAS stats from hourly data
-source("./statSummaryFcns/pm25StatsFcn.R")
-source("./statSummaryFcns/pm10StatsFcn.R")
-source("./statSummaryFcns/no2StatsFcn.R")
-source("./statSummaryFcns/noStatsFcn.R")
-source("./statSummaryFcns/so2StatsFcn.R")
-source("./statSummaryFcns/o3StatsFcn.R")
-source("./statSummaryFcns/h2sStatsFcn.R")
-source("./statSummaryFcns/trsStatsFcn.R")
-source("./statSummaryFcns/coStatsFcn.R")
+source("./stat-summary-fcns/pm25-stats-fcn.R")
+source("./stat-summary-fcns/pm10-stats-fcn.R")
+source("./stat-summary-fcns/no2-stats-fcn.R")
+source("./stat-summary-fcns/no-stats-fcn.R")
+source("./stat-summary-fcns/so2-stats-fcn.R")
+source("./stat-summary-fcns/o3-stats-fcn.R")
+source("./stat-summary-fcns/h2s-stats-fcn.R")
+source("./stat-summary-fcns/trs-stats-fcn.R")
+source("./stat-summary-fcns/co-stats-fcn.R")
 
-source("plotlyFcn.R")
-source("emptyPlot.R")
-
+source("plotly-fcn.R")
+source("empty-plot.R")
 ```
 
-```{r importData}
+```{r import-data}
 #use the line below for automated report generation
-data<-readRDS(params$preppedData)
+data<-readr::read_rds(params$prepped_data)
+
+#LOOK FOR DUPLICATES
+# duplicates<-data %>%
+#     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
+#     dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+#     dplyr::filter(n > 1L) %>%
+#    dplyr::left_join(.,
+#                     data,
+#                     by=c("DATE_PST","STATION_NAME","PARAMETER"))
+# 
+# utils::View(duplicates)
 
 #LOOK FOR DUPLICATES
 # duplicates<-data %>%
@@ -70,20 +80,27 @@ data<-readRDS(params$preppedData)
 #use the line below for testing - comment it out and pick a station with the parameter(s) of interest
 # data<-readRDS("./preppedData/Kelowna.rds")
 
-prevYrWind<-data %>%
+prev_yrs_wind<-data |> 
   dplyr::filter(lubridate::year(DATE_PST)!=params$year &
                   PARAMETER %in% c("WSPD_SCLR","WDIR_VECT"))
 
 data %<>%
+<<<<<<< HEAD
+  dplyr::filter(lubridate::year(DATE_PST)==params$year) |>
+  dplyr::group_by(PARAMETER,INSTRUMENT) |>
+  dplyr::filter(!all(is.na(RAW_VALUE))) |> 
+  dplyr::ungroup(x=_)
+=======
   dplyr::filter(lubridate::year(DATE_PST)==params$year) %>%
   dplyr::group_by(PARAMETER,INSTRUMENT) %>%
   dplyr::filter(!all(is.na(RAW_VALUE))) %>% 
   dplyr::ungroup(.)
+>>>>>>> 49183c6c57e520f93bec0620956181b1901e467b
 ```
 
 
-```{r dailyData}
-day<-data %>%
+```{r daily-data}
+day<-data |>
     # rename to date for openair
     dplyr::rename(date=DATE_PST) %>%
     dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
@@ -112,10 +129,10 @@ day<-data %>%
 ```
 
 
-```{r hourlyAndDaily}
+```{r hourly-and-daily}
 
 # combine hourly and day data sets in one tidy tibble
-allData<-data %>%
+all_data<-data %>%
   dplyr::select(names(day)) %>%
   dplyr::mutate(TIME_AVG = "Hourly") %>%
   dplyr::bind_rows(.,

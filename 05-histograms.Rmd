@@ -1,62 +1,56 @@
 # Histograms {.tabset}
 
 
-```{r histogramOptions}
+```{r histogram-options}
 knitr::opts_chunk$set(cache = FALSE)
 ```
 
 ## PM~2.5~
 
-```{r pm25histogram}
+```{r pm25-histogram}
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
+    #for testing
+    # station<-"Kitimat Riverlodge"
   
     {
     
-    plotData<-data %>% 
+    plot_data <- data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("pm25"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p<-ggplot(data = plotData,
-       aes(x = RAW_VALUE,
+    p<-ggplot2::ggplot(data = plot_data,
+       ggplot2::aes(x = RAW_VALUE,
            fill = INSTRUMENT,
            color = INSTRUMENT)) +
   
-  geom_histogram(alpha = 0.25,
+  ggplot2::geom_histogram(alpha = 0.25,
                  binwidth = 1) +
   
-  labs(
+  ggplot2::labs(
     title = paste("Histogram:",
                   station),
     y = "Count",
-    x = stringr::str_c(
-      "Hourly PM2.5 (",
-      data %>%
-        dplyr::filter(PARAMETER %in% toupper("pm25")) %>%
-        dplyr::pull(UNIT) %>% unique,
-      ")",
-      sep = ""
-    )
+    x = "Hourly PM2.5 (ug/m3)"
   ) +
-  theme_bw() +
-  theme(legend.position = "none",
-        legend.title = element_blank()) +
-  scale_fill_brewer(palette = "Set1") +
-  facet_wrap( ~ INSTRUMENT, scales = "free") 
-    
-  plotly::ggplotly(p) 
-    
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position = "none",
+        legend.title = ggplot2::element_blank()) +
+  ggplot2::scale_fill_brewer(palette = "Set1") +
+  ggplot2::facet_wrap( ~ INSTRUMENT, scales = "free") 
+  
+  plotly::ggplotly(p)    
     }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
       
     } #end plot function
@@ -72,54 +66,47 @@ suppressWarnings(
 
 ## PM~10~
 
-```{r pm10histogram}
+```{r pm10-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
     
-    plotData <- data %>%
+    plot_data <- data |>
       dplyr::filter(STATION_NAME %in% station &
                       PARAMETER %in% toupper("pm10"))
     
-    if (nrow(plotData) != plotData %>%
-        dplyr::summarise(nas = sum(is.na(RAW_VALUE))) %>%
+    if (nrow(plot_data) != plot_data |>
+        dplyr::summarise(nas = sum(is.na(RAW_VALUE))) |>
         dplyr::pull(nas)) {
       
-      p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+      p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly PM10 (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("pm10")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly PM10 (ug/m3)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p) 
     
@@ -138,55 +125,48 @@ suppressWarnings(
 
 ## O~3~
 
-```{r o3histogram}
+```{r o3-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
 
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("o3"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
     
-      p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+      p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly O3 (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("o3")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly O3 (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -205,54 +185,47 @@ suppressWarnings(
 
 ## NO~2~
 
-```{r no2histogram}
+```{r no2-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
     
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no2"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly NO2 (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("no2")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly NO2 (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p) 
     
@@ -270,54 +243,47 @@ suppressWarnings(
 
 ## NO
 
-```{r nohistogram}
+```{r no-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
 
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("no"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly NO (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("no")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly NO (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p) 
     
@@ -335,52 +301,45 @@ suppressWarnings(
 
 ## NO~x~
 
-```{r noxhistogram}
+```{r nox-histogram}
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
   
     {
 
-    plotData <- data %>%
+    plot_data <- data |>
       dplyr::filter(STATION_NAME %in% station &
                       PARAMETER %in% "NOx")
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly NOx (",
-            data %>%
-              dplyr::filter(PARAMETER %in% "NOx") %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly NOx (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)
     
@@ -398,54 +357,47 @@ suppressWarnings(
 
 ## SO~2~
 
-```{r so2histogram}
+```{r so2-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("so2"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly SO2 (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("so2")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly SO2 (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -463,54 +415,47 @@ suppressWarnings(
 
 ## CO
 
-```{r cohistogram}
+```{r co-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
 
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("co"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-     p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+     p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly CO (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("co")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly CO (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -529,14 +474,14 @@ suppressWarnings(
 ## TRS
 
 
-```{r trshistogram}
+```{r trs-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
@@ -544,40 +489,33 @@ suppressWarnings(
     {
     
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("trs"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly TRS (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("trs")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly TRS (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -595,54 +533,47 @@ suppressWarnings(
 
 ## H~2~S
 
-```{r h2shistogram}
+```{r h2s-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("h2s"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly H2S (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("h2s")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly H2S (ppb)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -660,54 +591,47 @@ suppressWarnings(
 
 ## Wind Speed (Scalar)
 
-```{r wshistogram}
+```{r ws-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("wspd_sclr"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly Wind Speed (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("wspd_sclr")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly Wind Speed (m/s)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -724,54 +648,47 @@ suppressWarnings(
 
 ## Wind Direction (Vector)
 
-```{r wdhistogram}
+```{r wd-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("wdir_vect"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly Wind Direction (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("wdir_vect")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly Wind Direction (degrees)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -788,54 +705,47 @@ suppressWarnings(
 
 ## Humidity
 
-```{r humidityhistogram}
+```{r humidity-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("humidity"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly Humidity (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("humidity")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly Humidity (%)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     
@@ -852,54 +762,47 @@ suppressWarnings(
 
 ## Temperature
 
-```{r temphistogram}
+```{r temp-histogram}
 
 suppressWarnings(
   htmltools::tagList(
   
-  purrr::map(data %>%
-             dplyr::pull(STATION_NAME) %>%
-             unique,
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
   
   function(station)
     
   
     {
    
-    plotData<-data %>% 
+    plot_data<-data |> 
              dplyr::filter(STATION_NAME %in% station &
                              PARAMETER %in% toupper("temp_mean"))
     
-    if(nrow(plotData)!=plotData %>% 
-      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) %>%
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
       dplyr::pull(nas)){
     
-    p <- ggplot(data = plotData,
-                  aes(x = RAW_VALUE,
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
                       fill = INSTRUMENT,
                       color = INSTRUMENT)) +
         
-        geom_histogram(alpha = 0.25,
+        ggplot2::geom_histogram(alpha = 0.25,
                        binwidth = 1) +
         
-        labs(
+        ggplot2::labs(
           title = paste("Histogram:",
                         station),
           y = "Count",
-          x = stringr::str_c(
-            "Hourly Temperature (",
-            data %>%
-              dplyr::filter(PARAMETER %in% toupper("temp_mean")) %>%
-              dplyr::pull(UNIT) %>% unique,
-            ")",
-            sep = ""
-          )
+          x = "Hourly Temperature (degC)"
         ) +
-        theme_bw() +
-        theme(legend.position = "none",
-              legend.title = element_blank()) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_wrap(~ INSTRUMENT, scales = "free")
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
       
       plotly::ggplotly(p)  
     

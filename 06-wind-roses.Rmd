@@ -1,0 +1,255 @@
+# Wind Roses
+
+Wind roses for `r params$year` and 5 previous years (when available). 
+
+Things to look for when validating wind data:
+
++ Annual windrose
++ Windrose from previous years
++ Percent calm winds for the past 5-8 years
++ Do we have any pictures of the station?
++ Does the windrose make sense to you relative to the local topography?
++ RH - does RH get to 100% or does it max out at 97%? Has this changed recently?
++ Can I see any obvious breakpoints in a strip chart where something changes/
+
+```{r wind-cache}
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+
+```{r wind-data-prep-qaqc}
+# select wind data, get it in openair format
+
+wind_data <- # contains X previous years as per _01.import-data.html
+  dplyr::bind_rows(
+    data |> # data from import-data chunk in index.Rmd
+      
+      dplyr::filter(PARAMETER %in% c("WSPD_SCLR", "WDIR_VECT")),
+    prev_yrs_wind
+  )
+```
+
+```{r duplicates,eval=FALSE,include=FALSE}
+# # # # # FIND DUPLICATES
+ duplicates<-wind_data |>
+    dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) |>
+    dplyr::summarise(n = dplyr::n(), .groups = "drop") |>
+    dplyr::filter(n > 1L) |>
+   dplyr::left_join(x=_,
+                    wind_data,
+                    by=c("DATE_PST","STATION_NAME","PARAMETER"))
+
+utils::View(duplicates)
+
+# save duplicates as csv
+ write.csv(duplicates,"duplicates.csv")
+
+ 
+ # # # EXPLORATORY DATA ANALYSIS # # #
+ 
+ #look at the first 6 rows of each set of duplicates (by PARAMETER)
+ duplicates |>
+   dplyr::group_by(PARAMETER) |>
+   dplyr::slice(1:6) |> utils::View()
+
+  # are any groups all NA's? makes it easy to remove
+ duplicates |>
+   # dplyr::filter(PARAMETER=="WSPD_SCLR") |>
+   dplyr::group_by(PARAMETER,INSTRUMENT) |>
+   dplyr::summarise(`# NA's`=sum(is.na(RAW_VALUE)),
+                    `# Obs`=sum(!is.na(RAW_VALUE)),
+                    `# Hours`=dplyr::n())
+
+
+# when did the duplicates start and end?
+duplicates |>
+  dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) |>
+  dplyr::summarise(start=min(DATE_PST),
+                   end=max(DATE_PST))
+
+# to look at the whole data set (sorted by PARAMETER and DATE_PST)
+duplicates |>
+  dplyr::arrange(PARAMETER,DATE_PST) |> utils::View()
+
+
+ 
+duplicates |>
+  dplyr::filter(PARAMETER=="WDIR_VECT") |> utils::View()
+ # odd rows - shoudl be all NA's
+      dplyr::slice(seq(1,nrow(.),2)) |> utils::View()
+
+# preview wind_data
+wind_data |>
+  dplyr::filter(INSTRUMENT=="UNSPECIFIED" &
+                  lubridate::year(DATE_PST)==2021) |> utils::View()
+ 
+ # # # END DUPLICATES
+  
+```
+
+```{r wind-data-openair}
+if( all(nrow(wind_data)!=0, # at least one row of data
+        any(unique(wind_data$PARAMETER) %in% "WSPD_SCLR"),
+        any(unique(wind_data$PARAMETER) %in% "WDIR_VECT")
+    )
+  ){
+  
+  wind_data <- wind_data |>
+    
+    dplyr::select(date = DATE_PST,
+                  STATION_NAME,
+                  # INSTRUMENT,
+                  PARAMETER,
+                  RAW_VALUE) |>
+    
+    tidyr::pivot_wider(data=_,
+                       names_from = PARAMETER,
+                       values_from = RAW_VALUE) |>
+    
+    dplyr::rename(ws = WSPD_SCLR,
+                  wd = WDIR_VECT) |>
+    
+    dplyr::mutate(ws = ifelse(is.na(wd), NA_real_, ws),
+                  wd = ifelse(is.na(ws), NA_real_, wd))
+}
+
+
+# openair::summaryPlot(wind_data)
+```
+
+```{r wind-rose, fig.show='hide'}
+if(all(
+  # at least a row of data
+  nrow(wind_data) != 0, 
+  # some data in the year being validated
+  length(unique(lubridate::year(wind_data$date)) %in% params$year)!=0,
+  # a column called ws
+  any(names(wind_data) %in% "ws"),
+  # a column called wd
+  any(names(wind_data) %in% "wd")
+         
+       )
+) {
+ 
+  
+  station<-unique(wind_data$STATION_NAME)
+
+   
+plot_list<-lapply(unique(lubridate::year(wind_data$date)) |> sort(x=_),
+                  
+# plot_list<-purrr::walk(unique(lubridate::year(wind_data$date)) |> sort(x=_),
+    
+    function(year){
+      
+      # TESTING
+      
+      # year<-2024
+      # 
+      # wind_dataBackup<-wind_data
+      # 
+      # wind_data<-wind_dataBackup
+      
+      # END TESTING
+      
+      
+      wind_data %<>%
+        dplyr::filter(lubridate::year(date) %in% year)
+      
+      #number of calm hours
+      ncalm <- wind_data |>
+        dplyr::filter(ws < 0.5) |>
+        dplyr::summarise(calms = n())
+      
+      #total number of valid ws hours
+      ntotal <- wind_data |>
+        dplyr::filter(!is.na(ws)) |>
+        dplyr::summarise(total = n())
+      
+      #percentage calm (ws<0.5 m/s)
+      pcalm <- round(100 * ncalm / ntotal,
+                     digits = 2)
+      
+      #filter out calm wind_data
+      roseData <- wind_data |>
+        dplyr::filter(ws >= 0.5)
+      
+      if(nrow(wind_data)==sum(is.na(wind_data$ws)) | nrow(roseData)==0){
+        
+        #make an empty plot when there is no data for a year
+        ggplot2::ggplot(data=tibble::tibble(
+          y=NA_real_,
+          x=NA_real_),
+          ggplot2::aes(x=x,y=y
+        ))+
+          ggplot2::annotate("text",x=0,y=0,label="There is no valid paired wind data for this year.")+
+          ggplot2::labs(x="",
+                        y="",
+                        title=year)+
+          ggplot2::theme_bw()+
+          ggplot2::theme(axis.text.x = ggplot2::element_blank(), 
+                axis.ticks.x = ggplot2::element_blank(), 
+                axis.text.y = ggplot2::element_blank(), 
+                axis.ticks.y = ggplot2::element_blank()) +
+          ggplot2::coord_polar()
+        
+        
+      } else {
+      
+      
+      
+      #windRose
+      p<-windRose(
+        roseData,
+        annotate = FALSE,
+        breaks = c(0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1),
+        #Beaufort scale with 0.5 as lowest cut point.
+        sub = paste("Calms (=<0.5m/s)=", pcalm, "%"),
+        key.position = "right",
+        main = stringr::str_c(year),
+        angle = 360 / 16,
+        #16 spokes
+        cols = "jet",
+        paddle = FALSE
+      ) 
+      
+      p$plot
+      
+      } # end else
+ 
+    } #end function(station)
+     ) # map
+ 
+} else{
+  
+  plot_list<-htmltools::tags$p("This station either doesn't measure wind, has no wind data for the year being validated, or it is missing one of WSPD_SCLR or WDIR_VECT")
+  
+}
+
+
+```
+
+```{r wind-rose-fig-dims}
+#define width and height of wind rose figures based on length of plot_list
+
+fig_height<-dplyr::case_when(
+  length(plot_list) %in% 1:2 ~ 4,
+  length(plot_list) %in% 3:4 ~ 8,
+  length(plot_list) %in% 5:6 ~ 12,
+  length(plot_list) %in% 7:8 ~ 16
+  
+)
+
+```
+
+
+
+```{r wind-rose-output,fig.height=fig_height}
+if(is.null(plot_list$name)){
+  gridExtra::grid.arrange(grobs=plot_list,
+                        ncol=dplyr::if_else(length(plot_list)==1,1,2),
+                        top=unique(wind_data$STATION_NAME))
+}else{
+  plot_list 
+}
+```
+

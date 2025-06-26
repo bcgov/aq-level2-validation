@@ -1,28 +1,29 @@
+# _06-compile-reports.R
+
+source("_00-setup.R")
+
 # compile annual data validation reports for each file in preppedDAta:
 
-root<-stringr::str_remove(dir("./preppedData"),
+root<-stringr::str_remove(dir("./prepped-data"),
                         ".rds") 
 
 utils::View(root)
 
-yearToValidate<-2023
+# stations that won't compile:
 
 #indices in roots that won't compile: 
-bugs<-c(20, # courtenay elementary school -> issue with wind rose
-        24, # duncan college street issue with wind rose
-        )
+bugs<-c(112) #warfield elementary
 
-rootNoBugs<-root[!(1:length(root) %in% bugs)]
+root_no_bugs<-root[!(6:length(root) %in% bugs)]
 
-utils::View(rootNoBugs)
+utils::View(root_no_bugs)
 
-purrr::walk(#root[3:length(root)],
+purrr::walk(#root[1:length(root)],
   #compile reports for stations without bugs
-  rootNoBugs[1:length(rootNoBugs)], #%>% utils::View(.),
+  # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
-  #compile reports for specific stations: butler park, columbia gardens airport, birchbank,
-  # warfield elementary and warfield haley park
-  # root[47],
+  #compile reports for specific stations:
+  root[102],
             function(r){
               
               # testing
@@ -38,11 +39,11 @@ purrr::walk(#root[3:length(root)],
                                     "bookdown::gitbook",
                                     output_dir = stringr::str_c("_",r,sep = ""),
                                     params = list(
-                                      preppedData = stringr::str_c("./preppedData/",
+                                      prepped_data = stringr::str_c("./prepped-data/",
                                                                    r,
                                                                    ".rds", 
                                                                    collapse = ""),
-                                      year = yearToValidate
+                                      year = year_to_validate
                                     )
                 
                                     
@@ -53,18 +54,21 @@ purrr::walk(#root[3:length(root)],
             )
 
 # need to delete all files 404.html - don't know why these are being generated
-filesToDelete<-list.files(path = ".",
-           pattern = "404",
-           recursive = TRUE,
-           full.names = TRUE)
+files_to_delete <- list.files(
+  #path = ".",
+  path = "R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\aq-level2-validation",
+  pattern = "404",
+  recursive = TRUE,
+  full.names = TRUE
+)
 
-file.remove(filesToDelete)
+file.remove(files_to_delete)
 
 # list files in the reports
-filesToCopy <- dir(
+files_to_copy <- dir(
   file.path(".",
             stringr::str_c("_",
-                           rootNoBugs)),
+                           root_no_bugs)),
   all.files = TRUE,
   full.names = TRUE,
   recursive = TRUE
@@ -73,7 +77,7 @@ filesToCopy <- dir(
 #copy files to shared drive
 destination<-"R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\aq-level2-validation"
 
-file.copy(from = filesToCopy,
+file.copy(from = files_to_copy,
           to=destination,
           overwrite = TRUE,
           recursive = TRUE)

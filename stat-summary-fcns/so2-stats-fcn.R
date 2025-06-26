@@ -1,58 +1,76 @@
-#Script: o3StatsFcn.R
-#Description: calculates o3 Stats stats on ftp data
-# # # 
+# Script: so2_stats_fcn.R
+# Description: so2 Stats script for ftp data
 
+# FOR TESTING
 # subset for a single station and param for testing the function
- data<-readr::read_rds("unverified_data.rds") %>%
-   dplyr::filter(STATION_NAME=="Victoria Topaz" &
-            PARAMETER=="O3") %>%
-   distinct()
+# data<-readr::read_rds("unverified_data.rds") %>%
+#   dplyr::filter(STATION_NAME=="Trail Columbia Gardens Airport" &
+#            PARAMETER=="SO2") %>% distinct()
 # 
-# o3SAS<-o3StatsFcn(data)
 
-o3StatsFcn<-function(data,o3column,dateColumn){ 
+# so2_stats_fcn(data) %>% utils::View(.)
+
+so2_stats_fcn<-function(data,so2column,dateColumn,year){ 
   
-  library(openair)
+  
+  library(openair) 
   library(Hmisc)
   library(tidyverse)
   library(rlang)
   library(rcaaqs)
-
-  # #for testing
-  # o3column<-"RAW_VALUE"
+  
+  #for testing
+  # so2column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
   # data<-data %>%
-  #   dplyr::filter(PARAMETER %in% toupper("o3") &
-  #                   STATION_NAME=="CRANBROOK MURIEL BAXTER")
+  #   dplyr::filter(PARAMETER %in% toupper("so2") &
+  #                   STATION_NAME=="BIRCHBANK GOLF COURSE")
   # END TESTING
   
   #default arguments
-  if(missing(o3column)){o3column<-"RAW_VALUE"}
+  if(missing(so2column)){so2column<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
-  if(missing(data)){data<-o3}
-
-  sub<-data %>%
-    dplyr::select(date=!!dateColumn,
-                  value=!!o3column)
+  if(missing(data)){data<-so2}
+  if(missing(year)){year<-lubridate::year(Sys.Date())-1}
+  
+  sub <- data %>%
+    dplyr::select(date=tidyr::all_of(dateColumn),
+                   value=tidyr::all_of(so2column))
   
   
-  #Count the number of days with valid data:
   #calculate daily averages time series with data completeness of 75%
   dt<-openair::timeAverage(sub,
-                  pollutant="O3",
-                  avg.time="day",
-                  data.thresh=75)
+                           avg.time="day",
+                           data.thresh=75,
+                           start.date = stringr::str_c(year,"-01-01",sep=""),
+                           end.date = stringr::str_c(year,"-12-31",sep="")
+                           )
   
+  #Count the number of days with valid data:
   nd<-dt %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
   
   #Count the number of hours with valid data:
-  nh<-sub %>% 
+  nh<-sub %>%
     dplyr::filter(!is.na(value)) %>%
     dplyr::summarise(n=dplyr::n()) %>%
     dplyr::pull(n)
+  
+  #AQO: 99th percentile of the d1hm:
+  #calculate daily 1-hr max:
+  d1hm<-openair::timeAverage(mydata=sub,
+                     avg.time="day",         #averaging period
+                     statistic="max")
+  
+  #calculate the annual 99th percentile of d1hm (caaqs method)
+  d1hm_p99<-d1hm %>%
+    dplyr::summarise(value=rcaaqs:::quantile2(value,
+                                              probs=0.99,
+                                              na.rm=TRUE,
+                                              type="caaqs")) %>%
+    dplyr::select(value)
   
   #Calculate hourly percentiles over the year: 
   hp<-sub %>%
@@ -93,7 +111,7 @@ o3StatsFcn<-function(data,o3column,dateColumn){
                                  type="caaqs"
     ),
     `98%(hr)`=rcaaqs:::quantile2(value,
-                                 probs=0.98,
+                                 probs=.98,
                                  na.rm=TRUE,
                                  type="caaqs"
     ),
@@ -112,7 +130,6 @@ o3StatsFcn<-function(data,o3column,dateColumn){
                                    na.rm=TRUE,
                                    type="caaqs"
     ),
-    
     # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
     # `100%(hr)`=rcaaqs:::quantile2(value,
     #                             probs=1,
@@ -122,111 +139,102 @@ o3StatsFcn<-function(data,o3column,dateColumn){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
-  #count hourly 82 ppb.
-  hoursAbove82<-sub %>%
-    dplyr::filter(value>=82) %>%
-    dplyr::summarise(n=dplyr::n()) %>%
-    dplyr::pull(n)
+  #Annal 1-hr average > 5ppb.
   
-  #calculate 8 hr. rolling average. 
-  #To calc. for Jan 1, need last 7 hr. from Dec 
-  roll<-rollingMean(sub,
-                    pollutant="value",
-                    width=8,              #8 hour rolling mean
-                    new.name="roll.o3", #column heading
-                    data.thresh=75,       #>=18 hr. for rolling mean
-                    align="right")        #back running
+  AAG5 <- if(mean(sub$value,na.rm=T)>5){
+    "Yes"
+  } else {
+    "No"
+  }
   
-  #remove o3 column
-  roll<- roll %>%
-    select(-value)
-  
-  #calculate max daily 8 hr. roll ave
-  d8hm<-openair::timeAverage(roll,
-                    avg.time="day",
-                    statistic="max")
-  
-  # daily 8 hour maximum average percentiles
-  #calculate d8hm percentiles over the year:
-  d8hmp <-d8hm %>%
+  #count hourly exceedances of 70 and 75 ppb - removed in the 2022 Stat summaries
+  # hoursAbove70<-sub %>%
+  #   dplyr::filter(value>=70) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+  # hoursAbove75<-sub %>%
+  #   dplyr::filter(value>=75) %>%
+  #   dplyr::summarise(n=dplyr::n()) %>%
+  #   dplyr::pull(n)
+
+  #calculate d1hm percentiles over the year:
+  d1hmp <- d1hm %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
-    dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(roll.o3,
+    dplyr::summarise(`0%(D1HM)`=rcaaqs:::quantile2(value,
                                                   probs=0,
                                                   na.rm=TRUE,
                                                   type="caaqs"
     ),
-    `10%(day)`=rcaaqs:::quantile2(roll.o3,
+    `10%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.1,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `25%(day)`=rcaaqs:::quantile2(roll.o3,
+    `25%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.25,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `50%(day)`=rcaaqs:::quantile2(roll.o3,
+    `50%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.5,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `75%(day)`=rcaaqs:::quantile2(roll.o3,
+    `75%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.75,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `90%(day)`=rcaaqs:::quantile2(roll.o3,
+    `90%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.9,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `95%(day)`=rcaaqs:::quantile2(roll.o3,
+    `95%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.95,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `98%(day)`=rcaaqs:::quantile2(roll.o3,
+    `98%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=.98,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `99%(day)`=rcaaqs:::quantile2(roll.o3,
+    `99%(D1HM)`=rcaaqs:::quantile2(value,
                                   probs=0.99,
                                   na.rm=TRUE,
                                   type="caaqs"
     ),
-    `99.5%(day)`=rcaaqs:::quantile2(roll.o3,
+    `99.5%(D1HM)`=rcaaqs:::quantile2(value,
                                     probs=0.995,
                                     na.rm=TRUE,
                                     type="caaqs"
     ),
-    `99.9%(day)`=rcaaqs:::quantile2(roll.o3,
+    `99.9%(D1HM)`=rcaaqs:::quantile2(value,
                                     probs=0.999,
                                     na.rm=TRUE,
                                     type="caaqs"
     ),
     # rcaaqs(probs=1,type="caaqs") isn't working, filed an issue on github
-    # `100%(day)`=rcaaqs:::quantile2(roll.o3,
+    # `100%(D1HM)`=rcaaqs:::quantile2(value,
     #                             probs=1,
     #                             na.rm=TRUE,
     #                             type="caaqs"
     # ),
-    `100%(day)`=max(roll.o3,
+    `100%(D1HM)`=max(value,
                     na.rm = TRUE))
   
   
-  
-  #count exceedances of max daily 8 hr. roll ave >63 ppb; commented out since this column doesn't exist in AQS file for 2022.
-  # d8hmAbove63<-nrow(subset(d8hm,d8hm$roll.o3>=63))
-  
-  # d8hmAbove63<-d8hm %>%
-  # dplyr::filter(roll.o3 >=63) %>%
-  # dplyr::summarise(n = dplyr::n()) %>%
-  # dplyr::pull(n)
-  
-  #calculate 4th highest max daily 8 hr. roll ave
-  d8hmRank4<-as_tibble(round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2))
-  
+  #count d1hm exceedances of 70 and 75 ppb.
+  d1hmAbove70<-d1hm %>%
+    dplyr::filter(value>=70) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+  d1hmAbove75<-d1hm %>%
+    dplyr::filter(value>=75) %>%
+    dplyr::summarise(n=dplyr::n()) %>%
+    dplyr::pull(n)
+
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
                            avg.time="month",
@@ -234,16 +242,19 @@ o3StatsFcn<-function(data,o3column,dateColumn){
   
   #calculate number of monitoring days each quarter
   dq<-openair::timeAverage(dt,
-                           avg.time="3 month",
-                           statistic="frequency")
+                  avg.time="3 month",
+                  statistic="frequency")
   
-  #calculate total no. days in Q2+Q3
+  #calculate total no. days each quarter
   alld<-openair::timeAverage(sub,avg.time="day")
-  allq<-c(sum(Hmisc::monthDays(dm$date)[4:9]))
+  allq<-c(sum(Hmisc::monthDays(dm$date)[1:3]),
+          sum(Hmisc::monthDays(dm$date)[4:6]),
+          sum(Hmisc::monthDays(dm$date)[7:9]),
+          sum(Hmisc::monthDays(dm$date)[10:12]))
   
-  #calculate Q2+Q3 capture (%)
-  dq_total <- dq$value[2]+dq$value[3]
-  q<-as_tibble(round((dq_total/allq)*100,0))
+  #calculate quarterly data capture (%)
+  q<-as_tibble(round((dq[,2]/allq)*100,0))
+  
   
   #Change dm from 12 observations of 2 variables to 1 observation of 12
   # variables for making summary (Stats) below
@@ -258,6 +269,12 @@ o3StatsFcn<-function(data,o3column,dateColumn){
            "%b"),
     "(days)",sep = " ")
   
+  #do something similar for q
+  q %<>%
+    dplyr::mutate(QUARTER=stringr::str_c("Q",
+                                         1:4,
+                                         " (%days)")) %>%
+    tidyr::spread(QUARTER,value) 
   
   #Create and print summary table
   (
@@ -283,38 +300,45 @@ o3StatsFcn<-function(data,o3column,dateColumn){
         round(hp %>% dplyr::select(-date),
               2),
         
-        # Hourly Exceedances of 82 ppb
-        tibble::tibble(`HOURLY EXCEEDANCES > 82 ppb`=
-                         hoursAbove82),
+        #Annual 1-hr average>5
+        `ANNUAL 1-HR AVG > 5?` = AAG5,
         
-        # D8hm Percentiles
-        round(d8hmp %>% dplyr::select(-date),
+        # Hourly Exceedances of 70 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
+        #                 hoursAbove70),
+        
+        # Hourly Exceedances of 75 ppb - removed in 2022 stat summaries
+        #tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
+        #                 hoursAbove75),
+        
+        # D1hm Percentiles
+        round(d1hmp %>% dplyr::select(-date),
               2),
         
-        # Exceedances of D8HM >63 PPB
-        # tibble::tibble(`EXCEEDANCES OF D8HM > 63 ppb`=d8hmAbove63),
+        # Exceedances of D1HM >70 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
         
-        # Annual 4TH rANK D8HM
-        tibble::tibble(`ANNUAL 4TH RANK D8HM`=round(d8hmRank4$value,2)),
+        # Exceedances of D1HM >75 PPB- removed in 2022 stat summaries
+        #tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
         
-        # Annual 4TH rANK D8HM, 3-yr avg
-        tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG`=NA_real_),
+        # Annual 99P of D1HM
+        d1hm_p99 %>% 
+          dplyr::mutate(value=round(value,2)) %>%
+          dplyr::rename(`ANNUAL 99P D1HM`=value),
         
-        # Annual 4TH rANK D8HM, 3-yr avg > 63 PPB
-        tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG > 63 PPB?`=NA_real_),
+        # Annual 99P of D1HM 3-yr ave
+        tibble::tibble(`99P_DAILY,3-YR AVG`=NA_real_),
         
-        # Annual 4TH rANK D8HM, 3-yr avg > 62 PPB
-        tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG > 62 PPB?`=NA_real_),
+        # Annual 99P of D1HM 3-yr ave > 70 ppb
+        tibble::tibble(`99P_DAILY,3-YR AVG > 70 PPB`=NA_real_),
         
         # days of monitoring/month
         dm,
         
         # percent of monitoring/quarter
-        tibble::tibble(`Q2+Q3(%days)`=q$value)
+        q
       ) 
     
   ) # end Stats
   
-  # utils::View(Stats)
 }
-

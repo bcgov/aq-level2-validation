@@ -1,13 +1,13 @@
 # Time series {.tabset}
 
-```{r hourlyPlotOptions}
+```{r hourly-plot-options}
 knitr::opts_chunk$set(cache = FALSE)
 ```
 
 ## PM~2.5~
 
-```{r pm25hourly}
-pm25plots<-if(
+```{r pm25-hourly}
+pm25_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("pm25") & !is.na(RAW_VALUE)) %>%
@@ -15,21 +15,21 @@ pm25plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
- plotlyFcn(data,
-          allData,
+ plotly_fcn(data,
+          all_data,
           parameter=toupper("pm25"))
   
   
 }
 
-htmltools::tagList(pm25plots)
+htmltools::tagList(pm25_plots)
 ```
 
 
 ## PM~10~
 
-```{r pm10hourly}
-pm10plots<-if(
+```{r pm10-hourly}
+pm10_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("pm10") & !is.na(RAW_VALUE)) %>%
@@ -37,20 +37,20 @@ pm10plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-            allData,
+  plotly_fcn(data,
+            all_data,
             parameter=toupper("pm10"))
   
   
 }
 
-htmltools::tagList(pm10plots)
+htmltools::tagList(pm10_plots)
 ```
 
 ## O~3~
 
-```{r o3hourly}
-o3plots<-if(
+```{r o3-hourly}
+o3_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("o3") & !is.na(RAW_VALUE)) %>%
@@ -58,21 +58,21 @@ o3plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("o3"))
   
   
 }
 
-htmltools::tagList(o3plots)
+htmltools::tagList(o3_plots)
 ```
 
 ## NO~2~
 
-```{r no2hourly}
-no2plots<-if(
+```{r no2-hourly}
+no2_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("no2") & !is.na(RAW_VALUE)) %>%
@@ -80,21 +80,21 @@ no2plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,    
-            allData,
+  plotly_fcn(data,    
+            all_data,
 
             parameter=toupper("no2"))
   
   
 }
 
-htmltools::tagList(no2plots)
+htmltools::tagList(no2_plots)
 ```
 
 ## NO
 
-```{r nohourly}
-noplots<-if(
+```{r no-hourly}
+no_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("no") & !is.na(RAW_VALUE)) %>%
@@ -102,21 +102,21 @@ noplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("no"))
   
   
 }
 
-htmltools::tagList(noplots)
+htmltools::tagList(no_plots)
 ```
 
 ## NO~x~
 
-```{r noxhourly}
-noxplots<-if(
+```{r nox-hourly}
+nox_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% "NOx" & !is.na(RAW_VALUE)) %>%
@@ -124,22 +124,22 @@ noxplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter="NOx")
   
   
 }
 
-htmltools::tagList(noxplots)
+htmltools::tagList(nox_plots)
 ```
 
 
 ## SO~2~
 
-```{r so2hourly}
-so2plots<-if(
+```{r so2-hourly}
+so2_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("so2") & !is.na(RAW_VALUE)) %>%
@@ -147,21 +147,21 @@ so2plots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("so2"))
   
   
 }
 
-htmltools::tagList(so2plots)
+htmltools::tagList(so2_plots)
 ```
 
 ## CO
 
-```{r cohourly}
-coplots<-if(
+```{r co-hourly}
+co_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("co") & !is.na(RAW_VALUE)) %>%
@@ -169,21 +169,21 @@ coplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("co"))
   
   
 }
 
-htmltools::tagList(coplots)
+htmltools::tagList(co_plots)
 ```
 
 ## TRS
 
-```{r trshourly}
-trsplots<-if(
+```{r trs-hourly}
+trs_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("trs") & !is.na(RAW_VALUE)) %>%
@@ -191,21 +191,21 @@ trsplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("trs"))
   
   
 }
 
-htmltools::tagList(trsplots)
+htmltools::tagList(trs_plots)
 ```
 
 ## H~2~S
 
-```{r h2shourly}
-h2splots<-if(
+```{r h2s-hourly}
+h2s_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("h2s") & !is.na(RAW_VALUE)) %>%
@@ -213,23 +213,23 @@ h2splots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("h2s"))
   
   
 }
 
-htmltools::tagList(h2splots)
+htmltools::tagList(h2s_plots)
 ```
 
 ## WS
 
 Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
 
-```{r wspd_sclrhourly}
-wspd_sclrplots<-if(
+```{r wspd_sclr-hourly}
+wspd_sclr_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("wspd_sclr") & !is.na(RAW_VALUE)) %>%
@@ -237,23 +237,23 @@ wspd_sclrplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("wspd_sclr"))
   
   
 }
 
-htmltools::tagList(wspd_sclrplots)
+htmltools::tagList(wspd_sclr_plots)
 ```
 
 ## WD
 
 Something to look for: ws/wd lock due to rime on the anemometer or vane, data coming online after long periods (multiple hours) of being offline only to have the first hour read high, then all subsequent hours much lower.
 
-```{r wdir_vecthourly}
-wdir_vectplots<-if(
+```{r wdir_vect-hourly}
+wdir_vect_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("wdir_vect")& !is.na(RAW_VALUE)) %>%
@@ -261,21 +261,21 @@ wdir_vectplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("wdir_vect"))
   
   
 }
 
-htmltools::tagList(wdir_vectplots)
+htmltools::tagList(wdir_vect_plots)
 ```
 
 ## Temp
 
-```{r temp_meanhourly}
-temp_meanplots<-if(
+```{r temp_mean-hourly}
+temp_mean_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("temp_mean") & !is.na(RAW_VALUE)) %>%
@@ -283,21 +283,21 @@ temp_meanplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("temp_mean"))
   
   
 }
 
-htmltools::tagList(temp_meanplots)
+htmltools::tagList(temp_mean_plots)
 ```
 
 ## Humidity
 
-```{r humidityhourly}
-humidityplots<-if(
+```{r humidity-hourly}
+humidity_plots<-if(
   
   (data %>% 
        dplyr::filter(PARAMETER %in% toupper("humidity") & !is.na(RAW_VALUE)) %>%
@@ -305,13 +305,13 @@ humidityplots<-if(
   
 ) {htmltools::tags$p("There is no data for this parameter.")} else {
   
-  plotlyFcn(data,
-                        allData,
+  plotly_fcn(data,
+                        all_data,
 
             parameter=toupper("humidity"))
   
   
 }
 
-htmltools::tagList(humidityplots)
+htmltools::tagList(humidity_plots)
 ```

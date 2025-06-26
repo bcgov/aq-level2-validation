@@ -1,4 +1,4 @@
-# Script: trsStatsFcn.R
+# Script: trs-stats-fcn.R
 # Description: trs Stats script for ftp data
 # NOTE: EXACT SAME STATS AS TRS
 
@@ -8,10 +8,10 @@
 #   dplyr::filter(STATION_NAME=="Langdale Elementary" &
 #            PARAMETER=="TRS") %>% distinct()
 # 
-# trsStatsFcn(data)
+# trs_stats_fcn(data)
 
-trsStatsFcn<-function(data,trscolumn,dateColumn){
-  
+trs_stats_fcn<-function(data,trscolumn,dateColumn,date,year){
+
   library(openair) 
   library(Hmisc)
   library(tidyverse)
@@ -30,6 +30,7 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
   if(missing(trscolumn)){trscolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-trs}
+  if(missing(year)){year<-lubridate::year(Sys.Date())-1}
   
   sub <- data %>%
     dplyr::select(date=!!dateColumn,
@@ -38,7 +39,11 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
   # # # VALID DATA (DAYS AND HR.) # # # 
   
   #calculate daily averages time series, data completeness = 75%
-  dt<-openair::timeAverage(sub,avg.time="day",data.thresh=75)
+  dt<-openair::timeAverage(sub,avg.time="day",
+                           data.thresh=75,
+                           start.date = stringr::str_c(year,"-01-01",sep=""),
+                           end.date = stringr::str_c(year,"-12-31",sep="")
+                           )
   
   #Count the number of days with valid data:
   nd<-dt %>%
@@ -132,6 +137,26 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
   ############### DAILY PERC. & EXCEEDANCES ############### 
   
   #calculate daily percentiles over the year:
+  
+  if(sum(is.na(dt$value))==nrow(dt)){
+    
+    dp<-dt %>%
+      dplyr::group_by(date=lubridate::year(date)) %>%
+      dplyr::summarise(`0%(day)`=NA_real_,
+                       `10%(day)`=NA_real_,
+                       `25%(day)`=NA_real_,
+                       `50%(day)`=NA_real_,
+                       `75%(day)`=NA_real_,
+                       `90%(day)`=NA_real_,
+                       `95%(day)`=NA_real_,
+                       `98%(day)`=NA_real_,
+                       `99%(day)`=NA_real_,
+                       `99.5%(day)`=NA_real_,
+                       `99.9%(day)`=NA_real_,
+                       `100%(day)`=NA_real_,)
+    
+  } else{
+    
   dp<-dt %>%
     dplyr::group_by(date=lubridate::year(date)) %>%
     dplyr::summarise(`0%(day)`=rcaaqs:::quantile2(value,
@@ -197,6 +222,7 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
     # ),
     `100%(day)`=max(value,
                     na.rm = TRUE))
+  }
   
   #count daily exceedances of 2 ppb.
   daysAbove2<-dt %>%
@@ -254,7 +280,6 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
   
   (
     Stats <- tibble::tibble(
-      
       `STATION NAME` = data %>%
         dplyr::pull(STATION_NAME) %>%
         unique,
@@ -264,13 +289,13 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
       `VALID DAYS`= nd,
       
       `VALID HOURS`=nh,
-      
+
       `ANNUAL 1-HR AVG`=round(mean(sub$value,na.rm=T),2),
       
     ) %>%
       
       dplyr::bind_cols(
-        
+
         # Hourly Percentiles
         round(hp %>% dplyr::select(-date),
               2),
@@ -294,4 +319,5 @@ trsStatsFcn<-function(data,trscolumn,dateColumn){
       ) 
     
   ) # end Stats
+
 }

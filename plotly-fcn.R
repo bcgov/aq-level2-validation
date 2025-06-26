@@ -3,83 +3,85 @@
 
 # parameter<-"PM25"
 
-plotlyFcn<-function(data, # hourly data
-                    allData, # hourly and daily data in one tidy tibble
+plotly_fcn<-function(data, # hourly data
+                    all_data, # hourly and daily data in one tidy tibble
                     parameter){
 
   library(tidyverse)
   
-  purrr::map((data %>%
-                dplyr::filter(PARAMETER %in% parameter) %>%
-                dplyr::distinct(STATION_NAME) %>%
+  purrr::map((data |>
+                dplyr::filter(PARAMETER %in% parameter) |>
+                dplyr::distinct(STATION_NAME) |>
                 dplyr::arrange(STATION_NAME))$STATION_NAME,
              
              function(station){
                # FOR TESTING #
-               # station<-(data %>%
-               #             filter(PARAMETER %in% parameter) %>%
-               #             distinct(STATION_NAME) %>%
+               # station<-(data |>
+               #             filter(PARAMETER %in% parameter) |>
+               #             distinct(STATION_NAME) |>
                #             arrange(STATION_NAME))$STATION_NAME
-               
-               # station<-"Golden Helipad"
+
+               # station<-"Victoria Topaz"
+               # parameter<-"PM25"
                
                # END TESTING
                
-               plotData<-allData %>%
+               plot_data<-all_data |>
                  dplyr::filter(PARAMETER %in% parameter &
-                          STATION_NAME %in% station) %>% 
+                          STATION_NAME %in% station) |> 
                  dplyr::mutate(TIME_AVG=factor(TIME_AVG,
                                                levels = c("Hourly",
                                                "24-HR Running Ave",
                                                  "Daily")))
                
                
-               p<- ggplot2::ggplot(plotData,
-                               aes(x=DATE_PST,
+               p<- ggplot2::ggplot(plot_data,
+                               ggplot2::aes(x=DATE_PST,
                                    y=RAW_VALUE,
                                    color=TIME_AVG,
                                    linetype=INSTRUMENT))+
-                 geom_line(alpha=1.0) +
+                 ggplot2::geom_line(alpha=1.0) +
                  
-                 geom_point(alpha=0.8,
+                 ggplot2::geom_point(alpha=0.8,
+
                             pch=21)+
                  
-                 labs(title=paste(station,
+                 ggplot2::labs(title=paste(station,
                                   "Hourly and Daily",
                                   parameter),
                       x="",
                       y=parameter) +
                  
-                 scale_color_brewer(palette = "Set1")+
+                 ggplot2::scale_color_brewer(palette = "Set1")+
                         
                      # scale_color_viridis_d(option = "D") +
                  
                  # scale_linetype_manual(values=c("solid",
                  #                                "dotted")) +
                  
-                 scale_y_continuous(breaks = seq(0,
-                                                 max(plotData$RAW_VALUE,
+                 ggplot2::scale_y_continuous(breaks = seq(0,
+                                                 max(plot_data$RAW_VALUE,
                                                      na.rm = TRUE)*1.05,
                                                  20)#,
                                     # minor_breaks = seq(10,
-                                    #                    max(plotData$RAW_VALUE,
+                                    #                    max(plot_data$RAW_VALUE,
                                     #                        na.rm = TRUE)*1.05,
                                     #                    20)
                                     )+
                  
-                 scale_x_datetime(date_breaks = "2 weeks",
+                 ggplot2::scale_x_datetime(date_breaks = "2 weeks",
                                   date_labels = "%b %d")+
                  
-                 theme_bw()+
+                 ggplot2::theme_bw()+
                  
-                 theme(axis.text.x = element_text(angle = 90))
+                 ggplot2::theme(axis.text.x = element_text(angle = 90))
                    
                    
                
                
-                 plotly::ggplotly(p) %>%
-                   layout(legend = list(orientation = 'h',y = -0.5))
-                 
+                 plotly::ggplotly(p) |>
+                   plotly::layout(legend = list(orientation = 'h',y = -0.5))
+
                
              }#STATION LOOP
              
@@ -87,6 +89,7 @@ plotlyFcn<-function(data, # hourly data
 
 }
 
-# plotlyFcn(data,
-#           "PM25"
+# plotly_fcn(data=data,
+#            all_data=all_data,
+#           parameter="PM25"
 #           )

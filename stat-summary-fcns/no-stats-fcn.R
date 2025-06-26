@@ -1,4 +1,4 @@
-# Script: noStatsFcn.R
+# Script: no_stats_fcn.R
 # Description: no Stats script for ftp data
 
 # FOR TESTING
@@ -7,9 +7,9 @@
 #   dplyr::filter(STATION_NAME=="Castlegar Zinio Park" &
 #            PARAMETER=="NO") %>% distinct()
 # 
-# noStatsFcn(data) 
+# no_stats_fcn(data) 
 
-noStatsFcn<-function(data,nocolumn,dateColumn){
+no_stats_fcn<-function(data,nocolumn,dateColumn,year){
   
   library(openair) 
   library(Hmisc)
@@ -29,6 +29,7 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
   if(missing(nocolumn)){nocolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-no}
+  if(missing(year)){year<-lubridate::year(Sys.Date())-1}
   
   nosub <- data %>%
     dplyr::select(date=!!dateColumn,
@@ -37,7 +38,10 @@ noStatsFcn<-function(data,nocolumn,dateColumn){
   #calculate daily averages time series with data completeness of 75%
   dt<-openair::timeAverage(nosub,
                            avg.time="day",
-                           data.thresh=75)
+                           data.thresh=75,
+                           start.date = stringr::str_c(year,"-01-01",sep=""),
+                           end.date = stringr::str_c(year,"-12-31",sep="")
+                           )
   
   #Count the number of days with valid data:
   nd<-dt %>%

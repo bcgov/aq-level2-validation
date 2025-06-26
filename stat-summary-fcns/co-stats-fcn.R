@@ -1,4 +1,4 @@
-#Script: coStatsFcn.R
+#Script: co_stats_fcn.R
 #Description: calculates co stats
 # # # 
 
@@ -8,10 +8,10 @@
 #            PARAMETER=="CO") %>%
 #   distinct()
 # 
-# coSAS<-coStatsFcn(data)
+# coSAS<-co_stats_fcn(data)
 
 
-coStatsFcn<-function(data,cocolumn,dateColumn){
+co_stats_fcn<-function(data,cocolumn,dateColumn,year){
   
   library(openair) 
   library(Hmisc)
@@ -31,6 +31,7 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   if(missing(cocolumn)){cocolumn<-"RAW_VALUE"}
   if(missing(dateColumn)){dateColumn<-"DATE_PST"}
   if(missing(data)){data<-co}
+  if(missing(year)){year<-lubridate::year(Sys.Date())-1}
   
   sub <- data %>%
     dplyr::select(date=!!dateColumn,
@@ -41,7 +42,10 @@ coStatsFcn<-function(data,cocolumn,dateColumn){
   #calculate daily averages time series with data completeness of 75%
   dt<-openair::timeAverage(sub,
                            avg.time="day",
-                           data.thresh=75)
+                           data.thresh=75,
+                           start.date = stringr::str_c(year,"-01-01",sep=""),
+                           end.date = stringr::str_c(year,"-12-31",sep="")
+                           )
   
   #Count the number of days with valid data:
   nd<-dt %>%

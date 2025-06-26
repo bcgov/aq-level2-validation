@@ -1,9 +1,9 @@
 # Data Summary
 
-```{r dataSummary, cache=FALSE}
+```{r data-summary, cache=FALSE}
 
-DT::datatable(data %>%
-                dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) %>%
+DT::datatable(data |>
+                dplyr::group_by(STATION_NAME,PARAMETER,INSTRUMENT) |>
                 dplyr::summarise(`# Valid Hours`=sum(!is.na(RAW_VALUE))),
               caption = "Summary of data selected for validation.",
               rownames = FALSE)
@@ -14,22 +14,17 @@ DT::datatable(data %>%
 75% data completeness threshold applied to each day (i.e. 18+ valid hours needed in a day for the day to be valid)
 
 
-```{r dailyCapturePlot}
+```{r daily-capture-plot}
 # myColors<-rev(RColorBrewer::brewer.pal(n=3,name="RdBu"))[c(1,3)]
 
 ggplot2::ggplot(
-  day %>%
+  day |>
     
-    dplyr::mutate(`Validity` = dplyr::if_else(is.na(RAW_VALUE),
-                                              "Invalid Days",
-                                              "Valid Days"),
-                  ID=stringr::str_c(PARAMETER,
-                                       INSTRUMENT,
-                                       sep=" - ")
-                  ),
-  aes(x = DATE_PST,
-      y = ID,
-      fill = Validity)
+    dplyr::mutate(
+      `Validity` = dplyr::if_else(is.na(RAW_VALUE), "Invalid Days", "Valid Days"),
+      ID = stringr::str_c(PARAMETER, INSTRUMENT, sep = " - ")
+    ),
+  aes(x = DATE_PST, y = ID, fill = Validity)
 ) +
   
   # ggplot2::facet_wrap(vars(PARAMETER)) +
