@@ -1,0 +1,1146 @@
+# Statistics {.tabset}
+
+```{r StatsOptions}
+knitr::opts_chunk$set(cache = FALSE)
+
+stat_reports<-"./stat-summaries"
+```
+
+Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
+
+## PM~2.5~
+
+```{r pm25_stats}
+
+pm25_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% "PM25") |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               #testing
+               # station<-"Agassiz Centennial Park"
+               
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% "PM25" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                  # testing
+                  # instrument<-"PM25_SHARP5030i"
+                              
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm25_stats_fcn(data=instrument,
+                                  year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+pm25_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+
+```{r pm25_stats_aqm}
+# get pm25 stations in data
+pm25_stns<-data |>
+  dplyr::filter(PARAMETER=="PM25") |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(pm25_stns!=0)){
+
+# import aqm Stats from excel
+pm25_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("PM25_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+
+# remove secondary header row
+dplyr::slice(-1) |>
+  
+  # remove quarterly capture (duplicated)
+  dplyr::select(-c(`EMS ID`,
+                              `NAPS ID`,
+                              REGION,
+                              OWNER,
+                              UNIT)) |>
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm25_stns, "_", " "))
+
+
+# MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
+
+# utils::View(names(pm25_stats_aqm))
+# utils::View(names(pm25_stats))
+# 
+# tibble::tibble(names(pm25_stats_aqm),
+#                names(pm25_stats)) |> utils::View(.)
+# 
+# pm25_stats_aqm %<>%
+#   dplyr::select(1:31,33,34,32,everything())
+
+names(pm25_stats_aqm) <- names(pm25_stats)
+
+}
+ 
+```
+
+```{r pm25_stats_dt}
+if(length(pm25_stns)!=0){
+
+  if(exists("pm25_stats_aqm") & nrow(pm25_stats_aqm!=0)){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+pm25_stats_dt <- bind_rows(
+  pm25_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)), #|> utils::View(.),
+
+  pm25_stats |>
+    dplyr::mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    pm25_stats_dt,
+    caption = dplyr::if_else(nrow(pm25_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to aqm stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from aqm.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")} # this seems redundant - TO DO: TRY REMOVING IT AND SEE IF IT CRASHES
+  }
+
+# case 2: no data for this parameter
+if(length(pm25_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+
+```
+
+## PM~10~
+```{r pm10_stats}
+
+pm10_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% "PM10") |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% "PM10" &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   pm10_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+pm10_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+
+```{r pm10_stats_aqm}
+# get pm10 stations in data
+pm10_stns<-data |>
+  dplyr::filter(PARAMETER=="PM10") |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(pm10_stns!=0)){
+
+# import _aqm Stats from excel
+pm10_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("PM10_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+
+# remove secondary header row
+dplyr::slice(-1) |>
+  
+  # remove quarterly capture (duplicated)
+  dplyr::select(-c(`EMS ID`,
+                              `NAPS ID`,
+                              REGION,
+                              OWNER,
+                              UNIT)) |>
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(pm10_stns, "_", " "))
+
+
+# MATCH NAMES AND DATA STRUCTURE - ORDER OF DAILY EXCEEDANCES, 98P , 3-YR 98P IS MISMATCHED.
+
+# utils::View(names(pm10_stats_aqm))
+# utils::View(names(pm10_stats))
+# utils::View(pm10_stats_aqm)
+# 
+# tibble::tibble(names(pm10_stats_aqm)[c(1:32,34,35,33,37:47,49:52)],
+#                names(pm10_stats)) |> utils::View(.)
+
+pm10_stats_aqm %<>%
+  dplyr::select(1:32,34,35,33,everything())
+
+names(pm10_stats_aqm) <- names(pm10_stats)
+
+}
+ 
+```
+
+
+```{r pm10_stats_dt}
+if(length(pm10_stns)!=0 ){
+
+  if(exists("pm10_stats_aqm") & nrow(pm10_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+pm10_stats_dt <- bind_rows(
+  pm10_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  pm10_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    pm10_stats_dt,
+    caption = dplyr::if_else(nrow(pm10_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(pm10_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+
+```
+
+## NO~2~
+
+```{r no2_stats}
+
+no2_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("no2")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("no2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   no2_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+# add column origin for where calculations originate from
+no2_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r no2_stats_aqm}
+# get no2 stations in data
+no2_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("no2")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(no2_stns)!=0){
+
+# import _aqm Stats from excel
+no2_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("NO2_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded column
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(no2_stns, "_", " "))
+
+
+# tibble::tibble(names(no2_stats_aqm),
+#                names(no2_stats)) |> View
+
+names(no2_stats_aqm) <- names(no2_stats)
+
+}
+ 
+```
+
+```{r no2_stats_dt}
+if(length(no2_stns)!=0){
+
+  if(exists("no2_stats_aqm")& nrow(no2_stats_aqm)!=0){
+   
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+no2_stats_dt <- dplyr::bind_rows(
+  no2_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  no2_stats |>
+    dplyr::mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    no2_stats_dt,
+    caption = dplyr::if_else(nrow(no2_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(no2_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## NO
+
+```{r no_stats}
+
+no_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("no")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("no") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   no_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  # add column origin for where calculations originate from
+no_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r no_stats_aqm}
+# get no stations in data
+no_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("no")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(no_stns)!=0){
+
+# import _aqm Stats from excel
+no_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("NO_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(no_stns, "_", " "))
+
+
+# tibble::tibble(names(no_stats_aqm),
+#                names(no_stats)) |> View
+
+names(no_stats_aqm) <- names(no_stats)
+
+}
+ 
+```
+
+```{r no_stats_dt}
+if(length(no_stns)!=0){
+
+
+  if(exists("no_stats_aqm")& nrow(no_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+no_stats_dt <- bind_rows(
+  no_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  no_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    no_stats_dt,
+    caption = dplyr::if_else(nrow(no_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(no_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+
+## SO~2~
+
+```{r so2_stats}
+
+so2_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("so2")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("so2") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   so2_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+    # add column origin for where calculations originate from
+so2_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r so2_stats_aqm}
+# get so2 stations in data
+so2_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("so2")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(so2_stns)!=0){
+
+# import _aqm Stats from excel
+so2_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("SO2_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(so2_stns, "_", " "))
+
+
+# tibble::tibble(names(so2_stats_aqm),
+#                names(so2_stats)) |> View
+
+names(so2_stats_aqm) <- names(so2_stats)
+ 
+}
+```
+
+```{r so2_stats_dt}
+if(length(so2_stns)!=0){
+
+  if(exists("so2_stats_aqm")& nrow(so2_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+so2_stats_dt <- bind_rows(
+  so2_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  so2_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    so2_stats_dt,
+    caption = dplyr::if_else(nrow(so2_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(so2_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## O~3~
+
+Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQAS calculations, these 7 hours were not included which leads to small differences with the AQM calculations.
+
+```{r o3_stats}
+
+o3_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("o3")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("o3") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   o3_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+ # add column origin for where calculations originate from
+o3_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r o3_stats_aqm}
+# get o3 stations in data
+o3_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("o3")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(o3_stns!=0)){
+
+# import _aqm Stats from excel
+o3_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("OZONE_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(o3_stns, "_", " "))
+
+
+# tibble::tibble(names(o3_stats_aqm),
+#                names(o3_stats)) |> View
+
+names(o3_stats_aqm) <- names(o3_stats)
+
+}
+ 
+```
+
+```{r o3_stats_dt}
+if(length(o3_stns)!=0){
+
+  if(exists("o3_stats_aqm")& nrow(o3_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+o3_stats_dt <- bind_rows(
+  o3_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  o3_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    o3_stats_dt,
+    caption = dplyr::if_else(nrow(o3_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(o3_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+
+## H~2~S
+
+```{r h2s_stats}
+
+h2s_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("h2s")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("h2s") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   h2s_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  # add column origin for where calculations originate from
+h2s_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r h2s_stats_aqm}
+# get h2s stations in data
+h2s_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("h2s")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(h2s_stns)!=0){
+# import _aqm Stats from excel
+h2s_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("H2S_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(h2s_stns, "_", " "))
+
+# CHECK THE COLUMNS MATCH
+# tibble::tibble(names(h2s_stats_aqm),
+#                names(h2s_stats)) |> View
+
+# utils::View(names(h2s_stats_aqm))
+
+names(h2s_stats_aqm) <- names(h2s_stats)
+
+} 
+
+```
+
+```{r h2s_stats_dt}
+if(length(h2s_stns)!=0){
+
+  if(exists("h2s_stats_aqm")& nrow(h2s_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+h2s_stats_dt <- bind_rows(
+  h2s_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  h2s_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    h2s_stats_dt,
+    caption = dplyr::if_else(nrow(h2s_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(h2s_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## TRS
+
+```{r trs_stats}
+
+trs_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("trs")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("trs") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   trs_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+   # add column origin for where calculations originate from
+trs_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+
+```
+
+```{r trs_stats_aqm}
+# get trs stations in data
+trs_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("trs")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(trs_stns!=0)){
+
+# import _aqm Stats from excel
+trs_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("TRS_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))) |>
+  
+  # remove unneeded columna
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(trs_stns, "_", " "))
+
+# CHECK THE COLUMNS MATCH
+# tibble::tibble(names(trs_stats_aqm),
+#                names(trs_stats)) |> View
+
+names(trs_stats_aqm) <- names(trs_stats)
+
+}
+ 
+```
+
+```{r trs_stats_dt}
+if(length(trs_stns)!=0){
+
+  if(exists("trs_stats_aqm")& nrow(trs_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+trs_stats_dt <- bind_rows(
+  trs_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  trs_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    trs_stats_dt,
+    caption = dplyr::if_else(nrow(trs_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No Stats summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(trs_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
+## CO
+
+Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQAS calculations, these 7 hours were not included which leads to small differences with the AQM calculations.
+
+```{r co_stats}
+
+co_stats<-purrr::map_dfr((data |>
+                dplyr::filter(PARAMETER %in% toupper("co")) |>
+                dplyr::distinct(STATION_NAME) |>
+                dplyr::arrange(STATION_NAME))$STATION_NAME,
+
+             function(station){
+
+               station<-data |>
+                 dplyr::filter(PARAMETER %in% toupper("co") &
+                                 STATION_NAME %in% station)
+
+               purrr::map_dfr(unique(station$INSTRUMENT),
+
+                 function(instrument){
+
+                   instrument<-station |>
+                     dplyr::filter(INSTRUMENT %in% instrument)
+
+                   co_stats_fcn(data=instrument,year=params$year)
+
+                 }) #INSTRUMENT LOOP
+
+             }) #STATION LOOP
+
+  
+# add column origin for where calculations originate from
+co_stats %<>% 
+  dplyr::mutate(ORIGIN="AQAS",
+                # round colunms that contain % in name to two digits
+                dplyr::across(where(is.double),#dplyr::contains("%"),
+                              ~round(.,digits=2)))
+
+```
+
+```{r co_stats_aqm}
+# get co stations in data
+co_stns<-data |>
+  dplyr::filter(PARAMETER==toupper("co")) |>
+  dplyr::pull(STATION_NAME) |>
+  unique(x=_)
+
+if(length(co_stns)!=0){
+
+# import _aqm Stats from excel
+co_stats_aqm <- readxl::read_excel(
+  file.path(stat_reports,                                            
+            stringr::str_c("CO_stats_",
+                           params$year,
+                           ".xlsx",
+                           sep=""))
+  ) |>
+  
+  # remove unneeded columns
+  dplyr::select(-c(`EMS ID`,                    
+                   `NAPS ID`,
+                   REGION,
+                   OWNER,
+                   UNIT)) |> 
+
+# remove secondary header row
+dplyr::slice(-1) |>
+
+  # FOR SUMMARY TABLE
+  dplyr::mutate(ORIGIN = "AQM") |>
+  # FILTER FOR YEAR AND STATIONS
+  dplyr::filter(YEAR == params$year &
+                  `STATION NAME` %in% stringr::str_replace(co_stns, "_", " "))
+
+
+# tibble::tibble(names(co_stats_aqm),
+#                names(co_stats)) |> View
+
+names(co_stats_aqm) <- names(co_stats)
+
+}
+ 
+```
+
+```{r co_stats_dt}
+if(length(co_stns)!=0){
+
+  if(exists("co_stats_aqm")& nrow(co_stats_aqm)!=0){
+
+    # issues with binding, mismatching column formats (character vs integer), not being able to convert from one form to the other. Convert everything to character for data table.
+
+co_stats_dt <- bind_rows(
+  co_stats_aqm |>
+    dplyr::mutate_all(as.character) |>
+    dplyr::mutate(`STATION NAME` = toupper(`STATION NAME`)),
+
+  co_stats |>
+    mutate_all(as.character)
+
+) |>
+  dplyr::arrange(`STATION NAME`) |>
+  dplyr::select(ORIGIN, everything())
+
+
+   DT::datatable(
+    co_stats_dt,
+    caption = dplyr::if_else(nrow(co_stats_aqm)!=0,
+                             "AQM and AQAS calculated statistics.There will be one fewer valid hour compared to AQM stats, I'll try to resolve this for next year.",
+                             "AQAS calculated statistics. (No summary available from AQM.)"),
+    options = list(
+      scrollX = TRUE,
+      scroller = TRUE,
+      scrollY = 300,
+      searching = TRUE,
+      paging = TRUE,
+      pageLength = 25
+    )
+  )
+   
+   
+  }else{htmltools::tags$p("No statistical summary for this parameter.")}
+  }
+
+# case 2: no data for this parameter
+if(length(co_stns)==0) {
+  htmltools::tags$p("There is no data for this parameter.")
+}
+```
+
