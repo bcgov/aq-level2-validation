@@ -1,5 +1,4 @@
-rmd_files: ["index.Rmd","01-data-summary.Rmd","02-stats.Rmd","03-time-series.Rmd","04-box-plots.Rmd","05-histograms.Rmd",
-"06-wind-roses.Rmd"]
+rmd_files: ["index.Rmd","01-data-summary.Rmd","02-pm25.Rmd"]
 delete_merged_file: true
 output_dir: "_book-output"
 rmd_subdir: true
