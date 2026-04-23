@@ -15,7 +15,7 @@ output:
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
 # for testing (comment out when compiling books)
-params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[102],collapse=""), 
+params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[92],collapse=""), 
                year = 2024)
 
 knitr::opts_chunk$set(warning = FALSE,
