@@ -132,3 +132,26 @@ if(length(o3_stns)==0) {
 }
 ```
 
+## Time Series
+
+```{r o3-hourly}
+o3_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("o3") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("o3"))
+  
+  
+}
+
+htmltools::tagList(o3_plots)
+```
+
+
