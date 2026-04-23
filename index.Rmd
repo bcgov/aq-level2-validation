@@ -3,7 +3,7 @@ title: "Annual Data Validation"
 author: "Air Quality Section | Environmental Monitoring and Analysis Branch"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params:
-  prepped_data: !r stringr::str_c("./prepped-data/",dir('./prepped-data')[52],collapse="")
+  prepped_data: !r stringr::str_c("./prepped-data/",dir('./prepped-data')[22],collapse="")
   year: 2024
   site: bookdown::bookdown_site
 output: 
@@ -14,11 +14,9 @@ output:
 ---
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
-# To do's for next year:
-# - add range slider to plotly so it's easy to pan along axes:
- #(https://plotly.com/r/range-slider/)
-# - round aqs stats to match ecms
-# - add difference row to sas summary
+# for testing (comment out when compiling books)
+params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[22],collapse=""), 
+               year = 2024)
 
 knitr::opts_chunk$set(warning = FALSE,
                       message = FALSE,
@@ -54,6 +52,7 @@ source("empty-plot.R")
 ```{r import-data}
 #use the line below for automated report generation
 data<-readr::read_rds(params$prepped_data)
+data<-readr::read_rds("./prepped-data/Cranbrook Muriel Baxter.rds")
 
 #LOOK FOR DUPLICATES
 # duplicates<-data %>%
