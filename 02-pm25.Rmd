@@ -146,4 +146,24 @@ if(length(pm25_stns)==0) {
 
 ```
 
+## Time Series
+
+```{r pm25-hourly}
+pm25_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("pm25") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+ plotly_fcn(data,
+          all_data,
+          parameter=toupper("pm25"))
+  
+  
+}
+
+htmltools::tagList(pm25_plots)
+```
 
