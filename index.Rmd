@@ -15,7 +15,7 @@ output:
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
 # for testing (comment out when compiling books)
-params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[22],collapse=""), 
+params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[102],collapse=""), 
                year = 2024)
 
 knitr::opts_chunk$set(warning = FALSE,
@@ -52,7 +52,7 @@ source("empty-plot.R")
 ```{r import-data}
 #use the line below for automated report generation
 data<-readr::read_rds(params$prepped_data)
-data<-readr::read_rds("./prepped-data/Cranbrook Muriel Baxter.rds")
+# data<-readr::read_rds("./prepped-data/Trail Butler Park.rds")
 
 #LOOK FOR DUPLICATES
 # duplicates<-data %>%
