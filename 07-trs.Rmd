@@ -130,3 +130,23 @@ if(length(trs_stns)==0) {
 ```
 
 ## Time Series
+
+```{r trs-hourly}
+trs_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("trs") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("trs"))
+  
+  
+}
+
+htmltools::tagList(trs_plots)
+```

@@ -5,7 +5,10 @@ source("_00-setup.R")
 # compile annual data validation reports for each file in preppedDAta:
 
 root<-stringr::str_remove(dir("./prepped-data"),
-                        ".rds") 
+                        ".rds")
+                        # trs:  skookumchuk 92
+                        # co: victoria topaz 111
+                        # everything else (except h2s): kitimat riverlodge 51
 
 utils::View(root)
 

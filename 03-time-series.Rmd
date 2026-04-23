@@ -4,28 +4,6 @@
 knitr::opts_chunk$set(cache = FALSE)
 ```
 
-## SO~2~
-
-```{r so2-hourly}
-so2_plots<-if(
-  
-  (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("so2") & !is.na(RAW_VALUE)) %>%
-       nrow(.))==0
-  
-) {htmltools::tags$p("There is no data for this parameter.")} else {
-  
-  plotly_fcn(data,
-                        all_data,
-
-            parameter=toupper("so2"))
-  
-  
-}
-
-htmltools::tagList(so2_plots)
-```
-
 ## CO
 
 ```{r co-hourly}
