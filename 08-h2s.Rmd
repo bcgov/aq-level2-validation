@@ -132,3 +132,25 @@ if(length(h2s_stns)==0) {
 ```
 
 ## Time Series
+
+
+```{r h2s-hourly}
+h2s_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("h2s") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("h2s"))
+  
+  
+}
+
+htmltools::tagList(h2s_plots)
+```
+
