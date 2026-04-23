@@ -138,3 +138,23 @@ if(length(co_stns)==0) {
 ```
 
 ## Time Series
+
+```{r co-hourly}
+co_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("co") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("co"))
+  
+  
+}
+
+htmltools::tagList(co_plots)
+```

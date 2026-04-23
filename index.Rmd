@@ -15,7 +15,7 @@ output:
 
 ```{r setup,echo=FALSE,warning=FALSE,message=FALSE}
 # for testing (comment out when compiling books)
-params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[92],collapse=""), 
+params <- list(prepped_data = stringr::str_c("./prepped-data/",dir('./prepped-data')[111],collapse=""), 
                year = 2024)
 
 knitr::opts_chunk$set(warning = FALSE,
@@ -134,7 +134,6 @@ all_data<-data %>%
                    `24hr` %>%
                      dplyr::mutate(TIME_AVG = "24-HR Running Ave"))
 ```
-
 
 # Preamble {-}
 
