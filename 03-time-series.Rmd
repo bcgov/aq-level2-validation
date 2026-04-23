@@ -4,49 +4,6 @@
 knitr::opts_chunk$set(cache = FALSE)
 ```
 
-## PM~2.5~
-
-```{r pm25-hourly}
-pm25_plots<-if(
-  
-  (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm25") & !is.na(RAW_VALUE)) %>%
-       nrow(.))==0
-  
-) {htmltools::tags$p("There is no data for this parameter.")} else {
-  
- plotly_fcn(data,
-          all_data,
-          parameter=toupper("pm25"))
-  
-  
-}
-
-htmltools::tagList(pm25_plots)
-```
-
-
-## PM~10~
-
-```{r pm10-hourly}
-pm10_plots<-if(
-  
-  (data %>% 
-       dplyr::filter(PARAMETER %in% toupper("pm10") & !is.na(RAW_VALUE)) %>%
-       nrow(.))==0
-  
-) {htmltools::tags$p("There is no data for this parameter.")} else {
-  
-  plotly_fcn(data,
-            all_data,
-            parameter=toupper("pm10"))
-  
-  
-}
-
-htmltools::tagList(pm10_plots)
-```
-
 ## O~3~
 
 ```{r o3-hourly}
