@@ -1,4 +1,4 @@
-# Statistics {.tabset}
+# NO2 {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)
@@ -8,8 +8,7 @@ stat_reports<-"./stat-summaries"
 
 Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
 
-
-## NO~2~
+## Statistics
 
 ```{r no2_stats}
 
@@ -131,7 +130,31 @@ if(length(no2_stns)==0) {
 }
 ```
 
-## NO
+## Time Series
+
+```{r no2-hourly}
+no2_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no2") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,    
+            all_data,
+
+            parameter=toupper("no2"))
+  
+  
+}
+
+htmltools::tagList(no2_plots)
+```
+
+# NO {.tabset}
+
+## Statistics
 
 ```{r no_stats}
 
@@ -255,3 +278,48 @@ if(length(no_stns)==0) {
 }
 ```
 
+## Time Series
+
+```{r no-hourly}
+no_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("no") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("no"))
+  
+  
+}
+
+htmltools::tagList(no_plots)
+```
+
+# NOx {.tabset}
+
+## Time Series
+
+```{r nox-hourly}
+nox_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% "NOx" & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter="NOx")
+  
+  
+}
+
+htmltools::tagList(nox_plots)
+```
