@@ -1,4 +1,4 @@
-# Statistics {.tabset}
+# SO~2~ {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)
@@ -8,7 +8,7 @@ stat_reports<-"./stat-summaries"
 
 Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
 
-## SO~2~
+## Statistics
 
 ```{r so2_stats}
 
@@ -129,3 +129,24 @@ if(length(so2_stns)==0) {
 }
 ```
 
+## Time Series
+
+```{r so2-hourly}
+so2_plots<-if(
+  
+  (data %>% 
+       dplyr::filter(PARAMETER %in% toupper("so2") & !is.na(RAW_VALUE)) %>%
+       nrow(.))==0
+  
+) {htmltools::tags$p("There is no data for this parameter.")} else {
+  
+  plotly_fcn(data,
+                        all_data,
+
+            parameter=toupper("so2"))
+  
+  
+}
+
+htmltools::tagList(so2_plots)
+```

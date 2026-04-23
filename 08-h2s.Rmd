@@ -1,4 +1,4 @@
-# Statistics {.tabset}
+# H~2~S {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)
@@ -8,7 +8,7 @@ stat_reports<-"./stat-summaries"
 
 Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
 
-## H~2~S
+## Statistics
 
 ```{r h2s_stats}
 
@@ -131,4 +131,4 @@ if(length(h2s_stns)==0) {
 }
 ```
 
-
+## Time Series

@@ -1,4 +1,4 @@
-# Statistics {.tabset}
+# CO {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)
@@ -8,7 +8,7 @@ stat_reports<-"./stat-summaries"
 
 Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
 
-## CO
+## Statistics
 
 Some of these statistics are based on 8-hour rolling averages, requiring the last 7 hours of the previous year. For the AQAS calculations, these 7 hours were not included which leads to small differences with the AQM calculations.
 
@@ -137,3 +137,4 @@ if(length(co_stns)==0) {
 }
 ```
 
+## Time Series

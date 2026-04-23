@@ -1,4 +1,4 @@
-# NO2 {.tabset}
+# NO~2~ {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)

@@ -1,4 +1,4 @@
-# Statistics {.tabset}
+# TRS {.tabset}
 
 ```{r StatsOptions}
 knitr::opts_chunk$set(cache = FALSE)
@@ -8,7 +8,7 @@ stat_reports<-"./stat-summaries"
 
 Note: all of the summaries below will have one fewer hour for the AQAS-sourced analysis. 
 
-## TRS
+## Statistics
 
 ```{r trs_stats}
 
@@ -128,3 +128,5 @@ if(length(trs_stns)==0) {
   htmltools::tags$p("There is no data for this parameter.")
 }
 ```
+
+## Time Series
