@@ -8,7 +8,7 @@ root<-stringr::str_remove(dir("./prepped-data"),
                         ".rds")
                         # trs:  skookumchuk 92
                         # co: victoria topaz 111
-                        # everything else (except h2s): kitimat riverlodge 51
+                        # everything else (except h2s): kitimat riverlodge 52
 
 utils::View(root)
 
