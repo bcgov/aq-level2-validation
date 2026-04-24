@@ -1,4 +1,4 @@
-rmd_files: ["index.Rmd","01-data-summary.Rmd","02-pm25.Rmd","03-pm10.Rmd","04-o3.Rmd","05-nox.Rmd","06-so2.Rmd"]
+rmd_files: ["index.Rmd","01-data-summary.Rmd","02-pm25.Rmd","03-pm10.Rmd","04-o3.Rmd","05-nox.Rmd","06-so2.Rmd","07-trs.Rmd","08-h2s.Rmd","09-co.Rmd","10-wind.Rmd"]
 delete_merged_file: true
 output_dir: "_book-output"
 rmd_subdir: true
