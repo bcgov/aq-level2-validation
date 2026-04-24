@@ -379,3 +379,61 @@ suppressWarnings(
 ) #end suppressWarnings
 
 ```
+
+## Histograms
+
+```{r h2s-histogram}
+
+suppressWarnings(
+  htmltools::tagList(
+  
+  purrr::map(data |>
+             dplyr::pull(STATION_NAME) |>
+             unique(x=_),
+  
+  function(station)
+    
+  
+    {
+   
+    plot_data<-data |> 
+             dplyr::filter(STATION_NAME %in% station &
+                             PARAMETER %in% toupper("h2s"))
+    
+    if(nrow(plot_data)!=plot_data |> 
+      dplyr::summarise(nas=sum(is.na(RAW_VALUE))) |>
+      dplyr::pull(nas)){
+    
+    p <- ggplot2::ggplot(data = plot_data,
+                  ggplot2::aes(x = RAW_VALUE,
+                      fill = INSTRUMENT,
+                      color = INSTRUMENT)) +
+        
+        ggplot2::geom_histogram(alpha = 0.25,
+                       binwidth = 1) +
+        
+        ggplot2::labs(
+          title = paste("Histogram:",
+                        station),
+          y = "Count",
+          x = "Hourly H2S (ppb)"
+        ) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "none",
+              legend.title = ggplot2::element_blank()) +
+        ggplot2::scale_fill_brewer(palette = "Set1") +
+        ggplot2::facet_wrap(~ INSTRUMENT, scales = "free")
+      
+      plotly::ggplotly(p)  
+    
+    }  else{htmltools::tags$p("There is no data for this parameter.")}#end if and else
+      
+    } #end plot function
+  
+  )# end map
+  
+) #end tagList
+
+) #end suppressWarnings
+
+```
