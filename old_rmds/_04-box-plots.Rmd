@@ -9,9 +9,9 @@ station<-data |>
 ```
 
 ```{r data-prep}
-# add units becuase it is used below and in the plots
+# add units because it is used below and in the plots
 
-# look at all the unique paramters
+# look at all the unique parameters
 # data |> dplyr::distinct(PARAMETER)
 
 data %<>%
@@ -59,7 +59,6 @@ if(nrow(plot_data)== nrow(plot_data |>
 ){htmltools::tags$p("There is no PM2.5 data at this station.")}
 
 ```
-
 
 ```{r pm25_monthly}
 

@@ -88,6 +88,39 @@ data %<>%
   dplyr::filter(!all(is.na(RAW_VALUE))) |> 
   dplyr::ungroup(x=_)
 
+# add units because it is used below and in the plots
+
+# look at all the unique parameters
+# data |> dplyr::distinct(PARAMETER)
+
+data %<>%
+  dplyr::mutate(UNIT=dplyr::case_when(
+    
+    PARAMETER %in% c("CO",
+                     "NO",
+                     "NO2",
+                     "NOx",
+                     "O3",
+                     "SO2",
+                     "H2S",
+                     "TRS") ~ "ppb",
+    
+    PARAMETER %in% c("PM10",
+                     "PM25") ~ "ug/m3",
+    
+    PARAMETER == "HUMIDITY" ~ "%",
+    
+    PARAMETER == "TEMP_MEAN" ~ "deg. C",
+    
+    PARAMETER == "WDIR_VECT" ~ "deg.",
+    
+    PARAMETER == "WSPD_SCLR" ~ "m/s"
+    
+    
+    
+    
+  ))
+
 ```
 
 
