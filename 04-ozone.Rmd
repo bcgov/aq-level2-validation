@@ -1,6 +1,6 @@
 # O~3~ {.tabset}
 
-```{r StatsOptions}
+```{r o3_Options}
 knitr::opts_chunk$set(cache = FALSE)
 
 stat_reports<-"./stat-summaries"

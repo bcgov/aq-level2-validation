@@ -1,6 +1,6 @@
 # PM~2.5~ {.tabset}
 
-```{r StatsOptions}
+```{r pm25-Options}
 knitr::opts_chunk$set(cache = FALSE)
 
 stat_reports<-"./stat-summaries"

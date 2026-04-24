@@ -1,6 +1,6 @@
 # PM~10~ {.tabset}
 
-```{r pm10-options}
+```{r pm10_options}
 knitr::opts_chunk$set(cache = FALSE)
 
 stat_reports<-"./stat-summaries"

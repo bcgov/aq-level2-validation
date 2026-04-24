@@ -1,6 +1,6 @@
 # CO {.tabset}
 
-```{r StatsOptions}
+```{r co_options}
 knitr::opts_chunk$set(cache = FALSE)
 
 stat_reports<-"./stat-summaries"

@@ -1,6 +1,6 @@
 # TRS {.tabset}
 
-```{r StatsOptions}
+```{r trs_options}
 knitr::opts_chunk$set(cache = FALSE)
 
 stat_reports<-"./stat-summaries"
