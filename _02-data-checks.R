@@ -11,7 +11,8 @@ data |>
   dplyr::distinct(year=lubridate::year(DATE_PST),
                   STATION_NAME_FULL,
                   PARAMETER,
-                  VALIDATION_STATUS) |> 
+                  VALIDATION_STATUS) |>
+  # dplyr::distinct(VALIDATION_STATUS)
   dplyr::filter(VALIDATION_STATUS!="Level 0")
 
 #### data check - NA stations ####
@@ -60,6 +61,7 @@ duplicates<-data |>
 #### data check - campbell loggers ####
 # issue: when datalogger is switched to campbell ""_60|_MET_60| MET_60" is appended to STATION_NAME_FULL. we want same id's for same station
 #fix: strip "_60|_MET_60| MET_60" from station names
+
 data %<>%
   dplyr::mutate(STATION_NAME_FULL=stringr::str_remove(STATION_NAME_FULL,
                                                     "_60|_MET_60| MET_60"))

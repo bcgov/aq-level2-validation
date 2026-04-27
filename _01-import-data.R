@@ -27,7 +27,7 @@ parameters <- tolower(
 system.time({
   data<-envair::importBC_data(
     parameter_or_station = parameters,
-    years=yearToValidate,
+    years=year_to_validate,
     use_openairformat = FALSE
   ) %>%
     dplyr::distinct(.) %>%

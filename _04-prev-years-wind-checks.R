@@ -156,7 +156,7 @@ duplicates <- prev_yrs_wind |>
 # DESCRIPTION OF THE ISSUE: there should be a single data set of wind speed and direction for each unique station name, but sometimes wind speed data get split between, for example STATION_NAME AND STATION_NAME_60, or between two different but arbitrary INSTRUMENT fields. CAUSES ISSUES WHEN GENERATING WIND ROSES.
 
 # have a closer look at station_name_full
-summary_stnNameFull<-prevYrWind %>%
+summary_stnNameFull<-prev_yrs_wind %>%
   dplyr::group_by(STATION_NAME,
                   STATION_NAME_FULL,
                   PARAMETER,INSTRUMENT) %>%
@@ -170,14 +170,14 @@ summary_stnNameFull<-prevYrWind %>%
 utils::View(summary_stnNameFull)
 
 # find combo's that are all NA's and remove them from prevYrWind:
-prevYrWind<-summary_stnNameFull %>%
+prev_yrs_wind<-summary_stnNameFull %>%
   dplyr::filter(allNAs==TRUE) %>% #utils::View(.)
   dplyr::select(STATION_NAME,
                 STATION_NAME_FULL,
                 PARAMETER,
                 INSTRUMENT) %>%
   dplyr::anti_join(
-    prevYrWind,
+    prev_yrs_wind,
     .,
     by=c("STATION_NAME",
          "STATION_NAME_FULL",
@@ -188,7 +188,7 @@ prevYrWind<-summary_stnNameFull %>%
 #read windDuplicates
 windDuplicates<-readr::read_rds("wind-duplicates.rds")
 
-windDuplicates<-prevYrWind %>%
+windDuplicates<-prev_yrs_wind %>%
   
   dplyr::select(DATE_PST,
                 STATION_NAME,
@@ -207,7 +207,7 @@ windDuplicates<-prevYrWind %>%
   dplyr::filter(n > 1L) %>%
   
   dplyr::left_join(.,
-                   prevYrWind,
+                   prev_yrs_wind,
                    by=c("DATE_PST",
                         "STATION_NAME", 
                         "PARAMETER",
@@ -264,7 +264,7 @@ readr::write_rds(windDuplicates,
 
 # fix duplicates
 #1. fix duplicates (two cases: 1 value, 1 NA or 2 NAs)
-#2. replace data in prevYrWind with fixed data
+#2. replace data in prev_yrs_wind with fixed data
 # Note: whatever is done for Duncan (Cairnsmore and College Street) will have to be repeated in data
 
 windFixes<- windDuplicates %>%
@@ -287,11 +287,11 @@ windFixes<- windDuplicates %>%
 readr::write_rds(windFixes,
                  "wind-fixes.rds")                     
 
-# GOT TO HERE - now need to replace data in prevYrWind with windFixes.
+# GOT TO HERE - now need to replace data in prev_yrs_wind with windFixes.
 # 1. filter out windDuplicates using antijoin
 # 2. bind_rows with windFixes
 
-prevYrWind<-dplyr::anti_join(prevYrWind,
+prev_yrs_wind<-dplyr::anti_join(prev_yrs_wind,
                              windDuplicates,
                              by=c("DATE_PST",
                                   "STATION_NAME",
@@ -311,7 +311,7 @@ prevYrWind<-dplyr::anti_join(prevYrWind,
                    windFixes %>%
                      dplyr::select(-result))
 
-#check whether there are any duplicates remaining in prevYrWind by rerunning code above that generates windDuplicates -> result was tibble with 0 rows i.e. no more duplicates!
+#check whether there are any duplicates remaining in prev_yrs_wind by rerunning code above that generates windDuplicates -> result was tibble with 0 rows i.e. no more duplicates!
 
 #### save prev_yrs_wind ####
 readr::write_rds(prev_yrs_wind,

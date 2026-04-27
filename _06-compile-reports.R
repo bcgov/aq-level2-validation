@@ -21,12 +21,12 @@ root_no_bugs<-root[!(6:length(root) %in% bugs)]
 
 utils::View(root_no_bugs)
 
-purrr::walk(#root[1:length(root)],
+purrr::walk(root[1:length(root)],
   #compile reports for stations without bugs
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
   #compile reports for specific stations:
-  root[52],
+  # root[52],
             function(r){
               
               # testing
