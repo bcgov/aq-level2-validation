@@ -3,11 +3,11 @@
 # # # 
 
 # subset for a single station and param for testing the function
- # data<-readr::read_rds("unverified_data.rds") %>%
- #   dplyr::filter(STATION_NAME=="Victoria Topaz" &
- #            PARAMETER=="O3") %>%
- #   distinct()
-# 
+# data<-readr::read_rds("unverified-data.rds") %>%
+#   dplyr::filter(STATION_NAME=="Victoria Topaz" &
+#            PARAMETER=="O3") %>%
+#   distinct()
+
 # o3SAS<-o3_stats_fcn(data)
 
 o3_stats_fcn<-function(data,o3column,dateColumn,year){ 
@@ -21,6 +21,7 @@ o3_stats_fcn<-function(data,o3column,dateColumn,year){
   # #for testing
   # o3column<-"RAW_VALUE"
   # dateColumn<-"DATE_PST"
+  # year<-2025
   # data<-data %>%
   #   dplyr::filter(PARAMETER %in% toupper("o3") &
   #                   STATION_NAME=="CRANBROOK MURIEL BAXTER")
@@ -134,7 +135,7 @@ o3_stats_fcn<-function(data,o3column,dateColumn,year){
   
   #calculate 8 hr. rolling average. 
   #To calc. for Jan 1, need last 7 hr. from Dec 
-  roll<-rollingMean(sub,
+  roll<-openair::rollingMean(sub,
                     pollutant="value",
                     width=8,              #8 hour rolling mean
                     new.name="roll.o3", #column heading
@@ -229,7 +230,7 @@ o3_stats_fcn<-function(data,o3column,dateColumn,year){
   # dplyr::pull(n)
   
   #calculate 4th highest max daily 8 hr. roll ave
-  d8hmRank4<-as_tibble(round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2))
+  d8hmRank4<-tibble::as_tibble(round(d8hm$roll.o3[order(-d8hm$roll.o3)][4],2))
   
   #calculate number of monitoring days each month
   dm<-openair::timeAverage(dt,
@@ -309,6 +310,9 @@ o3_stats_fcn<-function(data,o3column,dateColumn,year){
         
         # Annual 4TH rANK D8HM, 3-yr avg > 62 PPB
         tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG > 62 PPB?`=NA_real_),
+        
+        # Annual 4th rank D8HM, 3-yr avg > 60 PPB
+        tibble::tibble(`ANNUAL 4TH RANK D8HM, 3-YR AVG > 60 PPB?`=NA_real_),
         
         # days of monitoring/month
         dm,
