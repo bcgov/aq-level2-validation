@@ -158,8 +158,6 @@ htmltools::tagList(o3_plots)
 
 ```{r o3_data}
 
-station<-unique(data$STATION_NAME)
-
 plot_data<-data |> 
              dplyr::filter(PARAMETER %in% toupper("o3") &
                              STATION_NAME == station)

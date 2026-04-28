@@ -53,6 +53,8 @@ source("empty-plot.R")
 #use the line below for automated report generation
 data<-readr::read_rds(params$prepped_data)
 
+station<-unique(data$STATION_NAME)
+
 #LOOK FOR DUPLICATES
 # duplicates<-data %>%
 #     dplyr::group_by(DATE_PST, STATION_NAME, PARAMETER) %>%
