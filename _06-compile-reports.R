@@ -22,13 +22,13 @@ root_no_bugs<-root[!(6:length(root) %in% bugs)]
 
 utils::View(root_no_bugs)
 
-purrr::walk(#root[1:length(root)],
+purrr::walk(root[1:length(root)],
   
   #compile reports for stations without bugs
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
   #compile reports for specific stations:
-  root[51],
+  # root[51],
             function(r){
               
               # testing
@@ -41,23 +41,24 @@ purrr::walk(#root[1:length(root)],
                            " ..."))
              
               # # RENDER ENTIRE BOOK
-              # bookdown::render_book(
-              #   # this will compile all the rmd files listed in _bookdown.yml
-              #   ".",
-              #   "bookdown::gitbook",
-              #   output_dir = stringr::str_c("_", r, sep = ""),
-              #   params = list(
-              #     prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
-              #     year = year_to_validate
-              #   ) #params
-              # ) # render_book
+              bookdown::render_book(
+                # this will compile all the rmd files listed in _bookdown.yml
+                ".",
+                "bookdown::gitbook",
+                output_dir = stringr::str_c("_", r, sep = ""),
+                params = list(
+                  prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
+                  year = year_to_validate
+                ) #params
+              ) # render_book
               
               # # RENDER SPECIFIC CHAPTERS
-              bookdown::preview_chapter(c("index.Rmd","06-so2.Rmd"),
-                                        params = list(
-                                          prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
-                                          year = year_to_validate
-                                        ))
+              # bookdown::preview_chapter(c("index.Rmd","06-so2.Rmd"),
+              #                           output_dir = stringr::str_c("_", r, sep = ""),
+              #                           params = list(
+              #                             prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
+              #                             year = year_to_validate
+              #                           ))
               
             }
             
