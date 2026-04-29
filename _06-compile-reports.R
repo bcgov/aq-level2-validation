@@ -16,20 +16,22 @@ utils::View(root)
 # stations that won't compile:
 
 #indices in roots that won't compile: 
-bugs<-c(19, #Colwood City Hall
-        21) #Courtenay Elementary School
+# bugs<-c()
 
-root_no_bugs<-root[!(6:length(root) %in% bugs)]
+root_no_bugs<-root[!(1:length(root) %in% bugs)]
 
 utils::View(root_no_bugs)
 
-purrr::walk(#root[22:length(root)],
+purrr::walk(root[1:length(root)],
   
   #compile reports for stations without bugs
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
+  # compile for roots with bugs:
+  # root[bugs],
+  
   #compile reports for specific stations:
-  root[15],
+  #root[15],
             function(r){
               
               # testing
@@ -68,7 +70,8 @@ purrr::walk(#root[22:length(root)],
 # need to delete all files 404.html - don't know why these are being generated
 files_to_delete <- list.files(
   #path = ".",
-  path = "R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\aq-level2-validation",
+  # path = "R:\\WANSHARE\\EPD\\EPD_SHARED\\MAS\\Air Quality Section\\aq-level2-validation",
+  path = "C:\\HagaR\\aq-level2-validation",
   pattern = "404",
   recursive = TRUE,
   full.names = TRUE
@@ -76,11 +79,14 @@ files_to_delete <- list.files(
 
 file.remove(files_to_delete)
 
+# # # 2025 - what's below wasn't working for transferring files (wasn't making subdirectories)
+# # # so transferred them manually
+
 # list files in the reports
 files_to_copy <- dir(
   file.path(".",
             stringr::str_c("_",
-                           root_no_bugs)),
+                           root)),
   all.files = TRUE,
   full.names = TRUE,
   recursive = TRUE
