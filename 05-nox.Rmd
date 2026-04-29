@@ -38,7 +38,7 @@ no2_stats<-purrr::map_dfr((data |>
              }) #STATION LOOP
 
 # add column origin for where calculations originate from
-no2_stats %<>% dplyr::mutate(ORIGIN="AQAS")
+no2_stats %<>% dplyr::mutate(ORIGIN=as.character("AQAS"))
 
 ```
 
@@ -71,7 +71,7 @@ no2_stats_aqm <- readxl::read_excel(
 dplyr::slice(-1) |>
 
   # FOR SUMMARY TABLE
-  dplyr::mutate(ORIGIN = "AQM") |>
+  dplyr::mutate(ORIGIN = as.character("AQM")) |>
   # FILTER FOR YEAR AND STATIONS
   dplyr::filter(YEAR == params$year &
                   `STATION NAME` %in% stringr::str_replace(no2_stns, "_", " "))

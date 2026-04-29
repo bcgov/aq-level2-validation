@@ -16,13 +16,15 @@ utils::View(root)
 # stations that won't compile:
 
 #indices in roots that won't compile: 
-bugs<-c(112) #warfield elementary
+bugs<-c(15, #Castlegar Zinio Park
+        19, #Colwood City Hall
+        21) #Courtenay Elementary School
 
 root_no_bugs<-root[!(6:length(root) %in% bugs)]
 
 utils::View(root_no_bugs)
 
-purrr::walk(root[1:length(root)],
+purrr::walk(root[22:length(root)],
   
   #compile reports for stations without bugs
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
