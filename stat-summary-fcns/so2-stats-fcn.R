@@ -139,9 +139,17 @@ so2_stats_fcn<-function(data,so2column,dateColumn,year){
     `100%(hr)`=max(value,
                    na.rm = TRUE))
   
-  #Annal 1-hr average > 5ppb.
+  #Annal 1-hr average > 5ppb? (before 2025)
   
   AAG5 <- if(mean(sub$value,na.rm=T)>5){
+    "Yes"
+  } else {
+    "No"
+  }
+  
+  #Annal 1-hr average > 4ppb? (after 2025)
+  
+  AAG4 <- if(mean(sub$value,na.rm=T)>4){
     "Yes"
   } else {
     "No"
@@ -303,23 +311,12 @@ so2_stats_fcn<-function(data,so2column,dateColumn,year){
         #Annual 1-hr average>5
         `ANNUAL 1-HR AVG > 5?` = AAG5,
         
-        # Hourly Exceedances of 70 ppb - removed in 2022 stat summaries
-        #tibble::tibble(`HOURLY EXCEEDANCES > 70 ppb`=
-        #                 hoursAbove70),
-        
-        # Hourly Exceedances of 75 ppb - removed in 2022 stat summaries
-        #tibble::tibble(`HOURLY EXCEEDANCES > 75 ppb`=
-        #                 hoursAbove75),
+        #Annual 1-hr average>4
+        `ANNUAL 1-HR AVG > 4?` = AAG4,
         
         # D1hm Percentiles
         round(d1hmp %>% dplyr::select(-date),
               2),
-        
-        # Exceedances of D1HM >70 PPB- removed in 2022 stat summaries
-        #tibble::tibble(`EXCEEDANCES OF D1HM > 70 ppb`=d1hmAbove70),
-        
-        # Exceedances of D1HM >75 PPB- removed in 2022 stat summaries
-        #tibble::tibble(`EXCEEDANCES OF D1HM > 75 ppb`=d1hmAbove75),
         
         # Annual 99P of D1HM
         d1hm_p99 %>% 
@@ -329,8 +326,11 @@ so2_stats_fcn<-function(data,so2column,dateColumn,year){
         # Annual 99P of D1HM 3-yr ave
         tibble::tibble(`99P_DAILY,3-YR AVG`=NA_real_),
         
-        # Annual 99P of D1HM 3-yr ave > 70 ppb
+        # Annual 99P of D1HM 3-yr ave > 70 ppb (before 2025)
         tibble::tibble(`99P_DAILY,3-YR AVG > 70 PPB`=NA_real_),
+        
+        # Annual 99P of D1HM 3-yr ave > 65 ppb (after 2025)
+        tibble::tibble(`99P_DAILY,3-YR AVG > 65 PPB`=NA_real_),
         
         # days of monitoring/month
         dm,
