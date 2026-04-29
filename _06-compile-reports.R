@@ -28,7 +28,7 @@ purrr::walk(#root[1:length(root)],
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
   #compile reports for specific stations:
-  root[107],
+  root[51],
             function(r){
               
               # testing
@@ -53,7 +53,7 @@ purrr::walk(#root[1:length(root)],
               # ) # render_book
               
               # # RENDER SPECIFIC CHAPTERS
-              bookdown::preview_chapter(c("index.Rmd","04-o3.Rmd"),
+              bookdown::preview_chapter(c("index.Rmd","06-so2.Rmd"),
                                         params = list(
                                           prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
                                           year = year_to_validate
