@@ -16,21 +16,20 @@ utils::View(root)
 # stations that won't compile:
 
 #indices in roots that won't compile: 
-bugs<-c(15, #Castlegar Zinio Park
-        19, #Colwood City Hall
+bugs<-c(19, #Colwood City Hall
         21) #Courtenay Elementary School
 
 root_no_bugs<-root[!(6:length(root) %in% bugs)]
 
 utils::View(root_no_bugs)
 
-purrr::walk(root[22:length(root)],
+purrr::walk(#root[22:length(root)],
   
   #compile reports for stations without bugs
   # root_no_bugs[1:length(root_no_bugs)], #%>% utils::View(.),
   
   #compile reports for specific stations:
-  # root[51],
+  root[15],
             function(r){
               
               # testing
@@ -55,7 +54,7 @@ purrr::walk(root[22:length(root)],
               ) # render_book
               
               # # RENDER SPECIFIC CHAPTERS
-              # bookdown::preview_chapter(c("index.Rmd","06-so2.Rmd"),
+              # bookdown::preview_chapter(c("index.Rmd","05-nox.Rmd"),
               #                           output_dir = stringr::str_c("_", r, sep = ""),
               #                           params = list(
               #                             prepped_data = stringr::str_c("./prepped-data/", r, ".rds", collapse = ""),
